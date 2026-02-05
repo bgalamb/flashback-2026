@@ -1,6 +1,7 @@
-import { g_options } from "./config"
+import { global_game_options } from "./configs/global_game_options"
 import type { DecodeBuffer } from "./decode_mac"
-import { Buffer, Color, Language, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ResourceType, WidescreenMode } from "./intern"
+import { Buffer, Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
+import { Language, ResourceType, WidescreenMode } from "./enums/common_enums";
 import { kScratchBufferSize, Resource } from "./resource"
 import { _conradPal1, _conradPal2, _font8Jp, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
@@ -803,7 +804,7 @@ class Video {
     }
 
     async fadeOut() {
-        if (g_options.fade_out_palette) {
+        if (global_game_options.fade_out_palette) {
             await this.fadeOutPalette()
         } else {
             this._stub.fadeScreen()
@@ -843,7 +844,7 @@ class Video {
             this._stub.setPaletteEntry(palSlot * 16 + i, c)
         }
 
-        if (palSlot === 4 && g_options.use_white_tshirt) {
+        if (palSlot === 4 && global_game_options.use_white_tshirt) {
             const color12: Color = Video.AMIGA_convertColor(0x888)
             const color13: Color = Video.AMIGA_convertColor((palData === Video._conradPal2) ? 0x888 : 0xCCC)
             this._stub.setPaletteEntry(palSlot * 16 + 12, color12)

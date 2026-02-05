@@ -3,7 +3,8 @@ import type { DecodeBuffer } from './decode_mac'
 import { decodeC211, decodeC103 } from './decode_mac'
 import { File } from './file'
 import { FileSystem } from "./fs"
-import { Color, InitPGE, Language, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ResourceType, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
+import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
+import { Language, ResourceType } from './enums/common_enums'
 import { ResourceAba } from "./resource_aba"
 import { ResourceMac } from "./resource_mac"
 import { _cineBinJP, _cineTxtJP, _gameSavedSoundLen, _level1TbnJP, _level2TbnJP, _level3TbnJP, _level41TbnJP, _level42TbnJP, _level51TbnJP, _level52TbnJP, _splNames, _spmOffsetsTable, _stringsTableDE, _stringsTableEN, _stringsTableFR, _stringsTableIT, _stringsTableJP, _stringsTableSP, _textsTableDE, _textsTableEN, _textsTableFR, _textsTableIT, _textsTableSP, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'

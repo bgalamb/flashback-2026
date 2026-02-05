@@ -1,12 +1,12 @@
 import { Graphics } from './graphics'
-import { Buffer, Color, Language, Point, READ_BE_UINT16, ResourceType } from './intern'
+import { Buffer, Color, Point, READ_BE_UINT16 } from './intern'
+import { Language, ResourceType } from './enums/common_enums'
 import { ObjectType, Resource } from './resource'
 import { SystemStub, DF_FASTMODE, DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } from './systemstub_web'
 import { Video } from './video'
 import { _amigaDemoOffsetsTable, _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataAmiga, _creditsDataDOS, _enTextsTable, _frTextsTable, _musicTable, _namesTableDOS, _offsetsTableAmiga, _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
-import { DEFAULT_CONFIG, g_options } from './config'
-import { ensureScriptRoot } from 'fuse-box/utils/utils'
-import { dump } from './util'
+import {global_game_options} from "./configs/global_game_options";
+
 
 type OpcodeStub = () => void
 
@@ -268,27 +268,27 @@ class Cutscene {
             if (cutName !== 0xFFFF) {
                 switch(this._id) {
                     case 3: // keys
-                        if (g_options.play_carte_cutscene) {
+                        if (global_game_options.play_carte_cutscene) {
                             cutName = 2
                         }
                         break
                     case 8: // save checkpoints
                         break
                     case 19:
-                        if (g_options.play_serrure_cutscene) {
+                        if (global_game_options.play_serrure_cutscene) {
                             cutName = 31 // SERRURE
                         }
                         break
                     case 22: // Level 2 fuse repaired
                     case 23: // switches
                     case 24: // Level 2 fuse is blown
-                        if (g_options.play_asc_cutscene && !this._res._isDemo) {
+                        if (global_game_options.play_asc_cutscene && !this._res._isDemo) {
                             cutName = 12 // ASC
                         }
                         break
                     case 30:
                     case 31:
-                        if (g_options.play_metro_cutscene) {
+                        if (global_game_options.play_metro_cutscene) {
                             cutName = 14 // METRO
                         }
                         break
@@ -314,7 +314,7 @@ class Cutscene {
                 console.log('no need to patch offset table')                
             }
 
-            if (g_options.use_text_cutscenes) {
+            if (global_game_options.use_text_cutscenes) {
                 const textsTable:Text[] = (this._res._lang === Language.LANG_FR) ? Cutscene._frTextsTable : Cutscene._enTextsTable
                 for (let i = 0; textsTable[i].str; ++i) {
                     if (this._id === textsTable[i].num) {
@@ -327,7 +327,7 @@ class Cutscene {
                     await this.mainLoop(cutOff)
                     this.unload()
                 }
-            } else if (this._id === 8 && g_options.play_caillou_cutscene) {
+            } else if (this._id === 8 && global_game_options.play_caillou_cutscene) {
                 await this.playSet(Cutscene._caillouSetData, 0x5E4)
             }
             this._vid.fullRefresh()

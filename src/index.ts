@@ -1,13 +1,14 @@
-import { WidescreenMode } from './intern'
+import { WidescreenMode } from './enums/common_enums'
 import { Language, ResourceType } from './enums/common_enums'
 import { global_game_options } from './configs/global_game_options'
 import { ScalerParameters, defaultScaleParameters, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Game } from './game'
-import { DEFAULT_CONFIG,  } from './config'
+import { DEFAULT_CONFIG,  } from './configs/config'
 
 const g_caption = "REminiscence"
 
+//By default the structure has everything false, so here we change some values
 const initOptions = async () => {
     global_game_options.bypass_protection = true
     global_game_options.enable_password_menu = false
@@ -34,54 +35,32 @@ const parseScaler = (name: string, scalerParameters: ScalerParameters) => {
     scalerParameters.name = name
 }
 
-const parseWidescreen = (mode: string):WidescreenMode => {
-    const modes:{
-        name: string
-        mode: WidescreenMode
-    }[] = [
-        { name: "adjacent", mode: WidescreenMode.kWidescreenAdjacentRooms },
-        { name: "mirror", mode: WidescreenMode.kWidescreenMirrorRoom },
-        { name: "blur", mode: WidescreenMode.kWidescreenBlur },
-        { name: "none", mode: WidescreenMode.kWidescreenNone },
-    ]
-    for (let i = 0; modes[i].name; ++i) {
-        if (modes[i].name === mode) {
-            return modes[i].mode
-        }
-    }
-    console.warn(`Unhandled widecreen mode '${mode}', defaults to 16:9 blur`)
-    return WidescreenMode.kWidescreenBlur
-}
-
 const main = async (config = DEFAULT_CONFIG ) => {
-    let savePath = "."
-
-    let widescreen:WidescreenMode = WidescreenMode.kWidescreenNone
     let scalerParameters:ScalerParameters = { ...defaultScaleParameters }
+    parseScaler(config.scaler, scalerParameters)
     console.log({ scalerParameters })
     console.log({ config })
 
-    let dataPath = config.datapath
-    let levelNum = config.levelnum
-    let fullscreen = config.fullscreen
-    let autoSave = config.autosave
+    //configurations for the game
+    const dataPath = config.datapath
+    let savePath = config.savepath
+    const levelNum = config.levelnum
+    const fullscreen = config.fullscreen
+    const autoSave = config.autosave
+    const version = ResourceType.kResourceTypeDOS
+    const language = Language.LANG_EN
+    const widescreen = WidescreenMode.kWidescreenNone
 
-    // param 5
-    parseScaler(config.scaler, scalerParameters)
-
-    // param 7
-    widescreen = parseWidescreen(config.widescreen)
+    //the framework (currently browser) where the game is embedded
     const stub = new SystemStub()
 
     await initOptions()
     const fs = new FileSystem()
     await fs.setRootDirectory(dataPath)
-    const version = ResourceType.kResourceTypeDOS
 
-    const language = Language.LANG_EN
-    const g = new Game(stub, fs, savePath, levelNum, version, language, widescreen, autoSave)
-    await stub.init(g_caption, g._vid._w, g._vid._h, fullscreen, widescreen, scalerParameters)
-    await g.run()
+    const game = new Game(stub, fs, savePath, levelNum, version, language, widescreen, autoSave)
+    await stub.init(g_caption, game._vid._w, game._vid._h, fullscreen, widescreen, scalerParameters)
+    await game.run()
 }
 
 document.getElementById('play').addEventListener('click', () => {

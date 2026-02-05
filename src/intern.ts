@@ -1,27 +1,5 @@
 import { Game } from "./game"
 
-enum ResourceType {
-    kResourceTypeAmiga,
-    kResourceTypeDOS,
-    kResourceTypeMac,
-}
-
-enum Language {
-	LANG_FR,
-	LANG_EN,
-	LANG_DE,
-	LANG_SP,
-	LANG_IT,
-	LANG_JP,
-}
-
-enum WidescreenMode {
-	kWidescreenNone,
-	kWidescreenAdjacentRooms,
-	kWidescreenMirrorRoom,
-	kWidescreenBlur,
-}
-
 const Skill = {
     kSkillEasy: 0,
     kSkillNormal: 1,
@@ -355,5 +333,5 @@ class Buffer {
     }
 }
 
-export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, ResourceType, Language, WidescreenMode, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ARRAYSIZE, CLIP, Buffer, ADDC_S16, S8_to_S16 }
+export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ARRAYSIZE, CLIP, Buffer, ADDC_S16, S8_to_S16 }
 export type { pge_OpcodeProc, pge_ZOrderCallback }

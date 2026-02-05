@@ -1,4 +1,5 @@
-import { CLIP, Color, WidescreenMode } from './intern'
+import { CLIP, Color } from './intern'
+import {WidescreenMode} from './enums/common_enums'
 import { Scaler, ScalerType, _internalScaler } from './scaler'
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void

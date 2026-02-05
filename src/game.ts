@@ -1,4 +1,5 @@
-import { Demo, Level, ObjectOpcodeArgs, LivePGE, AnimBufferState, AnimBuffers, WidescreenMode, ResourceType, Language, Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InventoryItem, InitPGE, Color, SoundFx, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE, Buffer } from './intern'
+import { Demo, Level, ObjectOpcodeArgs, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InventoryItem, InitPGE, Color, SoundFx, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE, Buffer } from './intern'
+import {WidescreenMode, ResourceType, Language} from './enums/common_enums'
 import type { pge_ZOrderCallback, pge_OpcodeProc } from './intern'
 import { Cutscene } from './cutscene'
 import { MAX_VOLUME, Mixer } from './mixer'
@@ -9,7 +10,7 @@ import { defaultScaleParameters, DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DI
 import { FileSystem } from './fs'
 import { Menu } from './menu'
 import { scoreTable, _demoInputs, _gameLevels, _monsterListLevel1, _monsterListLevel2, _monsterListLevel3, _monsterListLevel4_1, _monsterListLevel4_2, _monsterListLevel5_1, _monsterListLevel5_2, _monsterListLevels, _monsterNames, _monsterPals, _pge_modKeysTable, _protectionCodeData, _protectionCodeDataAmiga, _protectionNumberDataAmiga, _protectionPal, _protectionWordData } from './staticres'
-import { g_options } from './config'
+import { global_game_options } from './configs/global_game_options'
 import { File } from './file'
 import { dump } from './util'
 import { _pge_opcodeTable } from './game_opcodes'
@@ -414,7 +415,7 @@ class Game {
                 break
             case ResourceType.kResourceTypeDOS:
                 await this._res.load("FB_TXT", ObjectType.OT_FNT)
-                if (g_options.use_seq_cutscenes) {
+                if (global_game_options.use_seq_cutscenes) {
                     this._res._hasSeqData = this._fs.exists("INTRO.SEQ")
                 }
                 if (this._fs.exists("logosssi.cmd")) {
@@ -430,7 +431,7 @@ class Game {
                 break
         }
 
-        if (!g_options.bypass_protection && !g_options.use_words_protection && !this._res.isMac()) {
+        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection && !this._res.isMac()) {
             while (!this.handleProtectionScreenShape()) {
                 if (this._stub._pi.quit) {
                     return;
@@ -473,7 +474,7 @@ class Game {
                 break
             }
 
-            if (!g_options.bypass_protection && g_options.use_words_protection && this._res.isDOS()) {
+            if (!global_game_options.bypass_protection && global_game_options.use_words_protection && this._res.isDOS()) {
                 // TODO
                 while (!this.handleProtectionScreenWords()) {
                     if (this._stub._pi.quit) {
@@ -1543,7 +1544,7 @@ class Game {
         this.renders++
         this.drawCurrentInventoryItem()
         this.drawLevelTexts()
-        if (g_options.enable_password_menu) {
+        if (global_game_options.enable_password_menu) {
             // TODO
             debugger
             this.printLevelCode()
@@ -2958,7 +2959,7 @@ class Game {
             await this._res.load(lvl.name, ObjectType.OT_CT)
             await this._res.load(lvl.name, ObjectType.OT_PAL)
             await this._res.load(lvl.name, ObjectType.OT_RP)
-            if (this._res._isDemo || g_options.use_tile_data) { // use .BNQ/.LEV/(.SGD) instead of .MAP (PC demo)
+            if (this._res._isDemo || global_game_options.use_tile_data) { // use .BNQ/.LEV/(.SGD) instead of .MAP (PC demo)
                 if (this._currentLevel === 0) {
                     await this._res.load(lvl.name, ObjectType.OT_SGD)
                 }

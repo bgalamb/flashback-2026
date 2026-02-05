@@ -1,10 +1,10 @@
-import { Buffer, Language, ResourceType, Skill } from "./intern"
+import {  Skill } from "./intern"
+import { Language, ResourceType} from "./enums/common_enums";
 import { LocaleData, Resource } from "./resource"
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from "./systemstub_web"
 import { Video } from "./video"
 import { _flagDe16x12, _flagEn16x12, _flagFr16x12, _flagIt16x12, _flagJp16x12, _flagSp16x12, _levelNames, _passwordsDOS, _passwordsEnAmiga, _passwordsFrAmiga, _passwordsMac } from './staticres'
-import { g_options } from './config'
-import { dump } from "./util"
+import { global_game_options } from './configs/global_game_options'
 
 const SCREEN_TITLE = 0
 const SCREEN_SKILL = 1
@@ -92,7 +92,7 @@ class Menu {
         ++menuItemsCount
         if (!this._res._isDemo) {
             debugger
-            if (g_options.enable_password_menu) {
+            if (global_game_options.enable_password_menu) {
                 menuItems[menuItemsCount].str = LocaleData.Id.LI_08_SKILL
                 menuItems[menuItemsCount].opt = Menu.MENU_OPTION_ITEM_SKILL
                 ++menuItemsCount
@@ -157,7 +157,7 @@ class Menu {
                 this._nextScreen = -1
             }
 
-            if (g_options.enable_language_selection) {
+            if (global_game_options.enable_language_selection) {
                 if (this._stub._pi.dirMask & DIR_LEFT) {
                     this._stub._pi.dirMask &= ~DIR_LEFT;
                     if (currentLanguage !== 0) {
