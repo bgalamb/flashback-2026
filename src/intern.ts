@@ -28,24 +28,6 @@ const Skill = {
     kSkillExpert: 2,
 }
 
-interface Options {
-    bypass_protection: boolean
-    enable_password_menu: boolean
-    enable_language_selection: boolean
-    fade_out_palette: boolean
-    use_tile_data: boolean
-    use_text_cutscenes: boolean
-    use_seq_cutscenes: boolean
-    use_words_protection: boolean
-    use_white_tshirt: boolean
-    play_asc_cutscene: boolean
-    play_caillou_cutscene: boolean
-    play_metro_cutscene: boolean
-    play_serrure_cutscene: boolean
-    play_carte_cutscene: boolean
-    play_gamesaved_sound: boolean
-}
-
 interface Color {
     r: number
     g: number
@@ -373,5 +355,5 @@ class Buffer {
     }
 }
 
-export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, ResourceType, Language, Options, WidescreenMode, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ARRAYSIZE, CLIP, Buffer, ADDC_S16, S8_to_S16 }
+export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, ResourceType, Language, WidescreenMode, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ARRAYSIZE, CLIP, Buffer, ADDC_S16, S8_to_S16 }
 export type { pge_OpcodeProc, pge_ZOrderCallback }
