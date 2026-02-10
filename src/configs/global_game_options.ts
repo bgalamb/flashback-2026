@@ -1,7 +1,5 @@
 export const global_game_options = {
     bypass_protection: false,
-    enable_password_menu: false,
-    enable_language_selection: false,
     fade_out_palette: false,
     use_tile_data: false,
     use_text_cutscenes: false,

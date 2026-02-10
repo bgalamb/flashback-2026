@@ -1,12 +1,10 @@
 import { global_game_options } from "./configs/global_game_options"
-import type { DecodeBuffer } from "./decode_mac"
-import { Buffer, Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
-import { Language, ResourceType, WidescreenMode } from "./enums/common_enums";
+import { Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
+import { WidescreenMode } from "./enums/common_enums";
 import { kScratchBufferSize, Resource } from "./resource"
-import { _conradPal1, _conradPal2, _font8Jp, _palSlot0xF, _textPal } from "./staticres"
+import { _conradPal1, _conradPal2, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
-import { dump } from "./util"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -18,7 +16,6 @@ class Video {
     static _conradPal2: Uint8Array = _conradPal2
     static _textPal: Uint8Array = _textPal
     static _palSlot0xF: Uint8Array = _palSlot0xF
-    static _font8Jp: Uint8Array = _font8Jp
     static GAMESCREEN_W = 256
     static GAMESCREEN_H = 224
     static CHAR_W = 8
@@ -54,39 +51,26 @@ class Video {
       this._res = res
       this._stub = stub
       this._widescreenMode = widescreenMode
-      this._layerScale = (res._type === ResourceType.kResourceTypeMac) ? 2 : 1
-      this._w = Video.GAMESCREEN_W * this._layerScale
-      this._h = Video.GAMESCREEN_H * this._layerScale
-      this._layerSize = this._w * this._h
+      this._layerScale = 1
+      this._w = Video.GAMESCREEN_W * this._layerScale // 256 * 1
+      this._h = Video.GAMESCREEN_H * this._layerScale // 224 * 1
+      this._layerSize = this._w * this._h             // 256 * 224 =  57344
       this._frontLayer = new Uint8Array(this._layerSize)
       this._backLayer = new Uint8Array(this._layerSize)
       this._tempLayer = new Uint8Array(this._layerSize)
       this._tempLayer2 = new Uint8Array(this._layerSize)
-      this._screenBlocks = new Uint8Array((this._w / SCREENBLOCK_W) * (this._h / SCREENBLOCK_H))
+      this._screenBlocks = new Uint8Array((this._w / SCREENBLOCK_W) * (this._h / SCREENBLOCK_H)) // (258 / 8) * (224 / 8) = 32 * 28
       this._fullRefresh = true
       this._shakeOffset = 0
       this._charFrontColor = 0
       this._charTransparentColor = 0
       this._charShadowColor = 0
-      this._drawChar = null
+      this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.PC_drawStringChar(dst, pitch, x, y, src, color, chr)
 
-      switch(res._type) {
-          case ResourceType.kResourceTypeAmiga:
-              this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.AMIGA_drawStringChar(dst, pitch, x, y, src, color, chr)
-              break
-
-          case ResourceType.kResourceTypeDOS:
-                this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.PC_drawStringChar(dst, pitch, x, y, src, color, chr)
-                break
-
-          case ResourceType.kResourceTypeMac:
-            this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.MAC_drawStringChar(dst, pitch, x, y, src, color, chr)
-            break
-      }
     }
 
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
-        const fnt = (this._res._lang === Language.LANG_JP) ? _font8Jp : this._res._fnt
+        const fnt = this._res._fnt
         for (let i = 0; i < len; ++i) {
             this._drawChar(this._frontLayer, this._w, x + i * Video.CHAR_W, y, fnt, color, str.charCodeAt(i))
         }
@@ -94,7 +78,7 @@ class Video {
     }
 
     PC_drawChar(c: number, y: number, x: number, forceDefaultFont: boolean) {
-        const fnt = (this._res._lang === Language.LANG_JP && !forceDefaultFont) ? Video._font8Jp : this._res._fnt
+        const fnt = this._res._fnt
         y *= Video.CHAR_W
         x *= Video.CHAR_H
         let src = (c - 32) * 32
@@ -132,9 +116,6 @@ class Video {
         }
     }
 
-    static _MAC_fontFrontColor: number
-    static _MAC_fontShadowColor: number
-
     static AMIGA_convertColor(color: number, bgr: boolean = false) {
         let r = (color & 0xF00) >> 8
         const g = (color & 0xF0)  >> 4
@@ -166,35 +147,6 @@ class Video {
                 index += code
                 dst = dst.subarray(code)
             }
-        }
-    }
-
-    static AMIGA_planar_mask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, src: Uint8Array, mask: Uint8Array, size: number) {
-        let dstIndex = y0 * 256 + x0
-        let srcIndex = 0
-        let maskIndex = 0
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w * 2; ++x) {
-                for (let i = 0; i < 8; ++i) {
-                    const c_mask = 1 << (7 - i)
-                    let color = 0
-                    for (let j = 0; j < 4; ++j) {
-                        if (mask[j * size] & c_mask) {
-                            color |= 1 << j
-                        }
-                    }
-                    if (src[srcIndex] & c_mask) {
-                        const px = x0 + 8 * x + i
-                        const py = y0 + y
-                        if (px >= 0 && px < 256 && py >= 0 && py < 224) {
-                            dst[dstIndex + 8 * x + i] = color
-                        }
-                    }
-                }
-                srcIndex++
-                maskIndex++
-            }
-            dstIndex += 256
         }
     }
 
@@ -293,68 +245,13 @@ class Video {
             const w = (buf[0] + 1) >> 1
             const h = buf[1] + 1
             const planarSize = READ_BE_UINT16(buf, 2)
-            if (isAmiga) {
-                Video.AMIGA_planar_mask(dst, d0, d1, w, h, buf.subarray(4), buf.subarray(4 + planarSize), planarSize)
-            } else {
-                Video.PC_drawTileMask(dst, d0, d1, w, h, buf.subarray(4), buf.subarray(4 + planarSize), planarSize)
-            }
+
+            Video.PC_drawTileMask(dst, d0, d1, w, h, buf.subarray(4), buf.subarray(4 + planarSize), planarSize)
+
         } while (--count >= 0)
     }
 
-    static AMIGA_mirrorTileY(a2: Uint8Array) {
-        let buf = new Uint8Array(32)
-    
-        let index = 24
-        for (let j = 0; j < 4; ++j) {
-            for (let i = 0; i < 8; ++i) {
-                buf[31 - j * 8 - i] = a2[index++]
-            }
-            index -= 16
-        }
-        return buf
-    }
-    
-    static AMIGA_mirrorTileX(a2: Uint8Array) {
-        let buf = new Uint8Array(32)
-    
-        for (let i = 0; i < 32; ++i) {
-            let mask = 0;
-            for (let bit = 0; bit < 8; ++bit) {
-                if (a2[i] & (1 << bit)) {
-                    mask |= 1 << (7 - bit)
-                }
-            }
-            buf[i] = mask
-        }
-        return buf
-    }
 
-    static AMIGA_drawTile(dst: Uint8Array, pitch: number, src: Uint8Array, pal: number, xflip: boolean, yflip: boolean, colorKey: number) {
-        if (yflip) {
-            src = Video.AMIGA_mirrorTileY(src)
-        }
-        if (xflip) {
-            src = Video.AMIGA_mirrorTileX(src)
-        }
-        let srcIndex = 0
-        let dstIndex = 0
-        for (let y = 0; y < 8; ++y) {
-            for (let i = 0; i < 8; ++i) {
-                const mask = 1 << (7 - i)
-                let color = 0
-                for (let bit = 0; bit < 4; ++bit) {
-                    if (src[srcIndex + 8 * bit] & mask) {
-                        color |= 1 << bit
-                    }
-                }
-                if (color !== colorKey) {
-                    dst[dstIndex + i] = pal + color
-                }
-            }
-            ++srcIndex
-            dstIndex += pitch
-        }
-    }
 
     static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
         let pitch = Video.GAMESCREEN_W
@@ -403,9 +300,8 @@ class Video {
                         }
                         if (isPC) {
                             Video.PC_drawTile(dst.subarray(y * 256 + x), a2, mask, xflip, yflip, -1)
-                        } else {
-                            Video.AMIGA_drawTile(dst.subarray(y * 256 + x), 256, a2, mask, xflip, yflip, -1)
                         }
+
                     }
                 }
             }
@@ -433,18 +329,12 @@ class Video {
 
                         if (isPC) {
                             Video.PC_drawTile(dst.subarray(y * 256 + x), a2, mask, xflip, yflip, 0)
-                        } else {
-                            Video.AMIGA_drawTile(dst.subarray(y * 256 + x), 256, a2, mask, xflip, yflip, 0)
                         }
+
                     }
                 }
             }
         }
-    }
-
-    MAC_drawSprite(x: number, y: number, data: Uint8Array, frame: number, xflip: boolean, eraseBackground: boolean) {
-        // TODO
-        debugger
     }
 
     fillRect(x: number, y: number, w: number, h: number, color: number) {
@@ -457,7 +347,7 @@ class Video {
     }
 
     drawString(str: string, x: number, y: number, col: number): string {
-        const fnt = (this._res._lang === Language.LANG_JP) ? _font8Jp : this._res._fnt
+        const fnt =  this._res._fnt
         let len = 0
         let index = 0
 
@@ -474,32 +364,6 @@ class Video {
         return str
     }
 
-    MAC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
-        const buf:DecodeBuffer = {
-            ptr: dst,
-            w: this._w,
-            pitch: this._w,
-            h: this._h,
-            x: x * this._layerScale,
-            y: y * this._layerScale,
-            setPixel: this.MAC_setPixel,
-            xflip: false,
-            dataPtr: null,
-        }
-
-        Video._MAC_fontFrontColor = color
-        Video._MAC_fontShadowColor = this._charShadowColor
-        if (chr < 32) {
-            throw(`assertion failed: ${chr} >= 32`)
-        }
-        this._res.MAC_decodeImageData(this._res._fnt, chr - 32, buf)
-    }
-
-    MAC_setPixel(buf: DecodeBuffer, x: number, y: number, color: number) {
-        const offset = y * buf.pitch + x
-        buf.ptr[offset] = color
-    }
-
     PC_decodeLev(level: number, room: number) {
         const tmp = this._res._mbk
         this._res._mbk = this._res._bnq
@@ -507,11 +371,6 @@ class Video {
         this.AMIGA_decodeLev(level, room)
         this._res._mbk = tmp
         this._res.clearBankData()
-    }
-
-    MAC_decodeMap(level: number, room: number) {
-        // TODO
-        debugger
     }
 
     PC_decodeMap(level: number, room: number) {
@@ -655,69 +514,21 @@ class Video {
             if (!this._res._sgd) {
                 throw(`Assertion error: ${this._res._sgd}`)
             }
-            Video.decodeSgd(this._frontLayer, new Uint8Array(tmp.buffer, tmp.byteOffset + offset10), this._res._sgd, this._res.isAmiga())
+            Video.decodeSgd(this._frontLayer, new Uint8Array(tmp.buffer, tmp.byteOffset + offset10), this._res._sgd, false)
             offset10 = 0
         }
 
-        Video.decodeLevHelper(this._frontLayer, tmp, offset10, offset12, buf, tmp[1] !== 0, this._res.isDOS())
+        Video.decodeLevHelper(this._frontLayer, tmp, offset10, offset12, buf, tmp[1] !== 0, true)
         this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
         this._mapPalSlot1 = READ_BE_UINT16(tmp, 2)
         this._mapPalSlot2 = READ_BE_UINT16(tmp, 4)
         this._mapPalSlot3 = READ_BE_UINT16(tmp, 6)
         this._mapPalSlot4 = READ_BE_UINT16(tmp, 8)
 
-        if (this._res.isDOS()) {
-            this.PC_setLevelPalettes()
-            if (level === 0) { // tiles with color slot 0x9
-                this.setPaletteSlotBE(0x9, this._mapPalSlot1)
-            }
-            return
+        this.PC_setLevelPalettes()
+        if (level === 0) { // tiles with color slot 0x9
+            this.setPaletteSlotBE(0x9, this._mapPalSlot1)
         }
-        // background
-        this.setPaletteSlotBE(0x0, this._mapPalSlot1)
-        // objects
-        this.setPaletteSlotBE(0x1, (level === 0) ? this._mapPalSlot3 : this._mapPalSlot2)
-        this.setPaletteSlotBE(0x2, this._mapPalSlot3)
-        this.setPaletteSlotBE(0x3, this._mapPalSlot3)
-        // conrad
-        this.setPaletteSlotBE(0x4, this._mapPalSlot3)
-        // foreground
-        this.setPaletteSlotBE(0x8, this._mapPalSlot1)
-        this.setPaletteSlotBE(0x9, (level === 0) ? this._mapPalSlot1 : this._mapPalSlot3)
-        // inventory
-        this.setPaletteSlotBE(0xA, this._mapPalSlot3)
-    }
-
-    AMIGA_decodeSpc(src: Uint8Array, w: number, h: number, dst: Uint8Array) {
-        // TODO
-        debugger
-        // switch (w) {
-        // case 8:
-        //     AMIGA_planar8(dst, w, h, src);
-        //     break;
-        // case 16:
-        // case 32:
-        //     AMIGA_planar16(dst, w / 16, h, 4, src);
-        //     break;
-        // case 24:
-        //     AMIGA_planar24(dst, w, h, src);
-        //     break;
-        // default:
-        //     warning("AMIGA_decodeSpc w=%d unimplemented", w);
-        //     break;
-        // }
-    }
-
-    AMIGA_decodeSpm(src: Uint8Array, dst: Uint8Array) {
-        // TODO
-        debugger
-        // uint8_t buf[256 * 32];
-        // const int size = READ_BE_UINT16(src + 3) & 0x7FFF;
-        // assert(size <= (int)sizeof(buf));
-        // AMIGA_decodeRle(buf, src + 3);
-        // const int w = (src[2] >> 7) + 1;
-        // const int h = src[2] & 0x7F;
-        // AMIGA_planar16(dst, w, h, 3, buf);
     }
 
     static AMIGA_planar16 = (dst: Uint8Array, w: number, h: number, depth: number, src: Uint8Array) => {
@@ -739,37 +550,6 @@ class Video {
                 }
                 src_offset += 2
             }
-            dst_offset += pitch
-        }
-    }
-    
-    AMIGA_decodeIcn(src: Uint8Array, num: number, dst: Uint8Array) {
-        let src_offset = 0
-        for (let i = 0; i < num; ++i) {
-            const h = 1 + src[src_offset++]
-            const w = 1 + src[src_offset++]
-            const size = w * h * 8
-            src_offset += 4 + size
-        }
-        const h = 1 + src[src_offset++]
-        const w = 1 + src[src_offset++]
-        Video.AMIGA_planar16(dst, w, h, 4, new Uint8Array(src.buffer, src_offset + 4))
-    }
-
-    AMIGA_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
-        let dst_offset = y * pitch + x
-        if (chr < 32) {
-            throw (`assert failed: ${chr} >= 32`)
-        }
-        this.AMIGA_decodeIcn(src, chr - 32, this._res._scratchBuffer)
-        let src_offset = 0
-        for (let y = 0; y < 8; ++y) {
-            for (let x = 0; x < 8; ++x) {
-                if (this._res._scratchBuffer[x + src_offset] !== 0) {
-                    dst[dst_offset + x] = color
-                }
-            }
-            src_offset += 16
             dst_offset += pitch
         }
     }
@@ -831,12 +611,7 @@ class Video {
         }
 
     }
-    setPaletteColorBE(num: number, offset: number) {
-        const color = READ_BE_UINT16(this._res._pal,  offset * 2)
-        const c: Color = Video.AMIGA_convertColor(color, true)
-        this._stub.setPaletteEntry(num, c)
-    }
-    
+
     setPaletteSlotLE(palSlot: number, palData: Uint8Array) {
         for (let i = 0; i < 16; ++i) {
             const color = READ_LE_UINT16(palData, i * 2)
@@ -883,14 +658,6 @@ class Video {
 
     setTextPalette() {
         this.setPaletteSlotLE(0xE, Video._textPal)
-        if (this._res.isAmiga()) {
-            const c = {
-                r: 0xEE,
-                g: 0xEE,
-                b: 0
-            }
-            this._stub.setPaletteEntry(0xE7, c)
-        }
     }
     
     setPalette0xF() {

@@ -13,6 +13,7 @@ interface ScalerParameters {
 const defaultScaleParameters: ScalerParameters = {
 	type: ScalerType.kScalerTypeInternal,
 	name: '',
+	// 2+(4-2) / 2 = 2
 	factor: _internalScaler.factorMin + (_internalScaler.factorMax - _internalScaler.factorMin) / 2,
 }
 
@@ -75,7 +76,13 @@ class SystemStub {
 	_kAudioHz: number
 
 	constructor() {
+		// et me search for the specific information about AudioContext's default sample rate:According to the MDN documentation
+		// [[1]](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/AudioContext),
+		// the default sample rate for AudioContext typically varies between 8,000 Hz and 96,000 Hz, with 44,100 Hz being the most common default value.
+		// The exact value depends on the output device being used.
+		// You can check the actual sample rate for your AudioContext instance by accessing the property `sampleRate`
 		this._audioContext = new window.AudioContext()
+		console.log(this._audioContext.sampleRate); //48000
 		this.resumeAudio()
 	}
 
@@ -106,6 +113,14 @@ class SystemStub {
 
 	async initAudio() {
 		try {
+
+			// et me search for the specific information about AudioContext's default sample rate:According to the MDN documentation
+			// [[1]](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/AudioContext),
+			// the default sample rate for AudioContext typically varies between 8,000 Hz and 96,000 Hz, with 44,100 Hz being the most common default value.
+			// The exact value depends on the output device being used.
+			// You can check the actual sample rate for your AudioContext instance by accessing the property `sampleRate`
+			// this._audioContext = new window.AudioContext()
+			// console.log(this._audioContext.sampleRate);
 			this._kAudioHz = this._audioContext.sampleRate
 
 			await this._audioContext.audioWorklet.addModule(`js/processors.js`)			
@@ -134,11 +149,21 @@ class SystemStub {
 
 			this.postMessageToSoundProcessor({
 				message: 'init',
+				// this._kAudioHz = this._audioContext.sampleRate
+				// this.postMessageToSoundProcessor({
+				// 				message: 'init',
+				// 				mixingRate: this._kAudioHz,
+				// 			})
 				mixingRate: this._kAudioHz,
 			})
 
 			this.postMessageToSFXProcessor({
 				message: 'init',
+				// this._kAudioHz = this._audioContext.sampleRate
+				// this.postMessageToSoundProcessor({
+				// 				message: 'init',
+				// 				mixingRate: this._kAudioHz,
+				// 			})
 				mixingRate: this._kAudioHz,
 			})			
 		} catch(e) {

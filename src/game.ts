@@ -1,18 +1,17 @@
-import { Demo, Level, ObjectOpcodeArgs, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InventoryItem, InitPGE, Color, SoundFx, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE, Buffer } from './intern'
-import {WidescreenMode, ResourceType, Language} from './enums/common_enums'
-import type { pge_ZOrderCallback, pge_OpcodeProc } from './intern'
+import { Demo, Level, ObjectOpcodeArgs, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InventoryItem, InitPGE, Color, SoundFx, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE } from './intern'
+import {WidescreenMode} from './enums/common_enums'
+import type { pge_OpcodeProc } from './intern'
 import { Cutscene } from './cutscene'
 import { MAX_VOLUME, Mixer } from './mixer'
 import { Resource, ObjectType, LocaleData } from './resource'
 import { SeqPlayer } from './seq_player'
 import { Video } from './video'
-import { defaultScaleParameters, DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from './systemstub_web'
+import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Menu } from './menu'
 import { scoreTable, _demoInputs, _gameLevels, _monsterListLevel1, _monsterListLevel2, _monsterListLevel3, _monsterListLevel4_1, _monsterListLevel4_2, _monsterListLevel5_1, _monsterListLevel5_2, _monsterListLevels, _monsterNames, _monsterPals, _pge_modKeysTable, _protectionCodeData, _protectionCodeDataAmiga, _protectionNumberDataAmiga, _protectionPal, _protectionWordData } from './staticres'
 import { global_game_options } from './configs/global_game_options'
 import { File } from './file'
-import { dump } from './util'
 import { _pge_opcodeTable } from './game_opcodes'
 
 const kIngameSaveSlot = 0
@@ -49,6 +48,10 @@ class Game {
     static _protectionNumberDataAmiga: Uint8Array = _protectionNumberDataAmiga
     static _protectionCodeDataAmiga: Uint8Array = _protectionCodeDataAmiga
     static _protectionPal: Uint8Array = _protectionPal
+
+    renderPromise
+    renderDone
+
 
     _cut: Cutscene
     _menu: Menu
@@ -174,8 +177,8 @@ class Game {
     renders: number
     debugStartFrame: number
 
-    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, ver: ResourceType, lang: Language, widescreenMode: WidescreenMode, autoSave: boolean) {
-        this._res = new Resource(fs, ver, lang)
+    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, widescreenMode: WidescreenMode, autoSave: boolean) {
+        this._res = new Resource(fs)
         this._vid = new Video(this._res, stub, widescreenMode)
         this._cut = new Cutscene(this._res, stub, this._vid)
         this._menu = new Menu(this._res, stub, this._vid)
@@ -283,14 +286,6 @@ class Game {
         return true
     }
 
-    displayTitleScreenMac(num: number) {
-        throw('displayTitleScreenMac not implemented!')
-    }
-    
-    displayTitleScreenAmiga() {
-        throw('displayTitleScreenAmigz not implemented!')
-    }
-
     async playCutscene(id: number = -1) {
         if (id !== -1) {
             this._cut._id = id
@@ -357,22 +352,13 @@ class Game {
             }
             await this._cut.play()
             if (id === 0xD && !this._cut._interrupted) {
-                const extendedIntroduction = (this._res._type === ResourceType.kResourceTypeDOS || this._res._type === ResourceType.kResourceTypeMac)
+                const extendedIntroduction = true
                 if (extendedIntroduction) {
                     this._cut._id = 0x4A
                     await this._cut.play()
                 }
             }
 
-            if (this._res._type === ResourceType.kResourceTypeMac && !(id === 0x48 || id === 0x49)) { // continue or score screens
-                // restore palette entries modified by the cutscene player (0xC and 0xD)
-                const palette:Color[] = new Array(32)
-                this._res.MAC_copyClut16(palette, 0, 0x37)
-                this._res.MAC_copyClut16(palette, 1, 0x38)
-                for (let i = 0; i < 32; ++i) {
-                    this._stub.setPaletteEntry(0xC0 + i, palette[i])
-                }
-            }    
             if (id === 0x3D) {
                 await this._cut.playCredits()
             }  
@@ -397,6 +383,7 @@ class Game {
         if (!this._stub._pi.quit && !this._endLoop) {
             requestAnimationFrame(() => this.runLoop())
         } else {
+            // @ts-ignore
             this.renderDone()
         }
     }
@@ -405,33 +392,15 @@ class Game {
         this._randSeed = new Date().getTime()
         await this._res.init()
         this._res.load_TEXT()
-
-        switch(this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-                await this._res.load("FONT8", ObjectType.OT_FNT)
-                if (this._res._isDemo) {
-                    this._cut._patchedOffsetsTable = Cutscene._amigaDemoOffsetsTable
-                }
-                break
-            case ResourceType.kResourceTypeDOS:
-                await this._res.load("FB_TXT", ObjectType.OT_FNT)
-                if (global_game_options.use_seq_cutscenes) {
-                    this._res._hasSeqData = this._fs.exists("INTRO.SEQ")
-                }
-                if (this._fs.exists("logosssi.cmd")) {
-                    this._cut._patchedOffsetsTable = Cutscene._ssiOffsetsTable
-                }
-                break
-            case ResourceType.kResourceTypeMac:
-                await this._res.MAC_loadClutData()
-                await this._res.MAC_loadFontData()
-                break
-
-            default:
-                break
+        await this._res.load("FB_TXT", ObjectType.OT_FNT)
+        if (global_game_options.use_seq_cutscenes) {
+            this._res._hasSeqData = this._fs.exists("INTRO.SEQ")
+        }
+        if (this._fs.exists("logosssi.cmd")) {
+            this._cut._patchedOffsetsTable = Cutscene._ssiOffsetsTable
         }
 
-        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection && !this._res.isMac()) {
+        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection && !false) {
             while (!this.handleProtectionScreenShape()) {
                 if (this._stub._pi.quit) {
                     return;
@@ -440,41 +409,17 @@ class Game {
         }
 
         this._mix.init()
-        this._mix._mod._isAmiga = this._res.isAmiga()
-
-        if (this._res.isMac()) {
-            this.displayTitleScreenMac(Menu.kMacTitleScreen_MacPlay)
-            if (!this._stub._pi.quit) {
-                this.displayTitleScreenMac(Menu.kMacTitleScreen_Presage)
-            }
-        }
-
         await this.playCutscene(0x40)
         await this.playCutscene(0x0D)
 
-        switch (this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-                await this._res.load("ICONE", ObjectType.OT_ICN, "SPR")
-                await this._res.load("ICON", ObjectType.OT_ICN, "SPR")
-                await this._res.load("PERSO", ObjectType.OT_SPM)
-                break;
-            case ResourceType.kResourceTypeDOS:
-                await this._res.load("GLOBAL", ObjectType.OT_ICN)
-                await this._res.load("GLOBAL", ObjectType.OT_SPC)
-                await this._res.load("PERSO", ObjectType.OT_SPR)
-                await this._res.load_SPR_OFF("PERSO", this._res._spr1)
-                await this._res.load_FIB("GLOBAL")
-                break
-            case ResourceType.kResourceTypeMac:
-                // TODO
-                debugger
-                // await this._res.MAC_loadIconData()
-                // await this._res.MAC_loadPersoData()
-                // await this._res.MAC_loadSounds()
-                break
-            }
 
-            if (!global_game_options.bypass_protection && global_game_options.use_words_protection && this._res.isDOS()) {
+        await this._res.load("GLOBAL", ObjectType.OT_ICN)
+        await this._res.load("GLOBAL", ObjectType.OT_SPC)
+        await this._res.load("PERSO", ObjectType.OT_SPR)
+        await this._res.load_SPR_OFF("PERSO", this._res._spr1)
+        await this._res.load_FIB("GLOBAL")
+
+            if (!global_game_options.bypass_protection && global_game_options.use_words_protection) {
                 // TODO
                 while (!this.handleProtectionScreenWords()) {
                     if (this._stub._pi.quit) {
@@ -483,50 +428,20 @@ class Game {
                 }
             }
 
-            const presentMenu = ((this._res._type != ResourceType.kResourceTypeDOS) || this._res.fileExists("MENU1.MAP"))
+            const presentMenu = true
 
             while (!this._stub._pi.quit) {
                 if (presentMenu) {
                     this._mix.playMusic(1)
-                    switch (this._res._type) {
-                    case ResourceType.kResourceTypeDOS:
-                        await this._menu.handleTitleScreen()
-                        if (this._menu._selectedOption == Menu.MENU_OPTION_ITEM_QUIT || this._stub._pi.quit) {
-                            this._stub._pi.quit = true
-                            break
-                        }
-                        if (this._menu._selectedOption === Menu.MENU_OPTION_ITEM_DEMO) {
-                            this._demoBin = (this._demoBin + 1) % Game._demoInputs.length
-                            const fn = Game._demoInputs[this._demoBin].name
-
-                            await this._res.load_DEM(fn)
-
-                            if (this._res._demLen === 0) {
-                                continue
-                            }
-
-                            this._skillLevel = Skill.kSkillNormal
-                            this._currentLevel = Game._demoInputs[this._demoBin].level
-                            this._randSeed = 0
-
-                            this._mix.stopMusic()
-                            break
-                        }
-                        this._demoBin = -1
-                        this._skillLevel = this._menu._skill
-                        this._currentLevel = this._menu._level
-                        this._mix.stopMusic()
-
-                        break
-                    case ResourceType.kResourceTypeAmiga:
-                        debugger
-                        this.displayTitleScreenAmiga()
-                        this._stub.setScreenSize(Video.GAMESCREEN_W, Video.GAMESCREEN_H)
-                        break
-                    case ResourceType.kResourceTypeMac:
-                        this.displayTitleScreenMac(Menu.kMacTitleScreen_Flashback)
+                    await this._menu.handleTitleScreen()
+                    if (this._menu._selectedOption == Menu.MENU_OPTION_ITEM_QUIT || this._stub._pi.quit) {
+                        this._stub._pi.quit = true
                         break
                     }
+                    this._demoBin = -1
+                    this._skillLevel = this._menu._skill
+                    this._currentLevel = this._menu._level
+                    this._mix.stopMusic()
                 }
 
                 if (this._stub._pi.quit) {
@@ -540,34 +455,36 @@ class Game {
                     await this._vid.fadeOut()
                     this._vid.setTextPalette()
                     await this.playCutscene(0x3D)
-                } else {
-                    this._vid.setTextPalette()
-                    this._vid.setPalette0xF()
-                    this._stub.setOverscanColor(0xE0)
-                    this._vid._unkPalSlot1 = 0
-                    this._vid._unkPalSlot2 = 0
-                    this._score = 0
-                    this.clearStateRewind()
-                    await this.loadLevelData()
-
-                    this.resetGameState()
-                    this._endLoop = false
-                    this._frameTimestamp = this._stub.getTimeStamp()
-                    this._saveTimestamp = this._frameTimestamp
-                    this.renders = 0
-                    this.debugStartFrame = 10650
-                    this.renderPromise = new Promise((resolve) => {
-                        this.renderDone = resolve
-                    })
-                    new Promise(() => requestAnimationFrame(() => this.runLoop()))
-                    await this.renderPromise
-
-                    // flush inputs
-                    this._stub._pi.dirMask = 0
-                    this._stub._pi.enter = false
-                    this._stub._pi.space = false
-                    this._stub._pi.shift = false
+                    continue
                 }
+                this._vid.setTextPalette()
+                this._vid.setPalette0xF()
+                this._stub.setOverscanColor(0xE0)
+                this._vid._unkPalSlot1 = 0
+                this._vid._unkPalSlot2 = 0
+                this._score = 0
+                this.clearStateRewind()
+                await this.loadLevelData()
+
+                this.resetGameState()
+                this._endLoop = false
+                this._frameTimestamp = this._stub.getTimeStamp()
+                this._saveTimestamp = this._frameTimestamp
+                this.renders = 0
+                this.debugStartFrame = 10650
+
+                this.renderPromise = new Promise((resolve) => {
+                    this.renderDone = resolve
+                })
+                new Promise(() => requestAnimationFrame(() => this.runLoop()))
+                await this.renderPromise
+
+                // flush inputs
+                this._stub._pi.dirMask = 0
+                this._stub._pi.enter = false
+                this._stub._pi.space = false
+                this._stub._pi.shift = false
+
             }
     }
 
@@ -579,8 +496,6 @@ class Game {
 
         const buf = this._score.toString().padStart(8, '0')
         this._vid.drawString(buf, (Video.GAMESCREEN_W - buf.length * Video.CHAR_W) / 2, 40, 0xE5)
-        const str = this._menu.getLevelPassword(7, this._skillLevel)
-        this._vid.drawString(str, (Video.GAMESCREEN_W - str.length * Video.CHAR_W) / 2, 16, 0xE7)
         while (!this._stub._pi.quit) {
             this._stub.copyRect(0, 0, this._vid._w, this._vid._h, this._vid._frontLayer, this._vid._w)
             await this._stub.updateScreen(0)
@@ -810,19 +725,20 @@ class Game {
                     return
                 }
                 let _ax = this.pge_execute(pge, init_pge, obj)
-                if (this._res.isDOS()) {
-                    if (this._currentLevel === 6 && (this._currentRoom === 50 || this._currentRoom === 51)) {
-                        if (pge.index === 79 && _ax === 0xFFFF && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
-                            if (this.col_getGridPos(this._pgeLive[79], 0) === this.col_getGridPos(this._pgeLive[0], 0)) {
-                                this.pge_updateGroup(79, 0, 4)
-                            }
+
+                if (this._currentLevel === 6 && (this._currentRoom === 50 || this._currentRoom === 51)) {
+                    if (pge.index === 79 && _ax === 0xFFFF && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
+                        if (this.col_getGridPos(this._pgeLive[79], 0) === this.col_getGridPos(this._pgeLive[0], 0)) {
+                            this.pge_updateGroup(79, 0, 4)
                         }
                     }
                 }
+
                 if (_ax !== 0) {
                     this.renders > this.debugStartFrame && console.log("exiting pge_process loop setup other pieges")
                     anim_data = this._res.getAniData(pge.obj_type)
                     const snd = anim_data[2]
+
                     if (snd) {
                         this.pge_playAnimSound(pge, snd)
                     }
@@ -956,6 +872,7 @@ class Game {
             const sfx: SoundFx = this._res._sfxList[num]
             if (sfx.data) {
                 const volume = MAX_VOLUME >> (2 * softVol)
+                // @BALI
                 this._mix.play(sfx.data, sfx.len, sfx.freq, volume)
             }
         } else if (num === 66) {
@@ -1073,52 +990,9 @@ class Game {
 
     drawIcon(iconNum: number, x: number, y: number, colMask: number) {
         const buf = new Uint8Array(16 * 16)
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            if (iconNum > 30) {
-                // inventory icons
-                switch (iconNum) {
-                case 76: // cursor
-                    buf.fill(0)
-                    for (let i = 0; i < 3; ++i) {
-                        buf[i] = buf[15 * 16 + (15 - i)] = 1
-                        buf[i * 16] = buf[(15 - i) * 16 + 15] = 1
-                    }
-                    break
-                case 77: // up - icon.spr 4
-                    buf.fill(0)
-                    this._vid.AMIGA_decodeIcn(this._res._icn, 35, buf)
-                    break
-                case 78: // down - icon.spr 5
-                    buf.fill(0)
-                    this._vid.AMIGA_decodeIcn(this._res._icn, 36, buf)
-                    break
-                default:
-                    buf.fill(5)
-                    break
-                }
-            } else {
-                this._vid.AMIGA_decodeIcn(this._res._icn, iconNum, buf)
-            }
-            break
-        case ResourceType.kResourceTypeDOS:
-            this._vid.PC_decodeIcn(this._res._icn, iconNum, buf)
-            break
-        case ResourceType.kResourceTypeMac:
-            switch (iconNum) {
-            case 76: // cursor
-                iconNum = 32
-                break
-            case 77: // up
-                iconNum = 33
-                break
-            case 78: // down
-                iconNum = 34
-                break
-            }
-            this._vid.MAC_drawSprite(x, y, this._res._icn, iconNum, false, true)
-            return
-        }
+
+        this._vid.PC_decodeIcn(this._res._icn, iconNum, buf)
+
         this._vid.drawSpriteSub1(buf, this._vid._frontLayer.subarray(x + y * this._vid._w), 16, 16, 16, colMask << 4)
         this._vid.markBlockAsDirty(x, y, 16, 16, this._vid._layerScale)
     }
@@ -1227,39 +1101,6 @@ class Game {
     loadGameState(slot: number) {
         // TODO
         return true
-        // if (slot === kAutoSaveSlot) {
-        //     return this.loadStateRewind()
-        // }
-        // let success = false
-        // char stateFile[32];
-        // makeGameStateName(slot, stateFile);
-        // File f;
-        // if (!f.open(stateFile, "zrb", _savePath)) {
-        //     warning("Unable to open state file '%s'", stateFile);
-        // } else {
-        //     uint32_t id = f.readUint32BE();
-        //     if (id != TAG_FBSV) {
-        //         warning("Bad save state format");
-        //     } else {
-        //         uint16_t ver = f.readUint16BE();
-        //         if (ver != 2) {
-        //             warning("Invalid save state version");
-        //         } else {
-        //             // header
-        //             char buf[32];
-        //             f.read(buf, sizeof(buf));
-        //             // contents
-        //             loadState(&f);
-        //             if (f.ioErr()) {
-        //                 warning("I/O error when loading game state");
-        //             } else {
-        //                 debug(DBG_INFO, "Loaded state from slot %d", slot);
-        //                 success = true;
-        //             }
-        //         }
-        //     }
-        // }
-        // return success;
     }
 
     async handleContinueAbort() {
@@ -1334,16 +1175,6 @@ class Game {
         return false
     }
 
-    printLevelCode() {
-        if (this._printLevelCodeCounter !== 0) {
-            --this._printLevelCodeCounter
-            if (this._printLevelCodeCounter !== 0) {
-                const buf = "CODE: " + this._menu.getLevelPassword(this._currentLevel, this._skillLevel)
-                this._vid.drawString(buf, ((Video.GAMESCREEN_W - buf.length * Video.CHAR_W) / 2) >> 0, 16, 0xE7)
-            }
-        }
-    }
-
     static getLineLength(str: Uint8Array) {
         let len = 0
         let index = 0
@@ -1365,61 +1196,12 @@ class Game {
             while (!this._stub._pi.quit) {
                 this.drawIcon(this._currentInventoryIconNum, 80, 8, 0xA)
                 let yPos = 26
-                if (this._res._type == ResourceType.kResourceTypeMac) {
-                    // TODO
-                    debugger
-                    // if (textSegmentsCount === 0) {
-                    //     textSegmentsCount = *str++;
-                    // }
-                    // int len = *str++;
-                    // if (*str == '@') {
-                    //     switch (str[1]) {
-                    //     case '1':
-                    //         textColor = 0xE9;
-                    //         break;
-                    //     case '2':
-                    //         textColor = 0xEB;
-                    //         break;
-                    //     default:
-                    //         warning("Unhandled MAC text color code 0x%x", str[1]);
-                    //         break;
-                    //     }
-                    //     str += 2;
-                    //     len -= 2;
-                    // }
-                    // for (; len > 0; yPos += 8) {
-                    //     const uint8_t *next = (const uint8_t *)memchr(str, 0x7C, len);
-                    //     if (!next) {
-                    //         _vid.drawStringLen((const char *)str, len, (176 - len * Video::CHAR_W) / 2, yPos, textColor);
-                    //         // point 'str' to beginning of next text segment
-                    //         str += len;
-                    //         break;
-                    //     }
-                    //     const int lineLength = next - str;
-                    //     _vid.drawStringLen((const char *)str, lineLength, (176 - lineLength * Video::CHAR_W) / 2, yPos, textColor);
-                    //     str = next + 1;
-                    //     len -= lineLength + 1;
-                    // }
-                } else {
+
                     if (str[index] === 0xFF) {
-                        if (this._res._lang === Language.LANG_JP) {
-                            switch (str[index + 1]) {
-                            case 0:
-                                textColor = 0xE9
-                                break
-                            case 1:
-                                textColor = 0xEB
-                                break
-                            default:
-                                console.warn(`Unhandled JP text color code 0x${str[index+1]}`)
-                                break
-                            }
-                            index += 2
-                        } else {
-                            textColor = str[index + 1]
-                            index += 3
-                        }
-                    }
+                        textColor = str[index + 1]
+                        index += 3
+
+
                     while (1) {
                         const len = Game.getLineLength(str)
                         const string = this._vid.drawString(new TextDecoder().decode(str).split('\u0000')[0], ((176 - len * Video.CHAR_W) / 2) >> 0, yPos, textColor)
@@ -1456,16 +1238,12 @@ class Game {
                     this._mix.stopAll()
                 }
                 this._stub._pi.backspace = false
-                if (this._res._type === ResourceType.kResourceTypeMac) {
-                    if (textSpeechSegment === textSegmentsCount) {
-                        break
-                    }
-                } else {
-                    if (str[index] === 0) {
-                        break
-                    }
-                    index++
+
+                if (str[index] === 0) {
+                    break
                 }
+                index++
+
                 this._vid._frontLayer.set(this._vid._tempLayer.subarray(0, this._vid._layerSize))
             }
             this._textToDisplay = 0xFFFF
@@ -1544,11 +1322,7 @@ class Game {
         this.renders++
         this.drawCurrentInventoryItem()
         this.drawLevelTexts()
-        if (global_game_options.enable_password_menu) {
-            // TODO
-            debugger
-            this.printLevelCode()
-        }
+
         if (this._blinkingConradCounter !== 0) {
             --this._blinkingConradCounter
         }
@@ -1652,15 +1426,7 @@ class Game {
         // the panel background is drawn using special characters from FB_TXT.FNT
         const kUseDefaultFont = true
     
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            for (let i = 0; i < h; ++i) {
-                for (let j = 0; j < w; ++j) {
-                    this._vid.fillRect(Video.CHAR_W * (x + j), Video.CHAR_H * (y + i), Video.CHAR_W, Video.CHAR_H, 0xE2)
-                }
-            }
-            break
-        case ResourceType.kResourceTypeDOS:
+
             // top-left rounded corner
             this._vid.PC_drawChar(0x81, y, x, kUseDefaultFont)
             // top-right rounded corner
@@ -1685,32 +1451,7 @@ class Game {
                     this._vid.PC_drawChar(0x20, y + j, x + i, kUseDefaultFont)
                 }
             }
-            break
-        case ResourceType.kResourceTypeMac:
-            // top-left rounded corner
-            this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * x, Video.CHAR_H * y, this._res._fnt, this._vid._charFrontColor, 0x81)
-            // top-right rounded corner
-            this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * (x + w), Video.CHAR_H * y, this._res._fnt, this._vid._charFrontColor, 0x82)
-            // bottom-left rounded corner
-            this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * x, Video.CHAR_H * (y + h), this._res._fnt, this._vid._charFrontColor, 0x83)
-            // bottom-right rounded corner
-            this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * (x + w), Video.CHAR_H * (y + h), this._res._fnt, this._vid._charFrontColor, 0x84)
-            // horizontal lines
-            for (let i = 1; i < w; ++i) {
-                this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * (x + i), Video.CHAR_H * y, this._res._fnt, this._vid._charFrontColor, 0x85)
-                this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * (x + i), Video.CHAR_H * (y + h), this._res._fnt, this._vid._charFrontColor, 0x88)
-            }
-            // vertical lines
-            for (let i = 1; i < h; ++i) {
-                this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * x, Video.CHAR_H * (y + i), this._res._fnt, this._vid._charFrontColor, 0x86)
-                this._vid.MAC_drawStringChar(this._vid._frontLayer, this._vid._w, Video.CHAR_W * (x + w), Video.CHAR_H * (y + i), this._res._fnt, this._vid._charFrontColor, 0x87)
-                for (let j = 1; j < w; ++j) {
-                    this._vid.fillRect(Video.CHAR_W * (x + j), Video.CHAR_H * (y + i), Video.CHAR_W, Video.CHAR_H, 0xE2)
-                }
-            }
-            break
-        }
-    
+
         this._menu._charVar3 = 0xE4
         this._menu._charVar4 = 0xE5
         this._menu._charVar1 = 0xE2
@@ -1787,14 +1528,8 @@ class Game {
     drawString(p: Uint8Array, x: number, y: number, color: number, hcenter: boolean) {
         let str = new TextDecoder().decode(p).split('\u0000')[0]
         let len = 0
-        if (this._res._type === ResourceType.kResourceTypeMac) {
-            // TODO
-            debugger
-            len = p[0]
-            str = str.substr(1)
-        } else {
-            len = str.length
-        }
+
+        len = str.length
         if (hcenter) {
             x = ((x - len * Video.CHAR_W) / 2) >> 0
         }
@@ -1861,37 +1596,24 @@ class Game {
             let dataPtr = null
             let dw = 0
             let dh = 0
-            switch (this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-            case ResourceType.kResourceTypeDOS:
-                if (pge.anim_number >= 1287) {
-                    throw(`Assertion failed: ${pge.anim_number} < 1287`)
-                }
-                dataPtr = this._res._sprData[pge.anim_number]
-                if (dataPtr === null) {
-                    return
-                }
-                dw = dataPtr[0] << 24 >> 24
-                dh = dataPtr[1] << 24 >> 24
-                break
-            case ResourceType.kResourceTypeMac:
-                break
+
+            if (pge.anim_number >= 1287) {
+                throw(`Assertion failed: ${pge.anim_number} < 1287`)
             }
+            dataPtr = this._res._sprData[pge.anim_number]
+            if (dataPtr === null) {
+                return
+            }
+            dw = dataPtr[0] << 24 >> 24
+            dh = dataPtr[1] << 24 >> 24
+
             let w = 0
             let h = 0
-            switch (this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-                w = ((dataPtr[2] >> 7) + 1) * 16
-                h = dataPtr[2] & 0x7F
-                break
-            case ResourceType.kResourceTypeDOS:
-                w = dataPtr[2]
-                h = dataPtr[3]
-                dataPtr = dataPtr.subarray(4)
-                break
-            case ResourceType.kResourceTypeMac:
-                break
-            }
+
+            w = dataPtr[2]
+            h = dataPtr[3]
+            dataPtr = dataPtr.subarray(4)
+
             let ypos = dy + pge.pos_y - dh + 2
             let xpos = dx + pge.pos_x - dw
             if (pge.flags & 2) {
@@ -1917,17 +1639,12 @@ class Game {
             }
         } else {
             let dataPtr = null
-            switch (this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-            case ResourceType.kResourceTypeDOS:
+
                 if (pge.anim_number >= this._res._numSpc) {
                     throw(`Assertion failed: ${pge.anim_number} < ${this._res._numSpc}`)
                 }
                 dataPtr = this._res._spc.subarray(READ_BE_UINT16(this._res._spc, pge.anim_number * 2))
-                break
-            case ResourceType.kResourceTypeMac:
-                break
-            }
+
             const xpos = dx + pge.pos_x + 8
             const ypos = dy + pge.pos_y + 2
             if (pge.init_PGE.object_type === 11) {
@@ -1968,12 +1685,7 @@ class Game {
                     if (stateNum === 1 && (this._blinkingConradCounter & 1)) {
                         break
                     }
-                    switch (this._res._type) {
-                    case ResourceType.kResourceTypeAmiga:
-                        this._vid.AMIGA_decodeSpm(state[index].dataPtr, this._res._scratchBuffer)
-                        this.drawCharacter(this._res._scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags)
-                        break
-                    case ResourceType.kResourceTypeDOS:
+
                         const ptr = state[index].dataPtr
                         const val = new DataView(ptr.buffer, ptr.byteOffset - 2).getUint8(0)
                         if (!(val & 0x80)) {
@@ -1982,11 +1694,7 @@ class Game {
                         } else {
                             this.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags)
                         }
-                        break
-                    case ResourceType.kResourceTypeMac:
-                        this.drawPiege(state[index])
-                        break
-                    }
+
                 } else {
                     this.drawPiege(state[index])
                 }
@@ -1998,26 +1706,7 @@ class Game {
 
     drawPiege(state: AnimBufferState) {
         const pge: LivePGE = state.pge
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-        case ResourceType.kResourceTypeDOS:
-            this.drawObject(state.dataPtr, state.x, state.y, pge.flags)
-            break
-        case ResourceType.kResourceTypeMac:
-            if (pge.flags & 8) {
-                this._vid.MAC_drawSprite(state.x, state.y, this._res._spc, pge.anim_number, (pge.flags & 2) !== 0, this._eraseBackground)
-            } else if (pge.index === 0) {
-                if (pge.anim_number === 0x386) {
-                    break
-                }
-                const frame = this._res.MAC_getPersoFrame(pge.anim_number)
-                this._vid.MAC_drawSprite(state.x, state.y, this._res._perso, frame, (pge.flags & 2) !==0, this._eraseBackground)
-            } else {
-                const frame = this._res.MAC_getMonsterFrame(pge.anim_number)
-                this._vid.MAC_drawSprite(state.x, state.y, this._res._monster, frame, (pge.flags & 2) !== 0, this._eraseBackground)
-            }
-            break
-        }
+        this.drawObject(state.dataPtr, state.x, state.y, pge.flags)
     }
     
     drawObject(dataPtr: Uint8Array, x: number, y: number, flags: number) {
@@ -2037,19 +1726,10 @@ class Game {
             posx = posx - (dataPtr[1] << 24 >>24)
         }
         let count = 0;
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            count = dataPtr[8]
-            dataPtr = dataPtr.subarray(9)
-            break
-        case ResourceType.kResourceTypeDOS:
-            count = dataPtr[5]
-            dataPtr = dataPtr.subarray(6)
-            break
-        case ResourceType.kResourceTypeMac:
-            // assert(0); // different graphics format
-            break
-        }
+
+        count = dataPtr[5]
+        dataPtr = dataPtr.subarray(6)
+
         for (let i = 0; i < count; ++i) {
             this.drawObjectFrame(data, dataPtr, posx, posy, flags)
             dataPtr = dataPtr.subarray(4)
@@ -2075,17 +1755,9 @@ class Game {
         const sprite_h = (((sprite_flags >> 0) & 3) + 1) * 8
         let sprite_w = (((sprite_flags >> 2) & 3) + 1) * 8
     
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            this._vid.AMIGA_decodeSpc(new Uint8Array(bankDataPtr.buffer, src), sprite_w, sprite_h, this._res._scratchBuffer)
-            break
-        case ResourceType.kResourceTypeDOS:
-            this._vid.PC_decodeSpc(new Uint8Array(bankDataPtr.buffer, src), sprite_w, sprite_h, this._res._scratchBuffer)
-            break
-        case ResourceType.kResourceTypeMac:
-            // assert(0); // different graphics format
-            break
-        }
+
+        this._vid.PC_decodeSpc(new Uint8Array(bankDataPtr.buffer, src), sprite_w, sprite_h, this._res._scratchBuffer)
+
     
         src = this._res._scratchBuffer.byteOffset
         let sprite_mirror_x = false
@@ -2289,35 +1961,16 @@ class Game {
             while (!this._stub._pi.backspace && !this._stub._pi.quit) {
                 const icon_spr_w = 16
                 const icon_spr_h = 16
-                switch (this._res._type) {
-                case ResourceType.kResourceTypeAmiga:
-                case ResourceType.kResourceTypeDOS: {
-                        // draw inventory background
-                        let icon_num = 31
-                        for (let y = 140; y < 140 + 5 * icon_spr_h; y += icon_spr_h) {
-                            for (let x = 56; x < 56 + 9 * icon_spr_w; x += icon_spr_w) {
-                                this.drawIcon(icon_num, x, y, 0xF)
-                                ++icon_num
-                            }
-                        }
+
+                // draw inventory background
+                let icon_num = 31
+                for (let y = 140; y < 140 + 5 * icon_spr_h; y += icon_spr_h) {
+                    for (let x = 56; x < 56 + 9 * icon_spr_w; x += icon_spr_w) {
+                        this.drawIcon(icon_num, x, y, 0xF)
+                        ++icon_num
                     }
-                    if (this._res._type == ResourceType.kResourceTypeAmiga) {
-                        // draw outline rectangle
-                        const outline_color = 0xE7
-                        let p = this._vid._frontLayer.subarray(140 * Video.GAMESCREEN_W + 56)
-                        p.fill(outline_color, 1, 9 * icon_spr_w - 2 + 1)
-                        p = p.subarray(Video.GAMESCREEN_W)
-                        for (let y = 1; y < 5 * icon_spr_h - 1; ++y) {
-                            p[0] = p[9 * icon_spr_w - 1] = outline_color
-                            p = p.subarray(Video.GAMESCREEN_W)
-                        }
-                        p.fill(outline_color, 1, 9 * icon_spr_w - 2 + 1)
-                    }
-                    break
-                case ResourceType.kResourceTypeMac:
-                    this.drawIcon(31, 56, 140, 0xF)
-                    break
                 }
+
                 if (!display_score) {
                     let icon_x_pos = 72
                     for (let i = 0; i < 4; ++i) {
@@ -2779,42 +2432,12 @@ class Game {
         this._curMonsterFrame = mList[0 + index]
         if (this._curMonsterNum != mList[1 + index]) {
             this._curMonsterNum = mList[1 + index];
-            switch (this._res._type) {
-            case ResourceType.kResourceTypeAmiga: {
-                    await this._res.load(Game._monsterNames[1][this._curMonsterNum], ObjectType.OT_SPM)
-                    const tab: number[] = [ 0, 8, 0, 8 ]
-                    const offset = this._vid._mapPalSlot3 * 16 + tab[this._curMonsterNum]
-                    for (let i = 0; i < 8; ++i) {
-                        this._vid.setPaletteColorBE(0x50 + i, offset + i)
-                    }
-                }
-                break;
-            case ResourceType.kResourceTypeDOS: {
-                    const name = Game._monsterNames[0][this._curMonsterNum]
-                    await this._res.load(name, ObjectType.OT_SPRM)
-                    await this._res.load_SPR_OFF(name, this._res._sprm)
-                    this._vid.setPaletteSlotLE(5, Game._monsterPals[this._curMonsterNum])
-                }
-                break;
-            case ResourceType.kResourceTypeMac: {
-                    const palette: Color[] = new Array(256)
-                    await this._res.MAC_loadMonsterData(Game._monsterNames[0][this._curMonsterNum], palette)
-                    const kMonsterPalette = 5
-                    for (let i = 0; i < 16; ++i) {
-                        const color = kMonsterPalette * 16 + i
-                        this._stub.setPaletteEntry(color, palette[color])
-                    }
-                }
-                break
-            }
+
         }
         return 0xFFFF
     }
 
     hasLevelMap(level: number, room: number) {
-        if (this._res._type === ResourceType.kResourceTypeMac) {
-            return this._res.MAC_hasLevelMap(level, room)
-        }
         if (this._res._map) {
             return READ_LE_UINT32(this._res._map, room * 6) !== 0
         } else if (this._res._lev) {
@@ -2826,74 +2449,27 @@ class Game {
     async loadLevelMap() {
         let widescreenUpdated = false
         this._currentIcon = 0xFF
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            if (this._currentLevel === 1) {
-                let num = 0
-                switch (this._currentRoom) {
-                case 14:
-                case 19:
-                case 52:
-                case 53:
-                    num = 1
-                    break
-                case 11:
-                case 24:
-                case 27:
-                case 56:
-                    num = 2
-                    break
-                }
-                if (num !== 0 && this._res._levNum !== num) {
-                    const name = 'level2_' + num
-                    await this._res.load(name, ObjectType.OT_LEV)
-                    this._res._levNum = num
-                }
+
+        if (this._stub.hasWidescreen() && this._widescreenMode === WidescreenMode.kWidescreenAdjacentRooms) {
+            debugger
+            const leftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
+            if (leftRoom > 0 && this.hasLevelMap(this._currentLevel, leftRoom)) {
+                this._vid.PC_decodeMap(this._currentLevel, leftRoom)
+                this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
+            } else {
+                this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
             }
-            this._vid.AMIGA_decodeLev(this._currentLevel, this._currentRoom)
-            break
-        case ResourceType.kResourceTypeDOS:
-            if (this._stub.hasWidescreen() && this._widescreenMode === WidescreenMode.kWidescreenAdjacentRooms) {
-                debugger
-                const leftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
-                if (leftRoom > 0 && this.hasLevelMap(this._currentLevel, leftRoom)) {
-                    this._vid.PC_decodeMap(this._currentLevel, leftRoom)
-                    this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
-                } else {
-                    this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
-                }
-                const rightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
-                if (rightRoom > 0 && this.hasLevelMap(this._currentLevel, rightRoom)) {
-                    this._vid.PC_decodeMap(this._currentLevel, rightRoom)
-                    this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
-                } else {
-                    this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
-                }
-                widescreenUpdated = true
+            const rightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
+            if (rightRoom > 0 && this.hasLevelMap(this._currentLevel, rightRoom)) {
+                this._vid.PC_decodeMap(this._currentLevel, rightRoom)
+                this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
+            } else {
+                this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
             }
-            this._vid.PC_decodeMap(this._currentLevel, this._currentRoom)
-            break
-        case ResourceType.kResourceTypeMac:
-            if (this._stub.hasWidescreen() && this._widescreenMode == WidescreenMode.kWidescreenAdjacentRooms) {
-                const leftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
-                if (leftRoom > 0 && this.hasLevelMap(this._currentLevel, leftRoom)) {
-                    this._vid.MAC_decodeMap(this._currentLevel, leftRoom)
-                    this._stub.copyWidescreenLeft(this._vid._w, this._vid._h, this._vid._backLayer)
-                } else {
-                    this._stub.copyWidescreenLeft(this._vid._w, this._vid._h, null)
-                }
-                const rightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
-                if (rightRoom > 0 && this.hasLevelMap(this._currentLevel, rightRoom)) {
-                    this._vid.MAC_decodeMap(this._currentLevel, rightRoom)
-                    this._stub.copyWidescreenRight(this._vid._w, this._vid._h, this._vid._backLayer)
-                } else {
-                    this._stub.copyWidescreenRight(this._vid._w, this._vid._h, null)
-                }
-                widescreenUpdated = true
-            }
-            this._vid.MAC_decodeMap(this._currentLevel, this._currentRoom)
-            break
+            widescreenUpdated = true
         }
+        this._vid.PC_decodeMap(this._currentLevel, this._currentRoom)
+
         if (!widescreenUpdated) {
             this._vid.updateWidescreen()
         }
@@ -2902,82 +2478,25 @@ class Game {
     async loadLevelData() {
         this._res.clearLevelRes()
         const lvl = _gameLevels[this._currentLevel]
-        switch (this._res._type) {
-        case ResourceType.kResourceTypeAmiga:
-            if (this._res._isDemo) {
-                const fname1 = "demo"
-                const fname2 = "demof"
-                await this._res.load(fname1, ObjectType.OT_MBK)
-                await this._res.load(fname1, ObjectType.OT_CT)
-                await this._res.load(fname1, ObjectType.OT_PAL)
-                await this._res.load(fname1, ObjectType.OT_RPC)
-                await this._res.load(fname1, ObjectType.OT_SPC)
-                await this._res.load(fname1, ObjectType.OT_LEV)
-                await this._res.load(fname2, ObjectType.OT_PGE)
-                await this._res.load(fname1, ObjectType.OT_OBJ)
-                await this._res.load(fname1, ObjectType.OT_ANI)
-                await this._res.load(fname2, ObjectType.OT_TBN)
-                await this._res.load_SPL_demo()
-                await this._res.load("level1", ObjectType.OT_SGD)
-                break
-            }
-            {
-                let name = lvl.nameAmiga
-                if (this._currentLevel === 4) {
-                    name = _gameLevels[3].nameAmiga
-                }
-                await this._res.load(name, ObjectType.OT_MBK)
-                if (this._currentLevel === 6) {
-                    await this._res.load(_gameLevels[5].nameAmiga, ObjectType.OT_CT)
-                } else {
-                    await this._res.load(name, ObjectType.OT_CT)
-                }
-                await this._res.load(name, ObjectType.OT_PAL)
-                await this._res.load(name, ObjectType.OT_RPC)
-                await this._res.load(name, ObjectType.OT_SPC)
-                if (this._currentLevel === 1) {
-                    await this._res.load("level2_1", ObjectType.OT_LEV)
-                    this._res._levNum = 1
-                } else {
-                    await this._res.load(name, ObjectType.OT_LEV)
-                }
-            }
-            await this._res.load(lvl.nameAmiga, ObjectType.OT_PGE)
-            await this._res.load(lvl.nameAmiga, ObjectType.OT_OBC)
-            await this._res.load(lvl.nameAmiga, ObjectType.OT_ANI)
-            await this._res.load(lvl.nameAmiga, ObjectType.OT_TBN)
-            {
-                let name = "level" + lvl.sound
-                await this._res.load(name, ObjectType.OT_SPL)
-            }
+
+        await this._res.load(lvl.name, ObjectType.OT_MBK)
+        await this._res.load(lvl.name, ObjectType.OT_CT)
+        await this._res.load(lvl.name, ObjectType.OT_PAL)
+        await this._res.load(lvl.name, ObjectType.OT_RP)
+        if (this._res._isDemo || global_game_options.use_tile_data) { // use .BNQ/.LEV/(.SGD) instead of .MAP (PC demo)
             if (this._currentLevel === 0) {
-                await this._res.load(lvl.nameAmiga, ObjectType.OT_SGD)
+                await this._res.load(lvl.name, ObjectType.OT_SGD)
             }
-            break
-        case ResourceType.kResourceTypeDOS:
-            await this._res.load(lvl.name, ObjectType.OT_MBK)
-            await this._res.load(lvl.name, ObjectType.OT_CT)
-            await this._res.load(lvl.name, ObjectType.OT_PAL)
-            await this._res.load(lvl.name, ObjectType.OT_RP)
-            if (this._res._isDemo || global_game_options.use_tile_data) { // use .BNQ/.LEV/(.SGD) instead of .MAP (PC demo)
-                if (this._currentLevel === 0) {
-                    await this._res.load(lvl.name, ObjectType.OT_SGD)
-                }
-                await this._res.load(lvl.name, ObjectType.OT_LEV)
-                await this._res.load(lvl.name, ObjectType.OT_BNQ)
-            } else {
-                await this._res.load(lvl.name, ObjectType.OT_MAP)
-            }
-            await this._res.load(lvl.name2, ObjectType.OT_PGE)
-            await this._res.load(lvl.name2, ObjectType.OT_OBJ)
-            await this._res.load(lvl.name2, ObjectType.OT_ANI)
-            await this._res.load(lvl.name2, ObjectType.OT_TBN)
-            break
-        case ResourceType.kResourceTypeMac:
-            // TODO
-            debugger
-            break
-        }
+            await this._res.load(lvl.name, ObjectType.OT_LEV)
+            await this._res.load(lvl.name, ObjectType.OT_BNQ)
+        } else {
+            await this._res.load(lvl.name, ObjectType.OT_MAP)
+         }
+        await this._res.load(lvl.name2, ObjectType.OT_PGE)
+        await this._res.load(lvl.name2, ObjectType.OT_OBJ)
+        await this._res.load(lvl.name2, ObjectType.OT_ANI)
+        await this._res.load(lvl.name2, ObjectType.OT_TBN)
+
 
         this._cut._id = lvl.cutscene_id
         if (this._res._isDemo && this._currentLevel === 5) { // PC demo does not include TELEPORT.*

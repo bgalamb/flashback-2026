@@ -1,5 +1,4 @@
 import { WidescreenMode } from './enums/common_enums'
-import { Language, ResourceType } from './enums/common_enums'
 import { global_game_options } from './configs/global_game_options'
 import { ScalerParameters, defaultScaleParameters, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
@@ -11,8 +10,6 @@ const g_caption = "REminiscence"
 //By default the structure has everything false, so here we change some values
 const initOptions = async () => {
     global_game_options.bypass_protection = true
-    global_game_options.enable_password_menu = false
-    global_game_options.enable_language_selection = true
     global_game_options.fade_out_palette = false
     global_game_options.use_text_cutscenes = false
     global_game_options.use_seq_cutscenes = true
@@ -47,8 +44,6 @@ const main = async (config = DEFAULT_CONFIG ) => {
     const levelNum = config.levelnum
     const fullscreen = config.fullscreen
     const autoSave = config.autosave
-    const version = ResourceType.kResourceTypeDOS
-    const language = Language.LANG_EN
     const widescreen = WidescreenMode.kWidescreenNone
 
     //the framework (currently browser) where the game is embedded
@@ -58,7 +53,7 @@ const main = async (config = DEFAULT_CONFIG ) => {
     const fs = new FileSystem()
     await fs.setRootDirectory(dataPath)
 
-    const game = new Game(stub, fs, savePath, levelNum, version, language, widescreen, autoSave)
+    const game = new Game(stub, fs, savePath, levelNum, widescreen, autoSave)
     await stub.init(g_caption, game._vid._w, game._vid._h, fullscreen, widescreen, scalerParameters)
     await game.run()
 }

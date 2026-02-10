@@ -1,10 +1,9 @@
 import { Graphics } from './graphics'
 import { Buffer, Color, Point, READ_BE_UINT16 } from './intern'
-import { Language, ResourceType } from './enums/common_enums'
 import { ObjectType, Resource } from './resource'
 import { SystemStub, DF_FASTMODE, DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } from './systemstub_web'
 import { Video } from './video'
-import { _amigaDemoOffsetsTable, _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataAmiga, _creditsDataDOS, _enTextsTable, _frTextsTable, _musicTable, _namesTableDOS, _offsetsTableAmiga, _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
+import { _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataDOS, _enTextsTable, _musicTable, _namesTableDOS,  _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
 import {global_game_options} from "./configs/global_game_options";
 
 
@@ -66,17 +65,13 @@ class Cutscene {
     ]
     static _namesTableDOS: string[] = _namesTableDOS
     static _offsetsTableDOS: Uint16Array = _offsetsTableDOS
-    static _offsetsTableAmiga: Uint16Array = _offsetsTableAmiga
-    static _amigaDemoOffsetsTable: Uint8Array = _amigaDemoOffsetsTable
     static _ssiOffsetsTable: Uint8Array = _ssiOffsetsTable
     static _cosTable: Uint16Array = _cosTable
     static _sinTable: Uint16Array = _sinTable
     static _creditsDataDOS: Uint8Array = _creditsDataDOS
-    static _creditsDataAmiga: Uint8Array = _creditsDataAmiga
     static _creditsCutSeq: Uint8Array = _creditsCutSeq
     static _musicTable: Uint8Array = _musicTable
     static _protectionShapeData: Uint8Array = _protectionShapeData
-    static _frTextsTable: Text[] = _frTextsTable
     static _enTextsTable: Text[] = _enTextsTable
     static _caillouSetData: Uint8Array = _caillouSetData
     static kMaxPaletteSize = 32
@@ -148,7 +143,7 @@ class Cutscene {
     }
 
     static isNewLineChar(chr: number, res: Resource) {
-        const nl = (res._lang === Language.LANG_JP) ? 0xD1 : 0x7C
+        const nl = 0x7C
         return chr === nl
     }
 
@@ -179,25 +174,21 @@ class Cutscene {
     drawText(x: number, y: number, p: Uint8Array, color: number, page: Uint8Array, textJustify: number) {
         let len = 0
         let str = new TextDecoder().decode(p)
-        if (this._res._type == ResourceType.kResourceTypeMac) {
-            len = str.charCodeAt(0)
-            str = str.substr(1)
-        } else {
-            len = str.length
-        }
+        len = str.length
+
         const dcf = this._vid._drawChar
-        const fnt = (this._res._lang === Language.LANG_JP) ? Video._font8Jp : this._res._fnt
+        const fnt = this._res._fnt
         let lastSep = 0
         if (textJustify !== kTextJustifyLeft) {
             lastSep = this.findTextSeparators(p, len)
             if (textJustify !== kTextJustifyCenter) {
-                lastSep = (this._res._lang === Language.LANG_JP) ? 20 : 30
+                lastSep =  30
             }
         }
         const sep = this._textSep
         let index = 0
         y += 50
-        x += (this._res._lang === Language.LANG_JP) ? 0 : 8
+        x +=  8
         let yPos = y
         let xPos = x
         if (textJustify !== kTextJustifyLeft) {
@@ -261,7 +252,7 @@ class Cutscene {
             console.log(`Cutscene:play() _id=0x${this._id.toString(16)}`)
             this._creditsSequence = false
             this.prepare()
-            const offsets = this._res.isAmiga() ? Cutscene._offsetsTableAmiga : Cutscene._offsetsTableDOS
+            const offsets = Cutscene._offsetsTableDOS
             let cutName = offsets[this._id * 2 + 0]
             let cutOff = offsets[this._id * 2 + 1]
             console.log(`cutName=${cutName}, cutOff=${cutOff}`)
@@ -315,7 +306,7 @@ class Cutscene {
             }
 
             if (global_game_options.use_text_cutscenes) {
-                const textsTable:Text[] = (this._res._lang === Language.LANG_FR) ? Cutscene._frTextsTable : Cutscene._enTextsTable
+                const textsTable:Text[] =  Cutscene._enTextsTable
                 for (let i = 0; textsTable[i].str; ++i) {
                     if (this._id === textsTable[i].num) {
                         await this.playText(textsTable[i].str)
@@ -355,14 +346,12 @@ class Cutscene {
         this._hasAlphaColor = false
         const p:Uint8Array = this.getCommandData()
         let offset = 0
-        if (this._res.isMac()) {
-            this._baseOffset = READ_BE_UINT16(p.buffer, 2 + num * 2)
-        } else {
+
             if (num !== 0) {
                 offset = READ_BE_UINT16(p.buffer, 2 + num * 2)
             }
             this._baseOffset = (READ_BE_UINT16(p.buffer) + 1) * 2
-        }
+
         this._varKey = 0
         this._cmdPtr = this._cmdPtrBak = new Uint8Array(p.buffer)
         this._cmdPtrOffset  = this._cmdPtrBakOffset = this._baseOffset + offset
@@ -463,54 +452,17 @@ class Cutscene {
         }
         let name = Cutscene._namesTableDOS[cutName & 0xFF]
         const _res = this._res
-        switch(_res._type) {
 
-            case ResourceType.kResourceTypeAmiga:
-                if (cutName === 7) {
-                    name = "INTRO"
-                } else if (cutName === 10) {
-                    name = "SERRURE"
-                }
-                await _res.load(name, ObjectType.OT_CMP)
-                if (this._id === 0x39 && _res._lang !== Language.LANG_FR) {
-                    //
-                    // 'espions' - '... the power which we need' caption is missing in Amiga English.
-                    // fixed in DOS version, opcodes order is wrong
-                    //
-                    // opcode 0 pos 0x323
-                    // opcode 6 pos 0x324
-                    // str 0x3a
-                    //
-                    throw('TODO: Amiga')
-                }
-                break
+        await _res.load(name, ObjectType.OT_CMD)
+        await _res.load(name, ObjectType.OT_POL)
 
-            case ResourceType.kResourceTypeDOS:
-                await _res.load(name, ObjectType.OT_CMD)
-                await _res.load(name, ObjectType.OT_POL)
-                break
-
-            case ResourceType.kResourceTypeMac:
-                await _res.MAC_loadCutscene(name)
-                break
-        }
         await _res.load_CINE()
         return !!(_res._cmd && _res._pol)
     }
 
     unload() {
-        switch(this._res._type) {
-            case ResourceType.kResourceTypeAmiga:
-                this._res.unload(ObjectType.OT_CMP)
-                break
-            case ResourceType.kResourceTypeDOS:
-                this._res.unload(ObjectType.OT_CMD)
-                this._res.unload(ObjectType.OT_POL)
-                break
-            case ResourceType.kResourceTypeMac:
-                this._res.MAC_unloadCutscene()
-                break;                
-        }
+        this._res.unload(ObjectType.OT_CMD)
+        this._res.unload(ObjectType.OT_POL)
     }
 
     prepare() {
@@ -535,11 +487,8 @@ class Cutscene {
     }
 
     async playCredits() {
-        if (this._res.isMac()) {
-            console.warn('Cutscene::playCredits() unimplemented')
-            return
-        }
-        this._textCurPtr = new Buffer(this._res.isAmiga() ? Cutscene._creditsDataAmiga.buffer : Cutscene._creditsDataDOS.buffer)
+
+        this._textCurPtr = new Buffer(Cutscene._creditsDataDOS.buffer)
         this._textBuf[0] = 0xA
         this._creditsSequence = true
         this._creditsSlowText = 0
@@ -554,7 +503,7 @@ class Cutscene {
                 break
             }
             this.prepare()
-            const offsets = this._res.isAmiga() ? Cutscene._offsetsTableAmiga : Cutscene._offsetsTableDOS
+            const offsets = Cutscene._offsetsTableDOS
             const cutName = offsets[cut_id * 2 + 0]
             const cutOff = offsets[cut_id * 2 + 1]
             if (await this.load(cutName)) {
@@ -1030,7 +979,7 @@ class Cutscene {
         if (!this._creditsSequence) {
             // 'espions' - ignore last call, allows caption to be displayed longer on the screen
             if (this._id === 0x39 && strId === 0xFFFF) {
-                if ((this._res.isDOS() && (this._cmdPtr.byteOffset - this._cmdPtrBak.byteOffset) === 0x10) || (this._res.isAmiga() && (this._cmdPtr.byteOffset - this.getCommandData().byteOffset) === 0x9F3)) {
+                if (((this._cmdPtr.byteOffset - this._cmdPtrBak.byteOffset) === 0x10)) {
                     this._frameDelay = 100
                     this.setPalette()
                     return
@@ -1065,10 +1014,7 @@ class Cutscene {
         if (this._creditsSequence) {
             const n = this.fetchNextCmdByte() * 2
             throw('op_waitForSync -> creditsSequence not implemented')
-            // do {
-            //     this._creditsSlowText = 0xFF
-            //     this._frameDelay = 3
-            // }
+
         } else {
             this._frameDelay = this.fetchNextCmdByte() * 4
             await this.sync()
@@ -1253,12 +1199,7 @@ class Cutscene {
             this._cmdPtrOffset = 0
             n = READ_BE_UINT16(this._cmdPtr, n * 2 + 2)
         }
-        if (this._res.isMac()) {
-            this._cmdPtr = this.getCommandData()
-            this._cmdPtrOffset = 0
-            this._baseOffset = READ_BE_UINT16(this._cmdPtr, 2 + n * 2)
-            n = 0
-        }
+
         this._cmdPtr = this._cmdPtrBak = this.getCommandData()
         this._cmdPtrBakOffset = this._cmdPtrOffset =  n + this._baseOffset
     }
@@ -1266,21 +1207,7 @@ class Cutscene {
     drawCreditsText() {
         if (this._creditsSequence) {
             throw('Cutscene::drawCreditsText not implemented!')
-            if (this._creditsKeepText !== 0) {
-                if (this._creditsSlowText === 0) {
-                    this._creditsKeepText = 0
-                } else {
-                    return
-                }
-            }
-            if (this._creditsTextCounter <= 0) {
-                const code = this._textCurPtr[0]
-                if (code === 0xFF) {
-                    throw('TODO: drawCreditsText')
-                } else if (code === 0xFE) {
-    
-                }
-            }            
+
         }
     }
 

@@ -1,6 +1,7 @@
 const DEFAULT_CONFIG = {
     // 'https://warpdesign.github.io/flashback-web/demo-data'
-    datapath: 'http://localhost:4444/DATA',
+    // datapath: 'http://localhost:4444/DATA',
+    datapath: 'https://warpdesign.fr/tests/fb',
     savepath: '',
     levelnum: 0,
     fullscreen: false,

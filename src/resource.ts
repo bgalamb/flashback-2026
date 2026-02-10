@@ -1,15 +1,9 @@
-import { fileExists, removeFolder } from 'fuse-box/utils/utils'
-import type { DecodeBuffer } from './decode_mac'
-import { decodeC211, decodeC103 } from './decode_mac'
 import { File } from './file'
 import { FileSystem } from "./fs"
 import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
-import { Language, ResourceType } from './enums/common_enums'
 import { ResourceAba } from "./resource_aba"
-import { ResourceMac } from "./resource_mac"
-import { _cineBinJP, _cineTxtJP, _gameSavedSoundLen, _level1TbnJP, _level2TbnJP, _level3TbnJP, _level41TbnJP, _level42TbnJP, _level51TbnJP, _level52TbnJP, _splNames, _spmOffsetsTable, _stringsTableDE, _stringsTableEN, _stringsTableFR, _stringsTableIT, _stringsTableJP, _stringsTableSP, _textsTableDE, _textsTableEN, _textsTableFR, _textsTableIT, _textsTableSP, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
+import {  _gameSavedSoundLen, _splNames, _spmOffsetsTable, _stringsTableEN, _textsTableEN, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
 import { bytekiller_unpack } from './unpack'
-import { dump } from './util'
 
 type LoadStub = (file: File) => void
 
@@ -53,29 +47,10 @@ const LocaleData = {
             LI_23_DEMO: 22,
             LI_NUM: 23
         },
-    _textsTableFR: _textsTableFR,
+
     _textsTableEN: _textsTableEN,
-    _textsTableDE: _textsTableDE,
-    _textsTableSP: _textsTableSP,
-    _textsTableIT: _textsTableIT,
-
-    _stringsTableFR: _stringsTableFR,
     _stringsTableEN: _stringsTableEN,
-    _stringsTableDE: _stringsTableDE,
-    _stringsTableSP: _stringsTableSP,
-    _stringsTableIT: _stringsTableIT,
-    _stringsTableJP: _stringsTableJP,
 
-    _level1TbnJP: _level1TbnJP,
-    _level2TbnJP: _level2TbnJP,
-    _level3TbnJP: _level3TbnJP,
-    _level41TbnJP: _level41TbnJP,
-    _level42TbnJP: _level42TbnJP,
-    _level51TbnJP: _level51TbnJP,
-    _level52TbnJP: _level52TbnJP,
-
-    _cineBinJP: _cineBinJP,
-    _cineTxtJP: _cineTxtJP,
 }
 
 enum ObjectType {
@@ -115,7 +90,6 @@ const NUM_CUTSCENE_TEXTS = 117
 const NUM_SPRITES = 1287
 
 const kPaulaFreq = 3546897
-const kClutSize = 1024
 const kScratchBufferSize = 320 * 224 + 1024
 
 class Resource {
@@ -124,52 +98,10 @@ class Resource {
 	static _splNames: string[] = _splNames
 	static _gameSavedSoundData: Uint8Array = _gameSavedSoundData
 	static _gameSavedSoundLen: number = _gameSavedSoundLen
-    static getCineName = (lang: Language, type: ResourceType) => {
-        switch(lang) {
-            case Language.LANG_FR:
-                if (type === ResourceType.kResourceTypeAmiga) {
-                    return "FR"
-                }
-                return "FR_"
-
-            case Language.LANG_DE:
-                return "GER"
-
-            case Language.LANG_SP:
-                return "SPA"
-
-            case Language.LANG_IT:
-                return "ITA"
-
-            case Language.LANG_EN:
-            default:
-                return "ENG"
-        }
-    }
-    static getTextBin(lang: Language, type: ResourceType) {
-        // FB PC-CD version has language specific files
-        // .TBN is used as fallback if open fails
-        switch (lang) {
-        case Language.LANG_FR:
-            return "TBF"
-        case Language.LANG_DE:
-            return "TBG"
-        case Language.LANG_SP:
-            return "TBS"
-        case Language.LANG_IT:
-            return "TBI"
-        case Language.LANG_EN:
-        default:
-            return "TBN"
-        }
-    }
 
     _fs: FileSystem
-    _type: ResourceType
-    _lang: Language
     _isDemo: boolean
     _aba: ResourceAba
-    _mac: ResourceMac
     _readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _scratchBuffer: Uint8Array
@@ -226,14 +158,11 @@ class Resource {
     _str: Uint8Array
     _credits: Uint8Array
 
-    constructor(fs: FileSystem, ver: ResourceType, lang: Language) {
+    constructor(fs: FileSystem) {
         // 	memset(this, 0, sizeof(Resource));
         this._fs = fs
-        this._type = ver
-        this._lang = lang
         this._isDemo = false
         this._aba = null
-        this._mac = null
         this._cine_txt = null
         this._cine_off = null
         this._perso = null
@@ -266,8 +195,8 @@ class Resource {
         this._levNum = 0
         this._sgd = null
         this._bnq = null
-        this._readUint16 = (this._type === ResourceType.kResourceTypeDOS) ? READ_LE_UINT16 : READ_BE_UINT16
-        this._readUint32 = (this._type === ResourceType.kResourceTypeDOS) ? READ_LE_UINT32 : READ_BE_UINT32
+        this._readUint16 = READ_LE_UINT16
+        this._readUint32 = READ_LE_UINT32
         this._scratchBuffer = new Uint8Array(kScratchBufferSize)
         if (!this._scratchBuffer) {
             throw("Unable to allocate temporary memory buffer");
@@ -281,78 +210,14 @@ class Resource {
         this.clearBankData()
     }
 
-	isDOS(): boolean {
-        return this._type === ResourceType.kResourceTypeDOS
-    }
-
-	isAmiga() {
-        return this._type === ResourceType.kResourceTypeAmiga 
-    }
-
-	isMac() {
-        return this._type === ResourceType.kResourceTypeMac
-    }
-
-    MAC_decodeImageData(ptr: Uint8Array, i: number, dst: DecodeBuffer) {
-        const basePtr = ptr
-        let ptr_offset = 0
-        const sig = READ_BE_UINT16(ptr)
-        ptr_offset = 2
-        if(sig !== 0xC211 && sig !== 0xC103) {
-            throw(`assertion failed: ${sig} === 0xC211 || ${sig} === 0xC103`)
+	async init() {
+        if (this._fs.exists(ResourceAba.FILENAME)) {
+            this._aba = new ResourceAba(this._fs)
+            await this._aba.readEntries()
+            this._isDemo = true
         }
-        const count = READ_BE_UINT16(ptr, ptr_offset)
-        ptr_offset += 2
-        if (i >= count) {
-            throw(`assertion failed: ${i} count`)
-        }
-        ptr_offset += 4
-        const offset = READ_BE_UINT16(ptr, ptr_offset + i * 4)
-        if (offset !== 0) {
-            ptr_offset = offset
-            const w = READ_BE_UINT16(ptr, ptr_offset)
-            ptr_offset += 2
-            const h = READ_BE_UINT16(ptr, ptr_offset)
-            ptr_offset += 2
-            switch(sig) {
-                case 0xC211:
-                    decodeC211(new Uint8Array(ptr, ptr_offset + 4), w, h, dst)
-                    break
-
-                case 0xC103:
-                    decodeC103(new Uint8Array(ptr, ptr_offset), w, h, dst)
-                    break                    
-            }
-        }
-    }
-
-    async init() {
-        switch(this._type) {
-            case ResourceType.kResourceTypeAmiga:
-                this._isDemo = this._fs.exists("demo.lev")
-                break
-            case ResourceType.kResourceTypeDOS:
-                if (this._fs.exists(ResourceAba.FILENAME)) {
-                    this._aba = new ResourceAba(this._fs)
-                    await this._aba.readEntries()
-                    this._isDemo = true
-                }
-                if (!this.fileExists("LEVEL1.MAP")) {
-                    this._isDemo = true
-                }
-                break
-            case ResourceType.kResourceTypeMac:
-                // TODO
-                debugger
-                // if (this._fs.exists(ResourceMac.FILENAME1)) {
-                //     this._mac = new ResourceMac()
-                //     await this._mac.open(ResourceMac.FILENAME1, this._fs)
-                // } else if (this._fs.exists(ResourceMac.FILENAME2)) {
-                //     this._mac = new ResourceMac()
-                //     await this._mac.open(ResourceMac.FILENAME2, this._fs)
-                // }
-                // this._mac.load()
-                break
+        if (!this.fileExists("LEVEL1.MAP")) {
+            this._isDemo = true
         }
     }
 
@@ -388,7 +253,7 @@ class Resource {
                 break
 
             case ObjectType.OT_TBN:
-                this._entryName = `${objName}.${Resource.getTextBin(this._lang, this._type)}`
+                this._entryName = `${objName}.TBN`
                 if (!this._fs.exists(this._entryName)) {
                     this._entryName = `${objName}.TBN`
                 }
@@ -469,7 +334,6 @@ class Resource {
                 this._entryName = `${objName}.LEV`
                 loadStub = this.load_LEV.bind(this)
                 break
-
             case ObjectType.OT_OBJ:
                 this._entryName = `${objName}.OBJ`
                 loadStub = this.load_OBJ.bind(this)
@@ -495,7 +359,7 @@ class Resource {
             }
         } else {
             if (this._aba) {
-                const { dat, size } = this._aba.loadEntry(this._entryName)
+                const {dat, size } = this._aba.loadEntry(this._entryName)
                 if (dat) {
                     switch(objType) {
                         case ObjectType.OT_PAL:
@@ -546,15 +410,14 @@ class Resource {
                             break
                         case ObjectType.OT_OBJ:
                             this._numObjectNodes = READ_LE_UINT16(dat)
-                            if (this._numObjectNodes !== 230) {
-                                throw(`Assertion failed: ${this._numObjectNodes === 230}`)
+                            if (this._numObjectNodes !== 230 ){
+                                throw(`assertion failed ${this._numObjectNodes}`)
                             }
-                            this.decodeOBJ(dat.subarray(2, size - 2), size - 2)
+                            this.decodeOBJ(dat.subarray(2,size -2), size -2)
                             break
                         default:
                             debugger
                             throw(`${objType} not supported!`)
-                            break
                     }
                     return
                 }
@@ -614,10 +477,6 @@ class Resource {
         const offsets = new Uint32Array(256)
         let tmpOffset = 0
         this._numObjectNodes = 230
-        if (this._type === ResourceType.kResourceTypeMac) {
-            this._numObjectNodes = this._readUint16(tmp)
-            tmpOffset += 2
-        }
         for (let i = 0; i <this. _numObjectNodes; ++i) {
             offsets[i] = this._readUint32(tmp, tmpOffset)
             tmpOffset += 4
@@ -681,6 +540,10 @@ class Resource {
         }
     }
 
+    load_OBJ(f: File) {
+        throw('not implemented: load_OBJ!')
+    }
+
     load_SPM(f: File) {
         debugger
         const kPersoDatSize = 178647
@@ -730,16 +593,7 @@ class Resource {
     }
 
     load_PGE(f: File) {
-        if (this._type === ResourceType.kResourceTypeAmiga) {
-            const size = f.size()
-            const tmp = new Uint8Array(size)
-            if (!tmp) {
-                throw("Unable to allocate PGE temporary buffer");
-            }
-            f.read(tmp.buffer, size)
-            this.decodePGE(tmp, size)
-            return
-        }
+
         this._pgeNum = f.readUint16LE()
         if (this._pgeNum > this._pgeInit.length) {
             throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
@@ -768,75 +622,6 @@ class Resource {
             f.readByte()
             pge.text_num = f.readUint16LE()
         }
-    }
-
-    load_OBJ(f: File) {
-        throw('load_OBJ: not implemented!')
-        // debug(DBG_RES, "Resource::load_OBJ()");
-        // if (_type == kResourceTypeAmiga) { // demo has uncompressed objects data
-        //     const int size = f->size();
-        //     uint8_t *buf = (uint8_t *)malloc(size);
-        //     if (!buf) {
-        //         error("Unable to allocate OBJ buffer");
-        //     } else {
-        //         f->read(buf, size);
-        //         decodeOBJ(buf, size);
-        //     }
-        //     return;
-        // }
-        // _numObjectNodes = f->readUint16LE();
-        // assert(_numObjectNodes < 255);
-        // uint32_t offsets[256];
-        // for (int i = 0; i < _numObjectNodes; ++i) {
-        //     offsets[i] = f->readUint32LE();
-        // }
-        // offsets[_numObjectNodes] = f->size() - 2;
-        // int numObjectsCount = 0;
-        // uint16_t objectsCount[256];
-        // for (int i = 0; i < _numObjectNodes; ++i) {
-        //     int diff = offsets[i + 1] - offsets[i];
-        //     if (diff != 0) {
-        //         objectsCount[numObjectsCount] = (diff - 2) / 0x12;
-        //         debug(DBG_RES, "i=%d objectsCount[numObjectsCount]=%d", i, objectsCount[numObjectsCount]);
-        //         ++numObjectsCount;
-        //     }
-        // }
-        // uint32_t prevOffset = 0;
-        // ObjectNode *prevNode = 0;
-        // int iObj = 0;
-        // for (int i = 0; i < _numObjectNodes; ++i) {
-        //     if (prevOffset != offsets[i]) {
-        //         ObjectNode *on = (ObjectNode *)malloc(sizeof(ObjectNode));
-        //         if (!on) {
-        //             error("Unable to allocate ObjectNode num=%d", i);
-        //         }
-        //         f->seek(offsets[i] + 2);
-        //         on->last_obj_number = f->readUint16LE();
-        //         on->num_objects = objectsCount[iObj];
-        //         debug(DBG_RES, "last=%d num=%d", on->last_obj_number, on->num_objects);
-        //         on->objects = (Object *)malloc(sizeof(Object) * on->num_objects);
-        //         for (int j = 0; j < on->num_objects; ++j) {
-        //             Object *obj = &on->objects[j];
-        //             obj->type = f->readUint16LE();
-        //             obj->dx = f->readByte();
-        //             obj->dy = f->readByte();
-        //             obj->init_obj_type = f->readUint16LE();
-        //             obj->opcode2 = f->readByte();
-        //             obj->opcode1 = f->readByte();
-        //             obj->flags = f->readByte();
-        //             obj->opcode3 = f->readByte();
-        //             obj->init_obj_number = f->readUint16LE();
-        //             obj->opcode_arg1 = f->readUint16LE();
-        //             obj->opcode_arg2 = f->readUint16LE();
-        //             obj->opcode_arg3 = f->readUint16LE();
-        //             debug(DBG_RES, "obj_node=%d obj=%d op1=0x%X op2=0x%X op3=0x%X", i, j, obj->opcode2, obj->opcode1, obj->opcode3);
-        //         }
-        //         ++iObj;
-        //         prevOffset = offsets[i];
-        //         prevNode = on;
-        //     }
-        //     _objectNodesMap[i] = prevNode;
-        // }
     }
 
     load_ANI(f: File) {
@@ -871,8 +656,7 @@ class Resource {
 
     load_SGD(f: File) {
         const len = f.size()
-        if (this._type === ResourceType.kResourceTypeDOS) {
-            this._sgd = new Uint8Array(len)
+         this._sgd = new Uint8Array(len)
             if (!this._sgd) {
                 throw("Unable to allocate SGD buffer");
             } else {
@@ -881,22 +665,7 @@ class Resource {
                 this._sgd[0] = 0
             }
             return
-        }
-        f.seek(len - 4)
-        const size = f.readUint32BE()
-        f.seek(0)
-        const tmp = new Uint8Array(len)
-        if (!tmp) {
-            throw("Unable to allocate SGD temporary buffer")
-        }
-        f.read(tmp, len)
-        this._sgd = new Uint8Array(size)
-        if (!this._sgd) {
-            throw("Unable to allocate SGD buffer")
-        }
-        if (!bytekiller_unpack(this._sgd, size, tmp, len)) {
-            throw("Bad CRC for SGD data")
-        }
+
     }
 
     load_PAL(f: File) {
@@ -940,17 +709,6 @@ class Resource {
         throw('not implemented: load_FNT!')
     }
 
-    async setLanguage(lang: Language) {
-        if (this._lang !== lang) {
-            this._lang = lang
-            // reload global language specific data files
-            this.free_TEXT()
-            this.load_TEXT()
-            this.free_CINE()
-            await this.load_CINE()
-        }
-    }
-
     fileExists(filename: string) {
         if (this._fs.exists(filename)) {
             return true
@@ -967,26 +725,15 @@ class Resource {
     
     getBankDataSize(num: number) {
         let len = READ_BE_UINT16(this._mbk, num * 6 + 4)
-        switch (this._type) {
-        case ResourceType.kResourceTypeAmiga:
-            if (len & 0x8000) {
-                len = -(len << 16 >> 16)
-            }
-            break
-        case ResourceType.kResourceTypeDOS:
-            if (len & 0x8000) {
+        if (len & 0x8000) {
                 if (this._mbk === this._bnq) { // demo .bnq use signed int
                     len = -(len << 16 >> 16)
-                    break
+
+                }else {
+                    len &= 0x7FFF
                 }
-                len &= 0x7FFF
             }
-            break
-        case ResourceType.kResourceTypeMac:
-            // assert(0); // different graphics format
-            throw('Assertion Failed: should not get there!')
-            break
-        }
+
         return len * 32
     }
 
@@ -1002,11 +749,11 @@ class Resource {
     loadBankData(num: number) {
         const ptr = this._mbk.subarray(num * 6)
         let dataOffset = READ_BE_UINT32(ptr)
-        if (this._type == ResourceType.kResourceTypeDOS) {
-            // first byte of the data buffer corresponds
-            // to the total count of entries
-            dataOffset &= 0xFFFF
-        }
+
+        // first byte of the data buffer corresponds
+        // to the total count of entries
+        dataOffset &= 0xFFFF
+
         const size = this.getBankDataSize(num)
         const avail = this._bankDataTail - this._bankDataHead.byteOffset
 
@@ -1043,49 +790,10 @@ class Resource {
 
     load_TEXT() {
         this._stringsTable = null
-        switch(this._lang) {
-            case Language.LANG_FR:
-                this._stringsTable = LocaleData._stringsTableFR
-                break
-            case Language.LANG_EN:
-                this._stringsTable = LocaleData._stringsTableEN
-                break
-            case Language.LANG_DE:
-                this._stringsTable = LocaleData._stringsTableDE
-                break                
-            case Language.LANG_SP:
-                this._stringsTable = LocaleData._stringsTableSP
-                break                
-            case Language.LANG_IT:
-                this._stringsTable = LocaleData._stringsTableIT
-                break                
-            case Language.LANG_JP:
-                this._stringsTable = LocaleData._stringsTableJP
-                break                
-        }
-
+        this._stringsTable = LocaleData._stringsTableEN
         this._textsTable = null
+        this._textsTable = LocaleData._textsTableEN
 
-        switch(this._lang) {
-            case Language.LANG_FR:
-                this._textsTable = LocaleData._textsTableFR
-                break
-            case Language.LANG_EN:
-                this._textsTable = LocaleData._textsTableEN
-                break
-            case Language.LANG_DE:
-                this._textsTable = LocaleData._textsTableDE
-                break                
-            case Language.LANG_SP:
-                this._textsTable = LocaleData._textsTableSP
-                break                
-            case Language.LANG_IT:
-                this._textsTable = LocaleData._textsTableIT
-                break                
-            case Language.LANG_JP:
-                this._textsTable = LocaleData._textsTableEN
-                break             
-        }
     }
 
     load_TBN(f: File) {
@@ -1136,37 +844,6 @@ class Resource {
         }
         this._icnLen += len
     }
-
-    async load_DEM(filename: string) {
-        this._dem = null
-        this._demLen = 0
-        const f = new File()
-        if (await f.open(filename, "rb", this._fs)) {
-            this._demLen = f.size()
-            this._dem = new Uint8Array(this._demLen)
-            if (this._dem) {
-                f.read(this._dem, this._demLen)
-            }
-        } else if (this._aba) {
-            const { dat, size } = this._aba.loadEntry(filename)
-            this._dem = dat
-            if (this._dem) {
-                this._demLen = size
-            }
-        }
-    }
-
-    MAC_getPersoFrame(anim): number {
-        // TODO
-        debugger
-        return 0
-    }
-
-    MAC_getMonsterFrame(anim): number {
-        // TODO
-        debugger
-        return 0
-    }    
 
     async load_VCE(num: number, segment: number) {
         let res = {
@@ -1397,38 +1074,8 @@ class Resource {
     }
 
     async load_CINE() {
-        const prefix = Resource.getCineName(this._lang, this._type)
-        switch(this._type) {
-            case ResourceType.kResourceTypeAmiga:
-                if (this._cine_txt === null) {
-                    this._entryName = `${prefix}CINE.TXT`
-                    const f: File = new File()
-                    if (await f.open(this._entryName, "rb", this._fs)) {
-                        const len = f.size()
-                        this._cine_txt = new Uint8Array(len + 1)
-                        if (!this._cine_txt) {
-                            throw(`Unable to allocate cinematics text data (size=${len})`)
-                        }
-                        f.read(this._cine_txt, len)
-                        if (f.ioErr()) {
-                            throw(`I/O error when reading '${this._entryName}`)
-                        }
-                        this._cine_txt[len] = 0
-                        let p_offset = 0
-                        throw('Resource::load_CINE: Amiga loading not implemented')
-                        for (let i = 0; i < NUM_CUTSCENE_TEXTS; ++i) {
-                        }
-                    } else if (this._isDemo) {
-                        // file not present in demo datafiles
-                        return;                        
-                    }
-                }
-                if (!this._cine_txt) {
-                    throw(`Cannot load '${this._entryName}'`)
-                }
-                break
+        const prefix = 'ENG'
 
-            case ResourceType.kResourceTypeDOS:
                 if (this._cine_off === null) {
                     this._entryName = `${prefix}.BIN`
                     if (!this._fs.exists(this._entryName)) {
@@ -1481,115 +1128,14 @@ class Resource {
                 if (!this._cine_txt) {
                     throw(`Cannot load '${this._entryName}'`)
                 }
-                break
-            case ResourceType.kResourceTypeMac:
-                this._MAC_loadCutsceneText()
-                break
-        }
     }
 
-    _MAC_loadCutsceneText() {
-        // TODO
-        debugger
-    }
-
-    MAC_hasLevelMap(level: number, room: number) {
-        // TODO
-        debugger
-        return false
-        // char name[64];
-        // snprintf(name, sizeof(name), "Level %c Room %d", _macLevelNumbers[level][0], room);
-        // return _mac->findEntry(name) != 0;
-    }
-
-    MAC_loadMonsterData(name: string, clut: Color[]) {
-        // TODO
-        debugger
-    }
-
-    MAC_loadClutData() {
-        // TODO
-        debugger
-        // const ptr = this.decodeResourceMacData("Flashback colors", false)
-        // if (ptr) {
-        //     this.MAC_decodeDataCLUT(ptr)
-        //     // free(ptr);
-        // }
-    }
-    
-    MAC_loadFontData() {
-        // TODO
-        debugger
-        this._fnt = this.decodeResourceMacData("Font", true)
-    }
-
-    decodeResourceMacData(name: string, decompressLzss: boolean): Uint8Array {
-        // TODO
-        debugger
-        return null
-    }
 
     getAniData(num: number) {
-		if (this._type == ResourceType.kResourceTypeMac) {
-			const count = READ_BE_UINT16(this._ani.buffer)
-            if (num >= count) {
-                throw(`Assertion failed: ${num} < ${count}`)
-            }
-			const offset = READ_BE_UINT16(this._ani.buffer, 2 + num * 2)
-			return this._ani.subarray(offset)
-		}
-		const offset = this._readUint16(this._ani, 2 + num * 2)
-		return this._ani.subarray(2 + offset)
-	}
+       const offset = this._readUint16(this._ani, 2 + num * 2)
 
-    async load_SPL_demo() {
-        this._numSfx = NUM_SFXS
-        this._sfxList = new Array<SoundFx>(NUM_SFXS).fill(null).map(() => ({
-            offset: 0,
-            len: 0,
-            freq: 0,
-            data: null,
-            peak: 0
-        }))
-        if (!this._sfxList) {
-            return
-        }
-        for (let i = 0; _splNames[i] && i < NUM_SFXS; ++i) {
-            const f = new File()
-            if (await f.open(_splNames[i], "rb", this._fs)) {
-                const sfx = this._sfxList[i]
-                const size = f.size()
-                const buffer = new SharedArrayBuffer(f.size())
-                sfx.data = new Uint8Array(buffer)
-                if (sfx.data) {
-                    f.read(sfx.data.buffer, size)
-                    sfx.offset = 0
-                    sfx.len = size
-                    sfx.freq = (kPaulaFreq / 650) >> 0
-                    normalizeSPL(sfx)
-                }
-            }
-        }        
-    }
-
-    async MAC_loadCutscene(cutscene: string) {
-        // TODO
-        throw('Resource::MAC_loadCutscene not implemented!')
-    }
-
-    MAC_unloadCutscene() {
-        this._cmd = null
-        this._pol = null
-    }
-
-    free_TEXT() {
-        this._stringsTable = null
-        this._textsTable = null
-    }
-
-    free_CINE() {
-        this._cine_off = null
-        this._cine_txt = null
+        // Return a subarray starting from the calculated offset
+        return this._ani.subarray(2 + offset)
     }
 
     free_OBJ() {
@@ -1605,72 +1151,17 @@ class Resource {
     }
 
     getTextString(level: number, num: number) {
-		if (this._type === ResourceType.kResourceTypeMac) {
-			const count = READ_BE_UINT16(this._tbn)
-            if (num >= count) {
-                throw(`Assertion failed: ${num} < ${count}`)
-            }
-			const offset = READ_BE_UINT16(this._tbn, 2 + num * 2)
-			return this._tbn.subarray(offset)
-		}
-		if (this._lang === Language.LANG_JP) {
-			let p:Uint8Array = null
-			switch (level) {
-			case 0:
-				p = LocaleData._level1TbnJP
-				break
-			case 1:
-				p = LocaleData._level2TbnJP
-				break
-			case 2:
-				p = LocaleData._level3TbnJP
-				break
-			case 3:
-				p = LocaleData._level41TbnJP
-				break
-			case 4:
-				p = LocaleData._level42TbnJP
-				break
-			case 5:
-				p = LocaleData._level51TbnJP
-				break
-			case 6:
-				p = LocaleData._level52TbnJP
-				break
-			default:
-				return null
-			}
-			return p.subarray(READ_LE_UINT16(p, num * 2))
-		}
+
 		return this._tbn.subarray(this._readUint16(this._tbn, num * 2))
 	}
 
 	getGameString(num: number) {
-		if (this._type === ResourceType.kResourceTypeMac) {
-			const count = READ_BE_UINT16(this._str)
-            if (num >= count) {
-                throw(`Assertion failed: ${num} < ${count}`)
-            }
-			const offset = READ_BE_UINT16(this._str, 2 + num * 2)
-			return this._str.subarray(offset)
-		}
+
 		return this._stringsTable.subarray(READ_LE_UINT16(this._stringsTable, num * 2))
 	}
 
 	getCineString(num: number) {
-		if (this._type == ResourceType.kResourceTypeMac) {
-			const count = READ_BE_UINT16(this._cine_txt)
-            if (num >= count) {
-                throw(`Assertion failed: ${num} < ${count}`)
-            }
-			const offset = READ_BE_UINT16(this._cine_txt, 2 + num * 2)
-			return this._cine_txt.subarray(offset)
-		}
 
-		if (this._lang === Language.LANG_JP) {
-			const offset = READ_BE_UINT16(LocaleData._cineBinJP,  num * 2)
-			return LocaleData._cineTxtJP.subarray(offset)
-		}
 		if (this._cine_off) {
 			const offset = READ_BE_UINT16(this._cine_off, num * 2)
 			return this._cine_txt.subarray(offset)
@@ -1682,12 +1173,6 @@ class Resource {
 		return (num >= 0 && num < LocaleData.Id.LI_NUM) ? this._textsTable[num] : "";
 	}
 
-    MAC_copyClut16(clut: Color[], dest: number, src: number) {
-        // TODO
-        debugger
-        // memcpy(&clut[dest * 16], &_clut[src * 16], 16 * sizeof(Color));
-
-    }
 
     clearLevelRes() {
         this._tbn = null

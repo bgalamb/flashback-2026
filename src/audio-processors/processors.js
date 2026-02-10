@@ -116,7 +116,7 @@ class SoundProcessor extends AudioWorkletProcessor {
             chunkPos: 0,
             chunkInc: 0
         }))        
-        this.port.onmessage = this.handleMessage.bind(this)
+        this.port.onmessage = this. handleMessage.bind(this)
     }
 
     play(data /*: UInt8Array */, len /*: number */, freq /*: number */, volume /*: number */) {
@@ -144,25 +144,34 @@ class SoundProcessor extends AudioWorkletProcessor {
     }
     
     mix(input, out/*: Int16Array*/, len/*: number*/) {
+
+        //the lenght is provided by the system, and it fact it looks 32bit and not 16 bit Int
+
+        //copy the input to the output
         for (let pos = 0; pos < len; ++pos) {
             out[pos] = input[pos]
         }
 
+        //loop through the channels
         for (let i = 0; i < NUM_CHANNELS; ++i) {
             const ch/*:MixerChannel*/ = this._channels[i]
+            // if the channel is active
             if (ch.active) {
+                //output array has a length of 128 so this loops 0-127
                 for (let pos = 0; pos < len; ++pos) {
                     if ((ch.chunkPos >> FRAC_BITS) >= (ch.chunk.len - 1)) {
                         ch.active = false
                         break
                     }
-                    const sample = Math.floor(ch.chunk.getPCM(ch.chunkPos >> FRAC_BITS) * (ch.volume / MAX_VOLUME))
+                    const chunkdata = ch.chunk.getPCM(ch.chunkPos >> FRAC_BITS)
+                    const sample = Math.floor(chunkdata * (ch.volume / MAX_VOLUME))
                     out[pos] = ADDC_F32(out[pos], S8_to_F32(sample))
 
                     ch.chunkPos += ch.chunkInc
                 }
             }
         }
+        //noise reduction, not important
         if (SoundProcessor.kUseNr) {
             SoundProcessor.nr(out, len)
         }
@@ -359,6 +368,18 @@ class SoundFxProcessor extends AudioWorkletProcessor {
     mix(out/*: Int16Array*/, len/*: number*/) {
         out.fill(0)
         if (this._playing) {
+            // Let me search for the specific information about AudioContext's default sample rate:According to the MDN documentation
+            // [[1]](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/AudioContext),
+            // the default sample rate for AudioContext typically varies between 8,000 Hz and 96,000 Hz, with 44,100 Hz being the most common default value.
+            // The exact value depends on the output device being used.
+            // You can check the actual sample rate for your AudioContext instance by accessing the property `sampleRate`
+            // this._audioContext = new window.AudioContext()
+            // console.log(this._audioContext.sampleRate);
+            // this._kAudioHz = this._audioContext.sampleRate
+            // this.postMessageToSoundProcessor({
+            // 				message: 'init',
+            // 				mixingRate: this._kAudioHz,
+            // 			})
             const samplesPerTick = (this._mixingRate / 50) >> 0
 
             while (len !== 0) {
@@ -385,6 +406,11 @@ class SoundFxProcessor extends AudioWorkletProcessor {
         switch(event.data.message) {
             case 'init':
                 console.log('[sfxProcessor] setting mixingRate to', event.data.mixingRate)
+                // this._kAudioHz = this._audioContext.sampleRate
+                // this.postMessageToSoundProcessor({
+                // 				message: 'init',
+                // 				mixingRate: this._kAudioHz,
+                // 			})
                 this._mixingRate = event.data.mixingRate
                 this._ready = true
                 break
@@ -392,6 +418,11 @@ class SoundFxProcessor extends AudioWorkletProcessor {
             case 'play':
                 console.log('[sfxProcessor] playing sound')
                 const { module } = event.data
+
+                //interface Module {
+                //     sampleData: Uint8Array[]
+                //     moduleData: Uint8Array
+                // }
                 this.play(module)
                 break
         }
@@ -401,6 +432,10 @@ class SoundFxProcessor extends AudioWorkletProcessor {
         this.port.postMessage(message)
     }
 
+    // Based on the code shown, the method is called by the Web Audio API's AudioWorklet system.
+    // This is part of the standard Web Audio API processing lifecycle. `process`
+    // The method belongs to both and classes which extend .
+    // These are custom audio processors registered with: `SoundProcessor``SoundFxProcessor``AudioWorkletProcessor`
     process(inputs, outputs, params) {
         if (this._playing) {
             this.mix(outputs[0][0], outputs[0][0].length)

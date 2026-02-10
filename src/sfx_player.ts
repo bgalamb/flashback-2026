@@ -84,7 +84,6 @@ class SfxPlayer {
                 SfxPlayer._module72, SfxPlayer._module73, SfxPlayer._module74, SfxPlayer._module75
             ];
             const module = modTable[num - 68]
-
             this._mix._stub.postMessageToSFXProcessor({
                 message: 'play',
                 module

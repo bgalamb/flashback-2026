@@ -1,8 +1,5 @@
-import { CpcPlayer } from "./cpc_player"
 import { FileSystem } from "./fs"
 import { ADDC_S16, S8_to_S16 } from "./intern"
-import { ModPlayer } from "./mod_player"
-import { OggPlayer } from "./ogg_player"
 import { SfxPlayer } from "./sfx_player"
 import { SystemStub } from "./systemstub_web"
 
@@ -62,9 +59,6 @@ class Mixer {
     _premixHookData: ArrayBuffer
     _backgroundMusicType: MusicType
     _musicType: MusicType
-    _cpc: CpcPlayer
-    _mod: ModPlayer
-    _ogg: OggPlayer
     _sfx: SfxPlayer
     _musicTrack: number
     static MUSIC_TRACK = 1000
@@ -82,9 +76,6 @@ class Mixer {
     constructor(fs: FileSystem, stub: SystemStub) {
         this._stub = stub
         this._musicType = MusicType.MT_NONE
-        this._cpc = new CpcPlayer(this, fs)
-        this._mod = new ModPlayer(this, fs)
-        this._ogg = new OggPlayer(this, fs)
         this._sfx = new SfxPlayer(this)
         this._musicTrack = -1
         this._backgroundMusicType = MusicType.MT_NONE
@@ -104,25 +95,7 @@ class Mixer {
     }
 
     playMusic(num: number) {
-        if (num > MUSIC_TRACK && num !== this._musicTrack) {
-            if (this._ogg.playTrack(num - MUSIC_TRACK)) {
-                this._musicType = MusicType.MT_OGG
-                this._musicTrack = num
-                return
-            }
-            if (this._cpc.playTrack(num - MUSIC_TRACK)) {
-                this._backgroundMusicType = this._musicType = MusicType.MT_CPC
-                this._musicTrack = num
-                return
-            }
-        }
-        if (num === 1) { // menu screen
-            if (this._cpc.playTrack(2) || this._ogg.playTrack(2)) {
-                this._backgroundMusicType = this._musicType = MusicType.MT_OGG
-                this._musicTrack = 2
-                return
-            }
-        }
+
         if ((this._musicType == MusicType.MT_OGG || this._musicType == MusicType.MT_CPC) && Mixer.isMusicSfx(num)) { // do not play level action music with background music
             return;
         }
@@ -131,46 +104,11 @@ class Mixer {
             if (this._sfx._playing) {
                 this._musicType = MusicType.MT_SFX
             }
-        } else { // cutscene
-            this._mod.play(num)
-            if (this._mod._playing) {
-                this._musicType = MusicType.MT_MOD
-            }
         }
     }
 
     stopMusic() {
-        switch(this._musicType) {
-            case MusicType.MT_NONE:
-                break
-            case MusicType.MT_MOD:
-                this._mod.stop()
-                break
-            case MusicType.MT_OGG:
-                this._ogg.pauseTrack()
-                break
-            case MusicType.MT_SFX:
-                this._sfx.stop()
-                break
-            case MusicType.MT_CPC:
-                this._cpc.pauseTrack()
-                break
-        }
-        this._musicType = MusicType.MT_NONE
-        if (this._musicTrack !== -1) {
-            switch(this._backgroundMusicType) {
-                case MusicType.MT_OGG:
-                    this._ogg.resumeTrack();
-                    this._musicType = MusicType.MT_OGG;
-                    break;
-                case MusicType.MT_CPC:
-                    this._cpc.resumeTrack();
-                    this._musicType = MusicType.MT_CPC;
-                    break;
-                default:
-                    break;                
-            }
-        }
+
     }
 
     mix(out: Int16Array, len: number) {
