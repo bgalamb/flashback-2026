@@ -322,7 +322,7 @@ class Resource {
 
             case ObjectType.OT_SPR:
                 this._entryName = `${objName}.SPR`
-                loadStub = this.load_SPR.bind(this)
+                loadStub = this.load_SPRITE.bind(this)
                 break
 
             case ObjectType.OT_SGD:
@@ -905,7 +905,7 @@ class Resource {
         }
     }
 
-    load_SPR(f: File) {
+    load_SPRITE(f: File) {
         const len = f.size() - 12
         this._spr1 = new Uint8Array(len)
         if (!this._spr1) {
@@ -916,46 +916,60 @@ class Resource {
         }
     }
 
-    async load_SPR_OFF(fileName: string, sprData: Uint8Array) {
-        this._entryName = `${fileName}.OFF`
-        
-        let offData: Uint8Array = null
-        const f = new File()
-        if (await f.open(this._entryName, "rb", this._fs)) {
-            const len = f.size()
-            offData = new Uint8Array(len)
+    async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
+        this._entryName = `${fileName}.OFF`;
+        try {
+            const offData = await this._loadOffsetData();
             if (!offData) {
-                console.error("Unable to allocate sprite offsets");
+                throw new Error(`Cannot load '${this._entryName}'`);
             }
-            f.read(offData.buffer, len);
-            if (f.ioErr()) {
-                console.error(`I/O error when reading '${this._entryName}'`)
-            }
-        } else if (this._aba) {
-            const res = this._aba.loadEntry(this._entryName)
-            offData = res.dat
+            this._processOffsetData(offData, sprData);
+        } catch (error) {
+            console.error(error.message);
         }
-
-        if (offData) {
-            const p = offData
-            let index = 0
-            let pos
-            while ((pos = READ_LE_UINT16(p.buffer, index)) !== 0xFFFF) {
-                if (pos >= NUM_SPRITES) {
-                    throw(`Assertion failed: ${pos} < ${NUM_SPRITES}`)
-                }
-                const off = READ_LE_UINT32(p.buffer, index + 2)
-                if (off === 0xFFFFFFFF) {
-                    this._sprData[pos] = null
-                } else {
-                    this._sprData[pos] = sprData.subarray(off)
-                }
-                index += 6
-            }
-            return
-        }
-        console.error(`Cannot load '${this._entryName}'`)
     }
+
+    private async _loadOffsetData(): Promise<Uint8Array | null> {
+        try {
+            const f = new File();
+            if (await f.open(this._entryName, "rb", this._fs)) {
+                const len = f.size();
+                const offData = new Uint8Array(len);
+                f.read(offData.buffer, len);
+                if (f.ioErr()) {
+                    throw new Error(`I/O error when reading '${this._entryName}'`);
+                }
+                return offData;
+            }
+
+            if (this._aba) {
+                const res = this._aba.loadEntry(this._entryName);
+                return res.dat;
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Error loading offset data:", error);
+            return null;
+        }
+    }
+
+    private _processOffsetData(offData: Uint8Array, sprData: Uint8Array) {
+        let index = 0;
+        while (true) {
+            const pos = READ_LE_UINT16(offData.buffer, index);
+            if (pos === 0xFFFF) break;
+            if (pos >= NUM_SPRITES) {
+                throw new Error(`Invalid sprite index: ${pos}`);
+            }
+            const off = READ_LE_UINT32(offData.buffer, index + 2);
+            this._sprData[pos] = off === 0xFFFFFFFF
+                ? null
+                : sprData.subarray(off);
+            index += 6;
+        }
+    }
+
 
     async load_FIB(fileName: string) {
         this._entryName = `${fileName}.FIB`

@@ -663,44 +663,45 @@ const scoreTable = Uint16Array.from([
 	0, 200, 300, 400, 500, 800, 1000, 1200, 1500, 2000, 2200, 2500, 3000, 3200, 3500, 5000
 ])
 
-const _monsterListLevel1 = Uint8Array.from([
+const _monsterListOnLevel1 = Uint8Array.from([
 	0x22, 0, 0x23, 0, 0xFF
 ])
 
-const _monsterListLevel2 = Uint8Array.from([
+const _monsterListOnLevel2 = Uint8Array.from([
 	0x22, 0, 0x23, 0, 0x4B, 0, 0x49, 1, 0x4D, 1, 0x76, 2, 0xFF
 ])
 
-const _monsterListLevel3 = Uint8Array.from([
+const _monsterListOnLevel3 = Uint8Array.from([
 	0x76, 2, 0xFF
 ])
 
-const _monsterListLevel4_1 = Uint8Array.from([
+const _monsterListOnLevel4_1 = Uint8Array.from([
 	0x4D, 1, 0x76, 2, 0xFF
 ])
 
-const _monsterListLevel4_2 = Uint8Array.from([
+const _monsterListOnLevel4_2 = Uint8Array.from([
 	0x76, 2, 0xAC, 2, 0xD7, 3, 0xFF
 ])
 
-const _monsterListLevel5_1 = Uint8Array.from([
+const _monsterListOnLevel5_1 = Uint8Array.from([
 	0xB0, 3, 0xD7, 3, 0xFF
 ])
 
-const _monsterListLevel5_2 = Uint8Array.from([
+const _monsterListOnLevel5_2 = Uint8Array.from([
     0xB0, 3, 0xD7, 3, 0xD8, 3, 0xFF
 ])
 
 const _monsterListLevels = [
-	_monsterListLevel1,
-	_monsterListLevel2,
-	_monsterListLevel3,
-	_monsterListLevel4_1,
-	_monsterListLevel4_2,
-	_monsterListLevel5_1,
-	_monsterListLevel5_2
+	_monsterListOnLevel1,
+	_monsterListOnLevel2,
+	_monsterListOnLevel3,
+	_monsterListOnLevel4_1,
+	_monsterListOnLevel4_2,
+	_monsterListOnLevel5_1,
+	_monsterListOnLevel5_2
 ]
 
+// color palettes for monsters
 const _monsterPals = [
 	Uint8Array.from([ // junkie
 		0x00, 0x00, 0xAA, 0x0A, 0x65, 0x0A, 0x44, 0x08, 0x22, 0x06, 0x20, 0x03, 0x40, 0x05, 0x87, 0x0C,
@@ -720,20 +721,14 @@ const _monsterPals = [
     ])
 ]
 
-const _monsterNames = [
+const _monsterNames =
 	[ // PC
 		"junky",
 		"mercenai",
 		"replican",
 		"glue"
-    ],
-	[ // Amiga
-		"junky",
-		"garde",
-		"replicant",
-		"glue"
     ]
-]
+
 
 
 
@@ -957,7 +952,7 @@ const _stringsTableEN = Uint8Array.from([
 ])
 
 
-
+// these are the strings outside the game loop, such as menu screen and pause, quit etc.
 const _textsTableEN = [
 	"CONTINUE OR ABORT THIS GAME ?",
 	"TIME",
@@ -3884,4 +3879,4 @@ const _flagEn16x12 = Uint8Array.from([
 ])
 
 
-export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _demoInputs, _gameLevels, scoreTable, _monsterListLevel1, _monsterListLevel2, _monsterListLevel3, _monsterListLevel4_1, _monsterListLevel4_2, _monsterListLevel5_1, _monsterListLevel5_2, _monsterListLevels, _monsterPals, _monsterNames, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _level1TbnJP, _level2TbnJP, _level3TbnJP, _level41TbnJP, _level42TbnJP, _level51TbnJP, _level52TbnJP, _cineBinJP, _cineTxtJP, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionNumberDataAmiga, _protectionCodeDataAmiga, _protectionPal, _levelNames, _passwordsDOS, _passwordsFrAmiga, _passwordsEnAmiga, _passwordsMac, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _font8Jp, _periodTable, _modulesFiles, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }
+export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _demoInputs, _gameLevels, scoreTable, _monsterListOnLevel1, _monsterListOnLevel2, _monsterListOnLevel3, _monsterListOnLevel4_1, _monsterListOnLevel4_2, _monsterListOnLevel5_1, _monsterListOnLevel5_2, _monsterListLevels, _monsterPals, _monsterNames, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionNumberDataAmiga, _protectionCodeDataAmiga, _protectionPal, _levelNames, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _modulesFiles, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }

@@ -9,7 +9,7 @@ import { Video } from './video'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Menu } from './menu'
-import { scoreTable, _demoInputs, _gameLevels, _monsterListLevel1, _monsterListLevel2, _monsterListLevel3, _monsterListLevel4_1, _monsterListLevel4_2, _monsterListLevel5_1, _monsterListLevel5_2, _monsterListLevels, _monsterNames, _monsterPals, _pge_modKeysTable, _protectionCodeData, _protectionCodeDataAmiga, _protectionNumberDataAmiga, _protectionPal, _protectionWordData } from './staticres'
+import { scoreTable, _demoInputs, _gameLevels, _monsterListOnLevel1, _monsterListOnLevel2, _monsterListOnLevel3, _monsterListOnLevel4_1, _monsterListOnLevel4_2, _monsterListOnLevel5_1, _monsterListOnLevel5_2, _monsterListLevels, _monsterNames, _monsterPals, _pge_modKeysTable, _protectionCodeData, _protectionCodeDataAmiga, _protectionNumberDataAmiga, _protectionPal, _protectionWordData } from './staticres'
 import { global_game_options } from './configs/global_game_options'
 import { File } from './file'
 import { _pge_opcodeTable } from './game_opcodes'
@@ -31,16 +31,16 @@ class Game {
     static _demoInputs: Demo[] = _demoInputs
     static _gameLevels: Level[] = _gameLevels
     static _scoreTable: Uint16Array = scoreTable
-    static _monsterListLevel1: Uint8Array = _monsterListLevel1
-    static _monsterListLevel2: Uint8Array = _monsterListLevel2
-    static _monsterListLevel3: Uint8Array = _monsterListLevel3
-    static _monsterListLevel4_1: Uint8Array = _monsterListLevel4_1
-    static _monsterListLevel4_2: Uint8Array = _monsterListLevel4_2
-    static _monsterListLevel5_1: Uint8Array = _monsterListLevel5_1
-    static _monsterListLevel5_2: Uint8Array = _monsterListLevel5_2
+    static _monsterListLevel1: Uint8Array = _monsterListOnLevel1
+    static _monsterListLevel2: Uint8Array = _monsterListOnLevel2
+    static _monsterListLevel3: Uint8Array = _monsterListOnLevel3
+    static _monsterListLevel4_1: Uint8Array = _monsterListOnLevel4_1
+    static _monsterListLevel4_2: Uint8Array = _monsterListOnLevel4_2
+    static _monsterListLevel5_1: Uint8Array = _monsterListOnLevel5_1
+    static _monsterListLevel5_2: Uint8Array = _monsterListOnLevel5_2
     static _monsterListLevels: Uint8Array[] = _monsterListLevels
     static _monsterPals: Uint8Array[] = _monsterPals
-    static _monsterNames: string[][] = _monsterNames
+    static _monsterNames: string[] = _monsterNames
     _pge_opcodeTable: pge_OpcodeProc[] = _pge_opcodeTable
     static _pge_modKeysTable: Uint8Array = _pge_modKeysTable
     static _protectionCodeData: Uint8Array = _protectionCodeData
@@ -416,7 +416,8 @@ class Game {
         await this._res.load("GLOBAL", ObjectType.OT_ICN)
         await this._res.load("GLOBAL", ObjectType.OT_SPC)
         await this._res.load("PERSO", ObjectType.OT_SPR)
-        await this._res.load_SPR_OFF("PERSO", this._res._spr1)
+
+        await this._res.load_SPRITE_OFFSETS("PERSO", this._res._spr1)
         await this._res.load_FIB("GLOBAL")
 
             if (!global_game_options.bypass_protection && global_game_options.use_words_protection) {
@@ -473,6 +474,7 @@ class Game {
                 this.renders = 0
                 this.debugStartFrame = 10650
 
+                //This is where rendering loop happens
                 this.renderPromise = new Promise((resolve) => {
                     this.renderDone = resolve
                 })
@@ -1317,7 +1319,7 @@ class Game {
                 this._vid.fullRefresh()
             }
         }
-        await this.prepareAnims()
+        await this.prepareAnimationsInRooms()
         await this.drawAnims()
         this.renders++
         this.drawCurrentInventoryItem()
@@ -1537,57 +1539,73 @@ class Game {
         this._vid.drawStringLen(str, len, x, y, color)
     }
 
-    async prepareAnims() {
+    // Loads PGE's for rooms which are around
+    //             ┌───────────┐
+    //             │  ROOM UP  │
+    //             └───────────┘
+    // ┌───────────┬───────────┬───────────┐
+    // │ ROOM LEFT │   ROOM    │ROOM RIGHT │
+    // └───────────┴───────────┴───────────┘
+    //             ┌───────────┐
+    //             │ROOM DOWN  │
+    //             └───────────┘
+    async prepareAnimationsInRooms() {
         if (!(this._currentRoom & 0x80) && this._currentRoom < 0x40) {
-            let pge_room: number
-            let pge: LivePGE = this._pge_liveTable1[this._currentRoom]
+            // Prepare animations for current room
+            await this.prepareCurrentRoomAnims();
+
+            // Prepare animations for adjacent rooms
+            await this.prepareAdjacentRoomAnims(CT_UP_ROOM, 0, -216, this.isAboveRoomPge);
+            await this.prepareAdjacentRoomAnims(CT_DOWN_ROOM, 0, 216, this.isBelowRoomPge);
+            await this.prepareAdjacentRoomAnims(CT_LEFT_ROOM, -256, 0, this.isLeftRoomPge);
+            await this.prepareAdjacentRoomAnims(CT_RIGHT_ROOM, 256, 0, this.isRightRoomPge);
+        }
+    }
+
+    private async prepareCurrentRoomAnims() {
+        let pge = this._pge_liveTable1[this._currentRoom];
+        while (pge) {
+            await this.prepareAnimsHelper(pge, 0, 0);
+            pge = pge.next_PGE_in_room;
+        }
+    }
+
+    private async prepareAdjacentRoomAnims(
+        roomOffset: number,
+        offsetX: number,
+        offsetY: number,
+        shouldPrepare: (pge: LivePGE) => boolean
+    ) {
+        const pge_room = this._res._ctData[roomOffset + this._currentRoom];
+        if (pge_room >= 0 && pge_room < 0x40) {
+            let pge = this._pge_liveTable1[pge_room];
             while (pge) {
-                await this.prepareAnimsHelper(pge, 0, 0)
-                pge = pge.next_PGE_in_room
-            }
-            pge_room = this._res._ctData[CT_UP_ROOM + this._currentRoom]
-            if (pge_room >= 0 && pge_room < 0x40) {
-                pge = this._pge_liveTable1[pge_room]
-                while (pge) {
-                    if ((pge.init_PGE.object_type !== 10 && pge.pos_y > 176) || (pge.init_PGE.object_type === 10 && pge.pos_y > 216)) {
-                        await this.prepareAnimsHelper(pge, 0, -216)
-                    }
-                    pge = pge.next_PGE_in_room
+                if (shouldPrepare(pge)) {
+                    await this.prepareAnimsHelper(pge, offsetX, offsetY);
                 }
-            }
-            pge_room = this._res._ctData[CT_DOWN_ROOM + this._currentRoom]
-            if (pge_room >= 0 && pge_room < 0x40) {
-                pge = this._pge_liveTable1[pge_room]
-                while (pge) {
-                    if (pge.pos_y < 48) {
-                        await this.prepareAnimsHelper(pge, 0, 216)
-                    }
-                    pge = pge.next_PGE_in_room
-                }
-            }
-            pge_room = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
-            if (pge_room >= 0 && pge_room < 0x40) {
-                pge = this._pge_liveTable1[pge_room]
-                while (pge) {
-                    if (pge.pos_x > 224) {
-                        await this.prepareAnimsHelper(pge, -256, 0)
-                    }
-                    pge = pge.next_PGE_in_room
-                }
-            }
-            pge_room = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
-            if (pge_room >= 0 && pge_room < 0x40) {
-                pge = this._pge_liveTable1[pge_room]
-                while (pge) {
-                    if (pge.pos_x <= 32) {
-                        await this.prepareAnimsHelper(pge, 256, 0)
-                    }
-                    pge = pge.next_PGE_in_room
-                }
+                pge = pge.next_PGE_in_room;
             }
         }
     }
-    
+
+    private isAboveRoomPge(pge: LivePGE): boolean {
+        return (pge.init_PGE.object_type !== 10 && pge.pos_y > 176) ||
+            (pge.init_PGE.object_type === 10 && pge.pos_y > 216);
+    }
+
+    private isBelowRoomPge(pge: LivePGE): boolean {
+        return pge.pos_y < 48;
+    }
+
+    private isLeftRoomPge(pge: LivePGE): boolean {
+        return pge.pos_x > 224;
+    }
+
+    private isRightRoomPge(pge: LivePGE): boolean {
+        return pge.pos_x <= 32;
+    }
+
+
     async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number) {
         if (!(pge.flags & 8)) {
             if (pge.index !== 0 && await this.loadMonsterSprites(pge) === 0) {
@@ -2407,35 +2425,57 @@ class Game {
         this._textToDisplay = 0xFFFF
     }
 
-    async loadMonsterSprites(pge: LivePGE) {
-        const init_pge: InitPGE = pge.init_PGE
-        if (init_pge.obj_node_number !== 0x49 && init_pge.object_type !== 10) {
-            debugger
-            return 0xFFFF
-        }
-        if (init_pge.obj_node_number === this._curMonsterFrame) {
-            return 0xFFFF
-        }
-        if (pge.room_location !== this._currentRoom) {
-            return 0
-        }
-    
-        let index = this._currentLevel
-        const mList = _monsterListLevels[index]
+    private findMonsterInCurrentLevelList(initPge: InitPGE): number | null {
+        const currentLevelMonsters = _monsterListLevels[this._currentLevel];
 
-        while (mList[index] !== init_pge.obj_node_number) {
-            if (mList[index] === 0xFF) { // end of list
-                return 0
+        for (let i = 0; i < currentLevelMonsters.length; i += 2) {
+            if (currentLevelMonsters[i] === 0xFF) {
+                return null; // Reached end of monster list
             }
-            index += 2
-        }
-        this._curMonsterFrame = mList[0 + index]
-        if (this._curMonsterNum != mList[1 + index]) {
-            this._curMonsterNum = mList[1 + index];
 
+            if (currentLevelMonsters[i] === initPge.obj_node_number) {
+                return i; // Found matching monster
+            }
         }
-        return 0xFFFF
+
+        return null; // No matching monster found
     }
+
+    async loadMonsterSprites(pge: LivePGE) {
+        const initPge: InitPGE = pge.init_PGE;
+
+        if (initPge.obj_node_number !== 0x49 && initPge.object_type !== 10) {
+            return 0xFFFF;
+        }
+
+        if (initPge.obj_node_number === this._curMonsterFrame) {
+            return 0xFFFF;
+        }
+
+        if (pge.room_location !== this._currentRoom) {
+            return 0;
+        }
+
+        const currentLevelMonsters = _monsterListLevels[this._currentLevel];
+        const monsterIndex = this.findMonsterInCurrentLevelList(initPge);
+        if (monsterIndex === null) {
+            return 0;
+        }
+
+        this._curMonsterFrame = currentLevelMonsters[monsterIndex];
+
+        if (this._curMonsterNum !== currentLevelMonsters[monsterIndex + 1]) {
+            this._curMonsterNum = currentLevelMonsters[monsterIndex + 1];
+
+            const name = Game._monsterNames[this._curMonsterNum];
+            await this._res.load(name, ObjectType.OT_SPRM);
+            await this._res.load_SPRITE_OFFSETS(name, this._res._sprm);
+            this._vid.setPaletteSlotLE(5, Game._monsterPals[this._curMonsterNum]);
+        }
+
+        return 0xFFFF;
+    }
+
 
     hasLevelMap(level: number, room: number) {
         if (this._res._map) {
