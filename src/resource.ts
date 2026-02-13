@@ -131,8 +131,12 @@ class Resource {
     _spr1: Uint8Array
     _sprData: Uint8Array[] = new Array(NUM_SPRITES)
     _sprm: Uint8Array = new Uint8Array(0x10000)
+
+    // number of total PGEs in the file
     _pgeNum: number
+    //the initial structre where PGEs are loaded from the file
     _pgeInit: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
+
     _map: Uint8Array
     _lev: Uint8Array
     _levNum: number
@@ -217,7 +221,8 @@ class Resource {
             await this._aba.readEntries()
             this._isDemo = true
         }
-        if (!this.fileExists("LEVEL1.MAP")) {
+        const exists = this.fileExists("LEVEL1.MAP")
+        if (!exists) {
             this._isDemo = true
         }
     }
@@ -242,6 +247,7 @@ class Resource {
 
     async load(objName: string, objType: number, ext: string = "") {
         let loadStub:LoadStub = null
+        //first let's try to load the real file
         switch(objType) {
             case ObjectType.OT_RP:
                 this._entryName = `${objName}.RP`
@@ -342,7 +348,6 @@ class Resource {
 
             default:
                 throw(`load not implemented for ${objType} !`)
-                break
         }
 
         if (ext) {
@@ -359,6 +364,7 @@ class Resource {
                 throw(`I/O error when reading '${this._entryName}'`)
             }
         } else {
+            // as a fallback let's try to load the ABA entry
             if (this._aba) {
                 const {dat, size } = this._aba.loadEntry(this._entryName)
                 if (dat) {
@@ -372,9 +378,6 @@ class Resource {
                         case ObjectType.OT_FNT:
                             this._fnt = dat
                             break
-                        case ObjectType.OT_PGE:
-                            this.decodePGE(dat, size)
-                            break                            
                         case ObjectType.OT_BNQ:
                             this._bnq = dat
                             break
@@ -433,46 +436,65 @@ class Resource {
         }
     }
 
-    decodePGE(p: Uint8Array, size: number) {
-        let index = 0
-        this._pgeNum = this._readUint16(p)
-        index += 2
-        this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
-        if (this._pgeNum > this._pgeInit.length) {
-            throw(`Assertion failed: ${this._pgeNum} <= ${this._pgeInit.length}`)
-        }
-        for (let i = 0; i < this._pgeNum; ++i) {
-            const pge: InitPGE = this._pgeInit[i]
-            pge.type = this._readUint16(p, index)
-            index += 2
-            pge.pos_x = this._readUint16(p, index)
-            index += 2
-            pge.pos_y = this._readUint16(p, index)
-            index += 2
-            pge.obj_node_number = this._readUint16(p, index)
-            index += 2
-            pge.life = this._readUint16(p, index)
-            index += 2
-            for (let lc = 0; lc < 4; ++lc) {
-                pge.counter_values[lc] = this._readUint16(p, index)
-                index += 2
-            }
-            pge.object_type = p[index++]
-            pge.init_room = p[index++]
-            pge.room_location = p[index++]
-            pge.init_flags = p[index++]
-            pge.colliding_icon_num = p[index++]
-            pge.icon_num = p[index++]
-            pge.object_id = p[index++]
-            pge.skill = p[index++]
-            pge.mirror_x = p[index++]
-            pge.flags = p[index++]
-            pge.unk1C = p[index++]
-            index++
-            pge.text_num = this._readUint16(p, index)
-            index += 2
-        }        
-    }
+    // decodePGE(p: Uint8Array, size: number) {
+    //     let index = 0
+    //     this._pgeNum = this._readUint16(p)
+    //     index += 2
+    //     this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
+    //     if (this._pgeNum > this._pgeInit.length) {
+    //         throw(`Assertion failed: ${this._pgeNum} <= ${this._pgeInit.length}`)
+    //     }
+    //     for (let i = 0; i < this._pgeNum; ++i) {
+    //         const pge: InitPGE = this._pgeInit[i]
+    //         pge.type = this._readUint16(p, index)
+    //         index += 2
+    //         pge.pos_x = this._readUint16(p, index)
+    //         index += 2
+    //         pge.pos_y = this._readUint16(p, index)
+    //         index += 2
+    //         pge.obj_node_number = this._readUint16(p, index)
+    //         index += 2
+    //         pge.life = this._readUint16(p, index)
+    //         index += 2
+    //         for (let lc = 0; lc < 4; ++lc) {
+    //             pge.counter_values[lc] = this._readUint16(p, index)
+    //             index += 2
+    //         }
+    //         pge.object_type = p[index++]
+    //         pge.init_room = p[index++]
+    //         pge.room_location = p[index++]
+    //         pge.init_flags = p[index++]
+    //         pge.colliding_icon_num = p[index++]
+    //         pge.icon_num = p[index++]
+    //         pge.object_id = p[index++]
+    //         pge.skill = p[index++]
+    //         pge.mirror_x = p[index++]
+    //         pge.flags = p[index++]
+    //         pge.unk1C = p[index++]
+    //         index++
+    //         pge.text_num = this._readUint16(p, index)
+    //         index += 2
+    //         //log out the value to understand better
+    //         //log out the value to understand better
+    //         console.log('Init PGE Fields:', {
+    //             type: pge.type,
+    //             pos_x: pge.pos_x,
+    //             pos_y: pge.pos_y,
+    //             obj_node_number: pge.obj_node_number,
+    //             init_room: pge.init_room,
+    //             room_location: pge.room_location,
+    //             init_flags: pge.init_flags,
+    //             colliding_icon_num: pge.colliding_icon_num,
+    //             icon_num: pge.icon_num,
+    //             object_id: pge.object_id,
+    //             skill: pge.skill,
+    //             mirror_x: pge.mirror_x,
+    //             flags: pge.flags,
+    //             unk1C: pge.unk1C,
+    //             text_num: pge.text_num
+    //         });
+    //     }
+    // }
 
     decodeOBJ(tmp: Uint8Array, size: number) {
         const offsets = new Uint32Array(256)
@@ -542,7 +564,15 @@ class Resource {
     }
 
     load_OBJ(f: File) {
-        throw('not implemented: load_OBJ!')
+        const len = f.size()
+        const dat = new Uint8Array(len)
+        f.read(dat.buffer, len)
+
+        this._numObjectNodes = READ_LE_UINT16(dat)
+        if (this._numObjectNodes !== 230 ){
+            throw(`assertion failed ${this._numObjectNodes}`)
+        }
+        this.decodeOBJ(dat.subarray(2,len -2), len -2)
     }
 
     load_SPM(f: File) {
@@ -597,6 +627,7 @@ class Resource {
 
         //load the first byte from the file, that's going to indicate the number of PGEs contained
         this._pgeNum = f.readUint16LE()
+        console.info(`There are a total of ${this._pgeNum} PGEs in this file`)
         //pgeInitLengt = 256 and it's completely empty
         if (this._pgeNum > this._pgeInit.length) {
             throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
@@ -625,75 +656,73 @@ class Resource {
             pge.unk1C = f.readByte()
             f.readByte()
             pge.text_num = f.readUint16LE()
+
+            //log out the value to understand better
+            console.log('Init PGE Fields:', {
+                type: pge.type,
+                pos_x: pge.pos_x,
+                pos_y: pge.pos_y,
+                obj_node_number: pge.obj_node_number,
+                init_room: pge.init_room,
+                room_location: pge.room_location,
+                init_flags: pge.init_flags,
+                colliding_icon_num: pge.colliding_icon_num,
+                icon_num: pge.icon_num,
+                object_id: pge.object_id,
+                skill: pge.skill,
+                mirror_x: pge.mirror_x,
+                flags: pge.flags,
+                unk1C: pge.unk1C,
+                text_num: pge.text_num
+            });
+
         }
     }
 
     load_ANI(f: File) {
-        const size = f.size()
-        this._ani = new Uint8Array(size)
-        if (!this._ani) {
-            throw("Unable to allocate ANI buffer")
-        } else {
-            f.read(this._ani.buffer, size)
-        }
+        const len = f.size()
+        this._ani = new Uint8Array(len)
+        f.read(this._ani.buffer, len)
     }
 
     load_LEV(f: File) {
         const len = f.size()
         this._lev = new Uint8Array(len)
-        if (!this._lev) {
-            throw("Unable to allocate LEV buffer")
-        } else {
-            f.read(this._lev.buffer, len)
-        }
+        f.read(this._lev.buffer, len)
     }
 
     load_BNQ(f: File) {
         const len = f.size()
         this._bnq = new Uint8Array(len)
-        if (!this._bnq) {
-            throw("Unable to allocate BNQ buffer");
-        } else {
-            f.read(this._bnq.buffer, len)
-        }
+        f.read(this._bnq.buffer, len)
     }
 
     load_SGD(f: File) {
         const len = f.size()
-         this._sgd = new Uint8Array(len)
-            if (!this._sgd) {
-                throw("Unable to allocate SGD buffer");
-            } else {
-                f.read(this._sgd.buffer, len)
-                // first byte == number of entries, clear to fix up 32 bits offset
-                this._sgd[0] = 0
-            }
-            return
-
+        this._sgd = new Uint8Array(len)
+        f.read(this._sgd.buffer, len)
+        this._sgd[0] = 0
     }
 
     load_PAL(f: File) {
         const len = f.size()
         this._pal = new Uint8Array(len)
-        if (!this._pal) {
-            throw("Unable to allocate PAL buffer");
-        } else {
-            f.read(this._pal.buffer, len)
-        }
+        f.read(this._pal.buffer, len)
     }
 
     load_RP(f: File) {
+        const len = f.size()
+        if (len !== 0x4A) {
+            throw(`Unexpected size ${len} for '${this._entryName}'`)
+        }
         f.read(this._rp.buffer, 0x4A)
+
     }
 
     load_MBK(f: File) {
         const len = f.size()
         this._mbk = new Uint8Array(len)
-        if (!this._mbk) {
-            throw("Unable to allocate MBK buffer")
-        } else {
-            f.read(this._mbk.buffer, len)
-        }
+        f.read(this._mbk.buffer, len)
     }
 
     load_CT(pf: File) {
@@ -709,11 +738,13 @@ class Resource {
         }
     }
 
-    load_FNT() {
-        throw('not implemented: load_FNT!')
+    load_FNT(f: File) {
+        const len = f.size()
+        this._fnt = new Uint8Array(len)
+        f.read(this._fnt.buffer, len)
     }
 
-    fileExists(filename: string) {
+    fileExists(filename: string): boolean {
         if (this._fs.exists(filename)) {
             return true
         } else if (this._aba) {
@@ -803,50 +834,26 @@ class Resource {
     load_TBN(f: File) {
         const len = f.size()
         this._tbn = new Uint8Array(len)
-        if (!this._tbn) {
-            throw("Unable to allocate TBN buffer");
-        } else {
-            f.read(this._tbn.buffer, len)
-        }
+        f.read(this._tbn.buffer, len)
     }
 
-    load_CMD(pf: File) {
-        throw('TODO: load_CMD')
-        const len = pf.size()
+    load_CMD(f: File) {
+        const len = f.size()
         this._cmd = new Uint8Array(len)
-        if (!this._cmd) {
-            throw('Unable to allocate CMD buffer (size=${len}')
-        } else {
-            pf.read(this._cmd, len)
-        }
+        f.read(this._cmd.buffer, len)
     }
 
-    load_POL(pf: File) {
-        const len = pf.size()
+    load_POL(f: File) {
+        const len = f.size()
         this._pol = new Uint8Array(len)
-        if (!this._pol) {
-            throw('Unable to allocate POL buffer (size=${len}')            
-        } else {
-            pf.read(this._pol, len)
-        }
+        f.read(this._pol.buffer, len)
     }
 
     load_ICN(f: File) {
         const len = f.size()
-        if (this._icnLen === 0) {
-            this._icn = new Uint8Array(len)
-        } else {
-            debugger
-            // this._icn = (uint8_t *)realloc(_icn, _icnLen + len);
-        }
-        if (!this._icn) {
-            console.error("Unable to allocate ICN buffer")
-        } else {
-            debugger
-            // FIX ME
-            // f.read(this._icn + this._icnLen, len)
-        }
-        this._icnLen += len
+        this._icnLen = len
+        this._icn = new Uint8Array(len)
+        f.read(this._icn.buffer, len)
     }
 
     async load_VCE(num: number, segment: number) {
@@ -899,14 +906,10 @@ class Resource {
     }
 
     load_SPC(f: File) {
-        const len = f.size();
+        const len = f.size()
         this._spc = new Uint8Array(len)
-        if (!this._spc) {
-            console.error("Unable to allocate SPC buffer")
-        } else {
-            f.read(this._spc, len)
-            this._numSpc = (READ_BE_UINT16(this._spc.buffer) / 2) >> 0
-        }
+        f.read(this._spc.buffer, len)
+        this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
     }
 
     load_SPRITE(f: File) {

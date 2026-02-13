@@ -196,9 +196,13 @@ class Game {
     }
 
     pge_loadForCurrentLevel(idx: number) {
+        // InitPGE and LivePGE are different things. Init is the one which is inistally in the file
+        // decalre the live PGE
         const live_pge: LivePGE = this._pgeLive[idx]
+        // declare init PGE
         const init_pge: InitPGE = this._res._pgeInit[idx]
-    
+
+        // Init THE LIVING PGE based on the Data tha was loaded
         live_pge.init_PGE = init_pge;
         live_pge.obj_type = init_pge.type
         live_pge.pos_x = init_pge.pos_x
@@ -219,39 +223,46 @@ class Game {
         live_pge.index = idx
         live_pge.next_PGE_in_room = null
     
+        // TODO - understand what this is doing
         let flags = 0
-        if (init_pge.skill <= this._skillLevel) {
-            if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (this._currentRoom === init_pge.init_room))) {
-                flags |= 4
-                this._pge_liveTable2[idx] = live_pge
-            }
-            if (init_pge.mirror_x !== 0) {
-                flags |= 1
-            }
-            if (init_pge.init_flags & 8) {
-                flags |= 0x10
-            }
-            flags |= (init_pge.init_flags & 3) << 5
-            if (init_pge.flags & 2) {
-                flags |= 0x80
-            }
-            live_pge.flags = flags
-            if (init_pge.obj_node_number >= this._res._numObjectNodes) {
-                throw(`Assertion failed: ${init_pge.obj_node_number} < ${this._res._numObjectNodes}}`)
-            }
-            const on:ObjectNode = this._res._objectNodesMap[init_pge.obj_node_number]
-            let obj = 0
-            let i = 0
-            while (on.objects[obj].type !== live_pge.obj_type) {
-                ++i
-                ++obj
-            }
-            if (i >= on.num_objects) {
-                throw(`Assertion failed: ${i} < ${on.num_objects}`)
-            }
-            live_pge.first_obj_number = i
-            this.pge_setupDefaultAnim(live_pge)
+        if (init_pge.skill > this._skillLevel) {
+            return
         }
+
+        if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (this._currentRoom === init_pge.init_room))) {
+            flags |= 4
+            this._pge_liveTable2[idx] = live_pge
+        }
+        if (init_pge.mirror_x !== 0) {
+            flags |= 1
+        }
+        if (init_pge.init_flags & 8) {
+            flags |= 0x10
+        }
+        flags |= (init_pge.init_flags & 3) << 5
+        if (init_pge.flags & 2) {
+            flags |= 0x80
+        }
+        live_pge.flags = flags
+        // the _numObjectNodes is set to 230 when the OBJ is loaded
+        if (init_pge.obj_node_number >= this._res._numObjectNodes) {
+            throw(`Assertion failed: ${init_pge.obj_node_number} < ${this._res._numObjectNodes}}`)
+        }
+        const on:ObjectNode = this._res._objectNodesMap[init_pge.obj_node_number]
+
+        let obj = 0
+        let i = 0
+
+        while (on.objects[obj].type !== live_pge.obj_type) {
+            ++i
+            ++obj
+        }
+        if (i >= on.num_objects) {
+            throw(`Assertion failed: ${i} < ${on.num_objects}`)
+        }
+        live_pge.first_obj_number = i
+        this.pge_setupDefaultAnim(live_pge)
+
     }
 
     pge_setupDefaultAnim(pge: LivePGE) {
@@ -347,7 +358,7 @@ class Game {
         }
     }
 
-    // run->runLoop->mainloop
+    // run -> runLoop -> mainloop
     async run() {
         this._randSeed = new Date().getTime()
         await this._res.init()
@@ -1250,6 +1261,7 @@ class Game {
 
         //get the user input
         await this.pge_getUserLeftRightUpDownKeyInput()
+
 
         this.pge_prepare()
 
@@ -2314,6 +2326,7 @@ class Game {
     }
 
     pge_prepare() {
+        //is this collision state clearing?
         this.col_clearState()
         if (!(this._currentRoom & 0x80)) {
             let pge: LivePGE = this._pge_liveTable1[this._currentRoom]
@@ -2461,15 +2474,11 @@ class Game {
         await this._res.load(lvl.name, ObjectType.OT_CT)
         await this._res.load(lvl.name, ObjectType.OT_PAL)
         await this._res.load(lvl.name, ObjectType.OT_RP)
-        if (this._res._isDemo || global_game_options.use_tile_data) { // use .BNQ/.LEV/(.SGD) instead of .MAP (PC demo)
-            if (this._currentLevel === 0) {
-                await this._res.load(lvl.name, ObjectType.OT_SGD)
-            }
-            await this._res.load(lvl.name, ObjectType.OT_LEV)
-            await this._res.load(lvl.name, ObjectType.OT_BNQ)
-        } else {
-            await this._res.load(lvl.name, ObjectType.OT_MAP)
-         }
+        if (this._currentLevel === 0) {
+            await this._res.load(lvl.name, ObjectType.OT_SGD)
+        }
+        await this._res.load(lvl.name, ObjectType.OT_LEV)
+        await this._res.load(lvl.name, ObjectType.OT_BNQ)
         await this._res.load(lvl.name2, ObjectType.OT_PGE)
         await this._res.load(lvl.name2, ObjectType.OT_OBJ)
         await this._res.load(lvl.name2, ObjectType.OT_ANI)
@@ -2521,6 +2530,7 @@ class Game {
                 this.renders > this.debugStartFrame && console.log(`i=${i} => skill!`)
                 const pge = this._pgeLive[i]
                 pge.next_PGE_in_room = this._pge_liveTable1[pge.room_location]
+                // This is where pge_liveTable get's filled for the first time
                 this._pge_liveTable1[pge.room_location] = pge
             }
         }

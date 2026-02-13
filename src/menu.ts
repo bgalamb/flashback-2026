@@ -48,32 +48,28 @@ class Menu {
         this._level = 0
     }
 
-    initMenuItems(){
-        const menuItems:Item[] = new Array(3).fill(null).map(() => ({
-            str: 0,
-            opt: 0,
-        }))
-        let menuItemsCount = 0
+    initMenuItems() {
+        const MENU_ITEMS = [
+            {
+                str: LocaleData.Id.LI_07_START,
+                opt: Menu.MENU_OPTION_ITEM_START
+            },
+            {
+                str: LocaleData.Id.LI_10_INFO,
+                opt: Menu.MENU_OPTION_ITEM_INFO
+            },
+            {
+                str: LocaleData.Id.LI_11_QUIT,
+                opt: Menu.MENU_OPTION_ITEM_QUIT
+            }
+        ];
 
-        menuItems[menuItemsCount].str = LocaleData.Id.LI_07_START
-        menuItems[menuItemsCount].opt = Menu.MENU_OPTION_ITEM_START
-        ++menuItemsCount
-        if (!this._res._isDemo) {
-            debugger
-            menuItems[menuItemsCount].str = LocaleData.Id.LI_06_LEVEL
-            menuItems[menuItemsCount].opt = Menu.MENU_OPTION_ITEM_LEVEL
-            ++menuItemsCount
-
-        }
-        menuItems[menuItemsCount].str = LocaleData.Id.LI_10_INFO
-        menuItems[menuItemsCount].opt = Menu.MENU_OPTION_ITEM_INFO
-        ++menuItemsCount
-        menuItems[menuItemsCount].str = LocaleData.Id.LI_11_QUIT
-        menuItems[menuItemsCount].opt = Menu.MENU_OPTION_ITEM_QUIT
-        ++menuItemsCount
-
-        return {menuItems, menuItemsCount}
+        return {
+            menuItems: MENU_ITEMS,
+            menuItemsCount: MENU_ITEMS.length
+        };
     }
+
 
     async handleTitleScreen() {
         this._charVar1 = 0
