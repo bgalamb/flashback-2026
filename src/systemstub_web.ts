@@ -88,6 +88,7 @@ class SystemStub {
 
 	initCanvas(w: number, h: number) {
 		// const canvas = document.createElement('canvas')
+		// @ts-ignore
 		const canvas:HTMLCanvasElement = document.getElementById('root')
 		canvas.width = w
 		canvas.height = h

@@ -77,7 +77,7 @@ class Video {
         this.markBlockAsDirty(x, y, len * Video.CHAR_W, Video.CHAR_H, this._layerScale)
     }
 
-    PC_drawChar(c: number, y: number, x: number, forceDefaultFont: boolean) {
+    PC_drawChar(c: number, y: number, x: number) {
         const fnt = this._res._fnt
         y *= Video.CHAR_W
         x *= Video.CHAR_H
@@ -200,13 +200,12 @@ class Video {
         }
     }
 
-    static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array, isAmiga: boolean) {
+    static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array) {
         let num = -1
         let index = 0        
         const buf = new Uint8Array(256 * 32)
         let count = READ_BE_UINT16(src) - 1
         index += 2
-        let drawn = 0
         do {
             let d2 = READ_BE_UINT16(src, index)
             index += 2
@@ -237,7 +236,6 @@ class Video {
                         if (size > buf.byteLength) {
                             throw(`Assertion failed: ${size} <= ${buf.byteLength}`)
                         }
-                        const test = data.subarray(offset)
                         Video.AMIGA_decodeRle(buf, data.subarray(offset))
                     }
                 }
@@ -514,7 +512,7 @@ class Video {
             if (!this._res._sgd) {
                 throw(`Assertion error: ${this._res._sgd}`)
             }
-            Video.decodeSgd(this._frontLayer, new Uint8Array(tmp.buffer, tmp.byteOffset + offset10), this._res._sgd, false)
+            Video.decodeSgd(this._frontLayer, new Uint8Array(tmp.buffer, tmp.byteOffset + offset10), this._res._sgd)
             offset10 = 0
         }
 
@@ -528,29 +526,6 @@ class Video {
         this.PC_setLevelPalettes()
         if (level === 0) { // tiles with color slot 0x9
             this.setPaletteSlotBE(0x9, this._mapPalSlot1)
-        }
-    }
-
-    static AMIGA_planar16 = (dst: Uint8Array, w: number, h: number, depth: number, src: Uint8Array) => {
-        const pitch = w * 16
-        const planarSize = w * 2 * h
-        let src_offset = 0
-        let dst_offset = 0
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                for (let i =0; i < 16; ++i) {
-                    let color = 0
-                    const mask = 1 << (15 - i)
-                    for (let bit = 0; bit < depth; ++bit) {
-                        if (READ_BE_UINT16(new Uint8Array(src, src_offset + bit * planarSize)) & mask) {
-                            color |= 1 << bit
-                        }
-                    }
-                    dst[dst_offset + x * 16 + i] = color
-                }
-                src_offset += 2
-            }
-            dst_offset += pitch
         }
     }
 
@@ -638,7 +613,7 @@ class Video {
         }
     }
 
-    AMIGA_convertColor(color: number, bgr: boolean) { // 4bits to 8bits
+    AMIGA_convertColor(color: number, bgr: boolean) { // 4 bits to 8 bits
         let r = (color & 0xF00) >> 8;
         let g = (color & 0xF0)  >> 4
         let b =  color & 0xF
@@ -702,7 +677,6 @@ class Video {
             dst2[index++] = dataPtr[i] & 15
         }
         const src = dst.subarray(1024)
-        const end = src.subarray(len)
         let dstIndex = 0
         let srcIndex = 0
         do {
@@ -827,7 +801,6 @@ class Video {
         if (by2 > ((this._h / SCREENBLOCK_H) >> 0) - 1) {
             by2 = (((this._h / SCREENBLOCK_H) >> 0) - 1) >> 0
         }
-        const start = by1
         for (; by1 <= by2; ++by1) {
             for (let i = bx1; i <= bx2; ++i) {
                 this._screenBlocks[by1 * ((this._w / SCREENBLOCK_W) >> 0) + i] = 2
@@ -835,13 +808,13 @@ class Video {
         }
     }
 
-    async updateScreen(dbg = false) {
+    async updateScreen() {
         if (this._fullRefresh) {
             this._stub.copyRect(0, 0, this._w, this._h, this._frontLayer, this._w)
             await this._stub.updateScreen(this._shakeOffset)
             this._fullRefresh = false
         } else {
-            let i, j
+            let i, j: number
             let count = 0
             const p = this._screenBlocks
             let index = 0

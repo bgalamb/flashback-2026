@@ -1,16 +1,14 @@
 import { Point } from "./intern"
 
-let polygon = 0
-
 class Graphics {
     static AREA_POINTS_SIZE = 256 * 2
-    _layer: Uint8Array
-    _layerPitch: number
-    _areaPoints = new Int16Array(Graphics.AREA_POINTS_SIZE * 2)
-    _crx: number
-    _cry: number
-    _crw: number
-    _crh: number
+    private _layer: Uint8Array
+    private _layerPitch: number
+    private _areaPoints = new Int16Array(Graphics.AREA_POINTS_SIZE * 2)
+    private _crx: number
+    private _cry: number
+    private _crw: number
+    private _crh: number
 
     static calcPolyStep1(dx: number, dy: number) {
         if (dy === 0) {

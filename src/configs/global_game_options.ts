@@ -3,7 +3,7 @@ export const global_game_options = {
     fade_out_palette: false,
     use_tile_data: false,
     use_text_cutscenes: false,
-    use_seq_cutscenes: false,
+    use_seq_cutscenes: true,
     use_words_protection: false,
     use_white_tshirt: false,
     play_asc_cutscene: false,

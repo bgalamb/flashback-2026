@@ -19,12 +19,12 @@ const kTextJustifyCenter = 2
 interface SetShape {
     offset: number
     size: number
-};
+}
 
 interface Text {
     num: number
     str: string
-};
+}
 
 const SIN = (a: number) => _sinTable[a] << 16 >> 16
 const COS = (a: number) => _cosTable[a] << 16 >> 16
@@ -63,6 +63,7 @@ class Cutscene {
 	null,// &Cutscene::op_drawStringAtPos,
 	this.op_handleKeys.bind(this)
     ]
+
     static _namesTableDOS: string[] = _namesTableDOS
     static _offsetsTableDOS: Uint16Array = _offsetsTableDOS
     static _ssiOffsetsTable: Uint8Array = _ssiOffsetsTable
@@ -77,31 +78,31 @@ class Cutscene {
     static kMaxPaletteSize = 32
     static kMaxShapesCount = 16
 
-    _gfx: Graphics = new Graphics()
-    _res: Resource
-    _stub: SystemStub
-    _vid: Video
-    _patchedOffsetsTable: Uint8Array
+    private _gfx: Graphics = new Graphics()
+    private _res: Resource
+    private _stub: SystemStub
+    private _vid: Video
 
-    _id: number
-    _deathCutsceneId: number
-    _interrupted: boolean
-    _stop: boolean
-    _polPtr: Uint8Array
-    _cmdPtr: Uint8Array
-    _cmdPtrOffset: number
-    _cmdPtrBak: Uint8Array
-    _cmdPtrBakOffset: number
-    _tstamp: number
-    _frameDelay: number
-    _newPal: boolean
-    _palBuf: Uint8Array
-    _baseOffset: number
-    _creditsSequence: boolean
-    _rotMat: number[] = new Array(4)
-    _primitiveColor: number
-    _clearScreen: number
-    _vertices: Point[] = new Array(0x80).fill(null).map(() => ({
+    private _id: number
+    private _idFromGameFlow: number
+    private _deathCutsceneId: number
+    private _interrupted: boolean
+    private _stop: boolean
+    private _polPtr: Uint8Array
+    private _cmdPtr: Uint8Array
+    private _cmdPtrOffset: number
+    private _cmdPtrBak: Uint8Array
+    private _cmdPtrBakOffset: number
+    private _tstamp: number
+    private _frameDelay: number
+    private _newPal: boolean
+    private _palBuf: Uint8Array
+    private _baseOffset: number
+    private _creditsSequence: boolean
+    private _rotMat: number[] = new Array(4)
+    private _primitiveColor: number
+    private _clearScreen: number
+    private _vertices: Point[] = new Array(0x80).fill(null).map(() => ({
         x: 0,
         y: 0
     }))
@@ -138,13 +139,32 @@ class Cutscene {
         this._res = res
         this._stub = stub
         this._vid = vid
-        this._patchedOffsetsTable = null
         this._palBuf = new Uint8Array(64)
     }
 
     static isNewLineChar(chr: number, res: Resource) {
         const nl = 0x7C
         return chr === nl
+    }
+
+    setId(cutId: number){
+        this._id = cutId
+    }
+
+    getId() {
+        return this._id
+    }
+
+    isInterrupted() {
+        return this._interrupted
+    }
+
+    getDeathCutSceneId() {
+        return this._deathCutsceneId
+    }
+
+    setDeathCutSceneId(cutSceneId: number) {
+        this._deathCutsceneId = cutSceneId
     }
 
     findTextSeparators(p: Uint8Array, len: number) {
@@ -246,85 +266,77 @@ class Cutscene {
         }
     }
 
-    async play() {
-        if (this._id !== 0xFFFF) {
-            this._textCurBuf = null
-            console.log(`Cutscene:play() _id=0x${this._id.toString(16)}`)
-            this._creditsSequence = false
-            this.prepare()
-            const offsets = Cutscene._offsetsTableDOS
-            let cutName = offsets[this._id * 2 + 0]
-            let cutOff = offsets[this._id * 2 + 1]
-            console.log(`cutName=${cutName}, cutOff=${cutOff}`)
-            if (cutName !== 0xFFFF) {
-                switch(this._id) {
-                    case 3: // keys
-                        if (global_game_options.play_carte_cutscene) {
-                            cutName = 2
-                        }
-                        break
-                    case 8: // save checkpoints
-                        break
-                    case 19:
-                        if (global_game_options.play_serrure_cutscene) {
-                            cutName = 31 // SERRURE
-                        }
-                        break
-                    case 22: // Level 2 fuse repaired
-                    case 23: // switches
-                    case 24: // Level 2 fuse is blown
-                        if (global_game_options.play_asc_cutscene && !this._res._isDemo) {
-                            cutName = 12 // ASC
-                        }
-                        break
-                    case 30:
-                    case 31:
-                        if (global_game_options.play_metro_cutscene) {
-                            cutName = 14 // METRO
-                        }
-                        break
-                    case 46: // Level 2 terminal card mission
-                        break
-                    default:
-                        console.warn(`Unknown cutscene ${this._id}`)
-                        break
-                }
-            }
-            console.log(`cutName=${cutName} (after)`)
-            if (this._patchedOffsetsTable) {
-                console.log('need to patch offset table')
-                for (let i = 0; this._patchedOffsetsTable[i] !== 255; i += 3) {
-                    if (this._patchedOffsetsTable[i] === this._id) {
-                        cutName = this._patchedOffsetsTable[i + 1];
-                        cutOff = this._patchedOffsetsTable[i + 2];
-                        break;
-                    }
-                }
-                console.log(`cutName=${cutName}, cutOff=${cutOff} (patch)`)
-            } else {
-                console.log('no need to patch offset table')                
-            }
 
-            if (global_game_options.use_text_cutscenes) {
-                const textsTable:Text[] =  Cutscene._enTextsTable
-                for (let i = 0; textsTable[i].str; ++i) {
-                    if (this._id === textsTable[i].num) {
-                        await this.playText(textsTable[i].str)
-                        break
+    async play() {
+
+        if (this._id == 0xFFFF) {
+            return
+        }
+
+        this._textCurBuf = null
+        console.log(`Cutscene:play() _id=0x${this._id.toString(16)}`)
+        this._creditsSequence = false
+        this.prepare()
+
+        const offsets = Cutscene._offsetsTableDOS
+        let cutName = offsets[this._id * 2 + 0]
+        let cutOff = offsets[this._id * 2 + 1]
+        console.log(`cutName=${cutName}, cutOff=${cutOff}`)
+        if (cutName !== 0xFFFF) {
+            switch(this._id) {
+                case 3: // keys
+                    if (global_game_options.play_carte_cutscene) {
+                        cutName = 2
                     }
-                }
-            } else if (cutName !== 0xFFFF) {
-                if (await this.load(cutName)) {
-                    await this.mainLoop(cutOff)
-                    this.unload()
-                }
-            } else if (this._id === 8 && global_game_options.play_caillou_cutscene) {
-                await this.playSet(Cutscene._caillouSetData, 0x5E4)
+                    break
+                case 8: // save checkpoints
+                    break
+                case 19:
+                    if (global_game_options.play_serrure_cutscene) {
+                        cutName = 31 // SERRURE
+                    }
+                    break
+                case 22: // Level 2 fuse repaired
+                case 23: // switches
+                case 24: // Level 2 fuse is blown
+                    if (global_game_options.play_asc_cutscene && !this._res._isDemo) {
+                        cutName = 12 // ASC
+                    }
+                    break
+                case 30:
+                case 31:
+                    if (global_game_options.play_metro_cutscene) {
+                        cutName = 14 // METRO
+                    }
+                    break
+                case 46: // Level 2 terminal card mission
+                    break
+                default:
+                    console.warn(`Unknown cutscene ${this._id}`)
+                    break
             }
-            this._vid.fullRefresh()
-            if (this._id !== 0x3D) {
-                this._id = 0xFFFF
+        }
+        console.log(`cutName=${cutName} (after)`)
+
+        if (global_game_options.use_text_cutscenes) {
+            const textsTable:Text[] =  Cutscene._enTextsTable
+            for (let i = 0; textsTable[i].str; ++i) {
+                if (this._id === textsTable[i].num) {
+                    await this.playText(textsTable[i].str)
+                    break
+                }
             }
+        } else if (cutName !== 0xFFFF) {
+            if (await this.load(cutName)) {
+                await this.mainLoop(cutOff)
+                this.unload()
+            }
+        } else if (this._id === 8 && global_game_options.play_caillou_cutscene) {
+            await this.playSet(Cutscene._caillouSetData, 0x5E4)
+        }
+        this._vid.fullRefresh()
+        if (this._id !== 0x3D) {
+            this._id = 0xFFFF
         }
     }
 
@@ -477,8 +489,12 @@ class Cutscene {
         this._stop = false
         const w = 240
         const h = 128
-        const x = (Video.GAMESCREEN_W - w) / 2
+
+        //black frame width?
+        const x = 8 // (Video.GAMESCREEN_W - w) / 2  where GAMESCREEN_W =256
+        //black frame height?
         const y = 50
+
         const sw = w * this._vid._layerScale
         const sh = h * this._vid._layerScale
         const sx = x * this._vid._layerScale

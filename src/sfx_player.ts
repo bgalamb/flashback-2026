@@ -1,37 +1,10 @@
-import { READ_BE_UINT16 } from "./intern"
 import { Mixer } from "./mixer"
 import { _module68, _module70, _module72, _module73, _module74, _module75, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _sfxPeriodTable } from "./staticres"
-
-const NUM_SAMPLES = 5
-const NUM_CHANNELS = 3
-const FRAC_BITS = 12
-const PAULA_FREQ = 3546897
 
 interface Module {
     sampleData: Uint8Array[]
     moduleData: Uint8Array
 }
-
-class SampleInfo {
-    len: number = 0
-    vol: number = 0
-    loopPos: number = 0
-    loopLen: number = 0
-    freq: number = 0
-    pos: number = 0
-    data: Uint8Array = null
-
-    getPCM(offset: number) {
-        if (offset < 0) {
-            offset = 0
-        } else if (offset >= this.len) {
-            offset = this.len - 1
-        }
-        return this.data[offset]
-    }
-}
-
-const kLowPassFilter = false
 
 class SfxPlayer {
     static _musicData68: Uint8Array = _musicData68
@@ -58,12 +31,6 @@ class SfxPlayer {
 
     _mod: Module
     _playing: boolean
-    _samplesLeft: number
-    _curOrder: number
-    _numOrders: number
-    _orderDelay: number
-    _modData: Uint8Array
-    _samples: SampleInfo[] = new Array(NUM_CHANNELS)
     _mix: Mixer
 
     constructor(mixer: Mixer) {

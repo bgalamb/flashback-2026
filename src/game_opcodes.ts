@@ -1495,7 +1495,7 @@ const pge_op_decLifeCounter = (args: ObjectOpcodeArgs, game: Game) => {
 
 const pge_op_playCutscene = (args: ObjectOpcodeArgs, game: Game) => {
 	if (game._deathCutsceneCounter === 0) {
-		game._cut._id = args.a
+		game._cut.setId(args.a)
 	}
 
 	return 1

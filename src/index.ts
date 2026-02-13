@@ -59,6 +59,7 @@ const main = async (config = DEFAULT_CONFIG ) => {
 }
 
 document.getElementById('play').addEventListener('click', () => {
+    // @ts-ignore
     document.querySelector('.intro').style.display = 'none'
     document.querySelector('.main').classList.add('visible')
     main()

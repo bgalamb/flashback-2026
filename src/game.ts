@@ -9,7 +9,18 @@ import { Video } from './video'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Menu } from './menu'
-import { scoreTable, _demoInputs, _gameLevels, _monsterListOnLevel1, _monsterListOnLevel2, _monsterListOnLevel3, _monsterListOnLevel4_1, _monsterListOnLevel4_2, _monsterListOnLevel5_1, _monsterListOnLevel5_2, _monsterListLevels, _monsterNames, _monsterPals, _pge_modKeysTable, _protectionCodeData, _protectionCodeDataAmiga, _protectionNumberDataAmiga, _protectionPal, _protectionWordData } from './staticres'
+import {
+    scoreTable,
+    _demoInputs,
+    _gameLevels,
+    _pge_modKeysTable,
+    _protectionCodeData,
+    _protectionPal,
+    _protectionWordData,
+} from './staticres'
+import {
+    monsterListsByLevel
+} from './staticres-monsters'
 import { global_game_options } from './configs/global_game_options'
 import { File } from './file'
 import { _pge_opcodeTable } from './game_opcodes'
@@ -31,22 +42,10 @@ class Game {
     static _demoInputs: Demo[] = _demoInputs
     static _gameLevels: Level[] = _gameLevels
     static _scoreTable: Uint16Array = scoreTable
-    static _monsterListLevel1: Uint8Array = _monsterListOnLevel1
-    static _monsterListLevel2: Uint8Array = _monsterListOnLevel2
-    static _monsterListLevel3: Uint8Array = _monsterListOnLevel3
-    static _monsterListLevel4_1: Uint8Array = _monsterListOnLevel4_1
-    static _monsterListLevel4_2: Uint8Array = _monsterListOnLevel4_2
-    static _monsterListLevel5_1: Uint8Array = _monsterListOnLevel5_1
-    static _monsterListLevel5_2: Uint8Array = _monsterListOnLevel5_2
-    static _monsterListLevels: Uint8Array[] = _monsterListLevels
-    static _monsterPals: Uint8Array[] = _monsterPals
-    static _monsterNames: string[] = _monsterNames
     _pge_opcodeTable: pge_OpcodeProc[] = _pge_opcodeTable
     static _pge_modKeysTable: Uint8Array = _pge_modKeysTable
     static _protectionCodeData: Uint8Array = _protectionCodeData
     static _protectionWordData: Uint8Array = _protectionWordData
-    static _protectionNumberDataAmiga: Uint8Array = _protectionNumberDataAmiga
-    static _protectionCodeDataAmiga: Uint8Array = _protectionCodeDataAmiga
     static _protectionPal: Uint8Array = _protectionPal
 
     renderPromise
@@ -66,8 +65,6 @@ class Game {
     _rewindPtr: number
     _rewindLen: number
 
-    _stringsTable: Uint8Array
-    _textsTable: string[]
     _currentLevel: number
     _skillLevel: number
     _demoBin: number
@@ -287,86 +284,48 @@ class Game {
     }
 
     async playCutscene(id: number = -1) {
-        if (id !== -1) {
-            this._cut._id = id
+        //first we set the parameter to class parameter
+        if (id != -1) {
+            this._cut.setId(id)
         }
-        if (this._cut._id !== -1) {
-            if (this._stub.hasWidescreen()) {
-                this._stub.enableWidescreen(false)
-            }
-            this._mix.stopMusic()
+        // we check the class parameter if it's -1
+        // this is needed because it can be set through the setId from a place other than this
+        // typically game_opcode and we would bypass it otherwise
+        if(this._cut.getId() == -1){
+            return
+        }
+        //disable widescreen
+        if (this._stub.hasWidescreen()) {
+            this._stub.enableWidescreen(false)
+        }
 
-            if (this._res._hasSeqData) {
-                debugger
-                let num = 0
-                switch (this._cut._id) {
-                case 0x02: {
-                        const tab = [ 1, 2, 1, 3, 3, 4, 4 ]
-                        num = tab[this._currentLevel]
-                    }
-                    break
-                case 0x05: {
-                        const tab = [ 1, 2, 3, 5, 5, 4, 4 ]
-                        num = tab[this._currentLevel]
-                    }
-                    break
-                case 0x0A: {
-                        const tab = [ 1, 2, 2, 2, 2, 2, 2 ]
-                        num = tab[this._currentLevel]
-                    }
-                    break
-                case 0x10: {
-                        const tab = [ 1, 1, 1, 2, 2, 3, 3 ]
-                        num = tab[this._currentLevel]
-                    }
-                    break
-                case 0x3C: {
-                        const tab = [ 1, 1, 1, 1, 1, 2, 2 ]
-                        num = tab[this._currentLevel]
-                    }
-                    break
-                case 0x40:
-                    console.log("Hooo doing nothing!")
-                    return
-                case 0x4A:
-                    return
-                }
-                if (SeqPlayer._namesTable[this._cut._id]) {
-                    let name = SeqPlayer._namesTable[this._cut._id] + ".SEQ"
-                    if (name.match(/0/)) {
-                        name += num
-                    }
-                    if (await this.playCutsceneSeq(name)) {
-                        if (this._cut._id === 0x3D) {
-                            await this.playCutsceneSeq("CREDITS.SEQ")
-                            this._cut._interrupted = false
-                        } else {
-                            this._cut._id = 0xFFFF
-                        }
-                        return
-                    }
-                }
-            }
-            if (this._cut._id !== 0x4A) {
-                this._mix.playMusic(Cutscene._musicTable[this._cut._id])
-            }
+        //stop music
+        this._mix.stopMusic()
+
+        //play music for video (cutscene)
+        if (this._cut.getId() !== 0x4A) {
+            this._mix.playMusic(Cutscene._musicTable[this._cut.getId()])
+        }
+
+        //play cutscene, whatever CutPlayer has
+        await this._cut.play()
+
+        //some specific cutscene
+        if (id === 0xD && !this._cut.isInterrupted()) {
+            this._cut.setId(0x4A)
             await this._cut.play()
-            if (id === 0xD && !this._cut._interrupted) {
-                const extendedIntroduction = true
-                if (extendedIntroduction) {
-                    this._cut._id = 0x4A
-                    await this._cut.play()
-                }
-            }
-
-            if (id === 0x3D) {
-                await this._cut.playCredits()
-            }  
-            this._mix.stopMusic()
-            if (this._stub.hasWidescreen()) {
-                this._stub.enableWidescreen(true)
-            }            
         }
+
+        //credits cutscene
+        if (id === 0x3D) {
+            await this._cut.playCredits()
+        }
+
+        this._mix.stopMusic()
+        if (this._stub.hasWidescreen()) {
+            this._stub.enableWidescreen(true)
+        }
+
     }
 
     handleProtectionScreenWords() {
@@ -388,19 +347,15 @@ class Game {
         }
     }
 
+    // run->runLoop->mainloop
     async run() {
         this._randSeed = new Date().getTime()
         await this._res.init()
         this._res.load_TEXT()
-        await this._res.load("FB_TXT", ObjectType.OT_FNT)
-        if (global_game_options.use_seq_cutscenes) {
-            this._res._hasSeqData = this._fs.exists("INTRO.SEQ")
-        }
-        if (this._fs.exists("logosssi.cmd")) {
-            this._cut._patchedOffsetsTable = Cutscene._ssiOffsetsTable
-        }
 
-        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection && !false) {
+        await this._res.load("FB_TXT", ObjectType.OT_FNT)
+
+        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection) {
             while (!this.handleProtectionScreenShape()) {
                 if (this._stub._pi.quit) {
                     return;
@@ -408,7 +363,10 @@ class Game {
             }
         }
 
+        // initialize the 4channel mixer for the sound and effects
+        // basically there can be 4 parallel effect playin. eg robot blip and door splash (=2)
         this._mix.init()
+
         await this.playCutscene(0x40)
         await this.playCutscene(0x0D)
 
@@ -420,74 +378,74 @@ class Game {
         await this._res.load_SPRITE_OFFSETS("PERSO", this._res._spr1)
         await this._res.load_FIB("GLOBAL")
 
-            if (!global_game_options.bypass_protection && global_game_options.use_words_protection) {
-                // TODO
-                while (!this.handleProtectionScreenWords()) {
-                    if (this._stub._pi.quit) {
-                        return
-                    }
+        if (!global_game_options.bypass_protection && global_game_options.use_words_protection) {
+            // TODO
+            while (!this.handleProtectionScreenWords()) {
+                if (this._stub._pi.quit) {
+                    return
                 }
             }
+        }
 
-            const presentMenu = true
+        const presentMenu = true
 
-            while (!this._stub._pi.quit) {
-                if (presentMenu) {
-                    this._mix.playMusic(1)
-                    await this._menu.handleTitleScreen()
-                    if (this._menu._selectedOption == Menu.MENU_OPTION_ITEM_QUIT || this._stub._pi.quit) {
-                        this._stub._pi.quit = true
-                        break
-                    }
-                    this._demoBin = -1
-                    this._skillLevel = this._menu._skill
-                    this._currentLevel = this._menu._level
-                    this._mix.stopMusic()
-                }
-
-                if (this._stub._pi.quit) {
+        while (!this._stub._pi.quit) {
+            if (presentMenu) {
+                this._mix.playMusic(1)
+                await this._menu.handleTitleScreen()
+                if (this._menu._selectedOption == Menu.MENU_OPTION_ITEM_QUIT || this._stub._pi.quit) {
+                    this._stub._pi.quit = true
                     break
                 }
-                if (this._stub.hasWidescreen()) {
-                    this._stub.clearWidescreen()
-                }
-
-                if (this._currentLevel === 7) {
-                    await this._vid.fadeOut()
-                    this._vid.setTextPalette()
-                    await this.playCutscene(0x3D)
-                    continue
-                }
-                this._vid.setTextPalette()
-                this._vid.setPalette0xF()
-                this._stub.setOverscanColor(0xE0)
-                this._vid._unkPalSlot1 = 0
-                this._vid._unkPalSlot2 = 0
-                this._score = 0
-                this.clearStateRewind()
-                await this.loadLevelData()
-
-                this.resetGameState()
-                this._endLoop = false
-                this._frameTimestamp = this._stub.getTimeStamp()
-                this._saveTimestamp = this._frameTimestamp
-                this.renders = 0
-                this.debugStartFrame = 10650
-
-                //This is where rendering loop happens
-                this.renderPromise = new Promise((resolve) => {
-                    this.renderDone = resolve
-                })
-                new Promise(() => requestAnimationFrame(() => this.runLoop()))
-                await this.renderPromise
-
-                // flush inputs
-                this._stub._pi.dirMask = 0
-                this._stub._pi.enter = false
-                this._stub._pi.space = false
-                this._stub._pi.shift = false
-
+                this._demoBin = -1
+                this._skillLevel = this._menu._skill
+                this._currentLevel = this._menu._level
+                this._mix.stopMusic()
             }
+
+            if (this._stub._pi.quit) {
+                break
+            }
+            if (this._stub.hasWidescreen()) {
+                this._stub.clearWidescreen()
+            }
+
+            if (this._currentLevel === 7) {
+                await this._vid.fadeOut()
+                this._vid.setTextPalette()
+                await this.playCutscene(0x3D)
+                continue
+            }
+            this._vid.setTextPalette()
+            this._vid.setPalette0xF()
+            this._stub.setOverscanColor(0xE0)
+            this._vid._unkPalSlot1 = 0
+            this._vid._unkPalSlot2 = 0
+            this._score = 0
+            this.clearStateRewind()
+            await this.loadLevelData()
+
+            this.resetGameState()
+            this._endLoop = false
+            this._frameTimestamp = this._stub.getTimeStamp()
+            this._saveTimestamp = this._frameTimestamp
+            this.renders = 0
+            this.debugStartFrame = 10650
+
+            //This is where rendering loop happens
+            this.renderPromise = new Promise((resolve) => {
+                this.renderDone = resolve
+            })
+            new Promise(() => requestAnimationFrame(() => this.runLoop()))
+            await this.renderPromise
+
+            // flush inputs
+            this._stub._pi.dirMask = 0
+            this._stub._pi.enter = false
+            this._stub._pi.space = false
+            this._stub._pi.shift = false
+
+        }
     }
 
     async showFinalScore() {
@@ -1253,17 +1211,23 @@ class Game {
     }
 
     async mainLoop() {
+
+        // we don't specify a cutscene here, just check if there is anything to play
+        // and if yes, then play it
         await this.playCutscene()
-        if (this._cut._id === 0x3D) {
+
+        //case when the user finished all levels?
+        if (this._cut.getId() === 0x3D) {
             await this.showFinalScore()
             this._endLoop = true
             return
         }
 
+        //case when user died?
         if (this._deathCutsceneCounter) {
             --this._deathCutsceneCounter
             if (this._deathCutsceneCounter === 0) {
-                await this.playCutscene(this._cut._deathCutsceneId)
+                await this.playCutscene(this._cut.getDeathCutSceneId())
                 if (!await this.handleContinueAbort()) {
                     await this.playCutscene(0x41)
                     this._endLoop = true
@@ -1283,9 +1247,14 @@ class Game {
         }
 
         this._vid._frontLayer.set(this._vid._backLayer.subarray(0, this._vid._layerSize))
-        await this.pge_getInput()
+
+        //get the user input
+        await this.pge_getUserLeftRightUpDownKeyInput()
+
         this.pge_prepare()
+
         this.col_prepareRoomState()
+
         const oldLevel = this._currentLevel
         this.renders > this.debugStartFrame && console.log(`*** processing pge size=${this._res._pgeNum}`)
         for (let i = 0; i < this._res._pgeNum; ++i) {
@@ -1310,7 +1279,8 @@ class Game {
 
         if (this._loadMap) {
             if (this._currentRoom === 0xFF || !this.hasLevelMap(this._currentLevel, this._pgeLive[0].room_location)) {
-                this._cut._id = 6
+                //what's this here?
+                this._cut.setId(6)
                 this._deathCutsceneCounter = 1
             } else {
                 this._currentRoom = this._pgeLive[0].room_location
@@ -1336,6 +1306,7 @@ class Game {
             this._stub._pi.backspace = false
             await this.handleInventory()
         }
+
         if (this._stub._pi.escape) {
             this._stub._pi.escape = false
             if (this._demoBin !== -1 || await this.handleConfigPanel()) {
@@ -1351,17 +1322,6 @@ class Game {
                 this._saveTimestamp = this._stub.getTimeStamp()
             }
         }
-    }
-
-    async playCutsceneSeq(name: string): Promise<boolean> {
-        const f = new File()
-        if (await f.open(name, "rb", this._fs)) {
-            this._seq.setBackBuffer(this._res._scratchBuffer)
-            this._seq.play(f)
-            this._vid.fullRefresh()
-            return true
-        }
-        return false
     }
 
     inp_handleSpecialKeys() {
@@ -1426,33 +1386,30 @@ class Game {
         this._vid._charTransparentColor = 0xFF
     
         // the panel background is drawn using special characters from FB_TXT.FNT
-        const kUseDefaultFont = true
-    
-
-            // top-left rounded corner
-            this._vid.PC_drawChar(0x81, y, x, kUseDefaultFont)
-            // top-right rounded corner
-            this._vid.PC_drawChar(0x82, y, x + w, kUseDefaultFont)
-            // bottom-left rounded corner
-            this._vid.PC_drawChar(0x83, y + h, x, kUseDefaultFont)
-            // bottom-right rounded corner
-            this._vid.PC_drawChar(0x84, y + h, x + w, kUseDefaultFont)
-            // horizontal lines
+        // top-left rounded corner
+        this._vid.PC_drawChar(0x81, y, x)
+        // top-right rounded corner
+        this._vid.PC_drawChar(0x82, y, x + w)
+        // bottom-left rounded corner
+        this._vid.PC_drawChar(0x83, y + h, x)
+        // bottom-right rounded corner
+        this._vid.PC_drawChar(0x84, y + h, x + w)
+        // horizontal lines
+        for (let i = 1; i < w; ++i) {
+            this._vid.PC_drawChar(0x85, y, x + i)
+            this._vid.PC_drawChar(0x88, y + h, x + i)
+        }
+        for (let j = 1; j < h; ++j) {
+            this._vid._charTransparentColor = 0xFF
+            // left vertical line
+            this._vid.PC_drawChar(0x86, y + j, x)
+            // right vertical line
+            this._vid.PC_drawChar(0x87, y + j, x + w)
+            this._vid._charTransparentColor = 0xE2
             for (let i = 1; i < w; ++i) {
-                this._vid.PC_drawChar(0x85, y, x + i, kUseDefaultFont)
-                this._vid.PC_drawChar(0x88, y + h, x + i, kUseDefaultFont)
+                this._vid.PC_drawChar(0x20, y + j, x + i)
             }
-            for (let j = 1; j < h; ++j) {
-                this._vid._charTransparentColor = 0xFF
-                // left vertical line
-                this._vid.PC_drawChar(0x86, y + j, x, kUseDefaultFont)
-                // right vertical line
-                this._vid.PC_drawChar(0x87, y + j, x + w, kUseDefaultFont)
-                this._vid._charTransparentColor = 0xE2
-                for (let i = 1; i < w; ++i) {
-                    this._vid.PC_drawChar(0x20, y + j, x + i, kUseDefaultFont)
-                }
-            }
+        }
 
         this._menu._charVar3 = 0xE4
         this._menu._charVar4 = 0xE5
@@ -2380,7 +2337,7 @@ class Game {
         }
     }
 
-    async pge_getInput() {
+    async pge_getUserLeftRightUpDownKeyInput() {
         await this.inp_update()
         this._inp_lastKeysHit = this._stub._pi.dirMask
         if ((this._inp_lastKeysHit & 0xC) && (this._inp_lastKeysHit & 0x3)) {
@@ -2413,7 +2370,7 @@ class Game {
         this._animBuffers._curPos[3] = 0xFF
         this._currentRoom = this._res._pgeInit[0].init_room
 
-        this._cut._deathCutsceneId = 0xFFFF
+        this._cut.setDeathCutSceneId(0xFFFF)
         this._pge_opTempVar2 = 0xFFFF
         this._deathCutsceneCounter = 0
         this._saveStateCompleted = false
@@ -2423,22 +2380,6 @@ class Game {
         this._pge_processOBJ = false
         this._pge_opTempVar1 = 0
         this._textToDisplay = 0xFFFF
-    }
-
-    private findMonsterInCurrentLevelList(initPge: InitPGE): number | null {
-        const currentLevelMonsters = _monsterListLevels[this._currentLevel];
-
-        for (let i = 0; i < currentLevelMonsters.length; i += 2) {
-            if (currentLevelMonsters[i] === 0xFF) {
-                return null; // Reached end of monster list
-            }
-
-            if (currentLevelMonsters[i] === initPge.obj_node_number) {
-                return i; // Found matching monster
-            }
-        }
-
-        return null; // No matching monster found
     }
 
     async loadMonsterSprites(pge: LivePGE) {
@@ -2456,21 +2397,18 @@ class Game {
             return 0;
         }
 
-        const currentLevelMonsters = _monsterListLevels[this._currentLevel];
-        const monsterIndex = this.findMonsterInCurrentLevelList(initPge);
-        if (monsterIndex === null) {
-            return 0;
-        }
+        const currentLevelMonsters = monsterListsByLevel[this._currentLevel];
+        const currentMonster = currentLevelMonsters.find((monster) =>
+            monster.frame === initPge.obj_node_number
+        );
 
-        this._curMonsterFrame = currentLevelMonsters[monsterIndex];
-
-        if (this._curMonsterNum !== currentLevelMonsters[monsterIndex + 1]) {
-            this._curMonsterNum = currentLevelMonsters[monsterIndex + 1];
-
-            const name = Game._monsterNames[this._curMonsterNum];
-            await this._res.load(name, ObjectType.OT_SPRM);
-            await this._res.load_SPRITE_OFFSETS(name, this._res._sprm);
-            this._vid.setPaletteSlotLE(5, Game._monsterPals[this._curMonsterNum]);
+        this._curMonsterFrame = currentMonster.frame;
+        //the whole global variable is needed to avoid loading again and again (assuming this runs in a loop)
+        if (this._curMonsterNum !== currentMonster.id) {
+            this._curMonsterNum = currentMonster.id;
+            await this._res.load(currentMonster.name, ObjectType.OT_SPRM);
+            await this._res.load_SPRITE_OFFSETS(currentMonster.name, this._res._sprm);
+            this._vid.setPaletteSlotLE(5, currentMonster.palette);
         }
 
         return 0xFFFF;
@@ -2538,12 +2476,14 @@ class Game {
         await this._res.load(lvl.name2, ObjectType.OT_TBN)
 
 
-        this._cut._id = lvl.cutscene_id
+        this._cut.setId(lvl.cutscene_id)
         if (this._res._isDemo && this._currentLevel === 5) { // PC demo does not include TELEPORT.*
-            this._cut._id = 0xFFFF
+            this._cut.setId(0xFFFF)
         }
 
-        this._curMonsterNum = 0xFFFF
+        // What's this doing?
+        // resets the monster to invalid one, and the frame to 0
+        this._curMonsterNum = 255
         this._curMonsterFrame = 0
     
         this._res.clearBankData()
@@ -2552,6 +2492,7 @@ class Game {
         this._col_slots2Cur = this._col_slots2[0]
         this._col_slots2Next = null
 
+        //these all pge all fields will be emptied
         this._pge_liveTable1.fill(null).map(() => CreatePGE())
         this._pge_liveTable2.fill(null).map(() => CreatePGE())
     
@@ -2563,7 +2504,7 @@ class Game {
         }
 
         if (this._demoBin !== -1) {
-            this._cut._id = -1
+            this._cut.setId(-1)
             if (_demoInputs[this._demoBin].room !== 255) {
                 this._pgeLive[0].room_location = _demoInputs[this._demoBin].room
                 this._pgeLive[0].pos_x = _demoInputs[this._demoBin].x

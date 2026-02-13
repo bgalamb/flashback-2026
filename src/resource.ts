@@ -7,6 +7,7 @@ import { bytekiller_unpack } from './unpack'
 
 type LoadStub = (file: File) => void
 
+
 const normalizeSPL = (sfx: SoundFx) => {
 	const kGain = 2
 
@@ -594,10 +595,13 @@ class Resource {
 
     load_PGE(f: File) {
 
+        //load the first byte from the file, that's going to indicate the number of PGEs contained
         this._pgeNum = f.readUint16LE()
+        //pgeInitLengt = 256 and it's completely empty
         if (this._pgeNum > this._pgeInit.length) {
             throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
         }
+        //this will fill the PGEs in the init array, as many as they are.
         for (let i = 0; i < this._pgeNum; ++i) {
             const pge: InitPGE = this._pgeInit[i]
             pge.type = f.readUint16LE()
@@ -1165,17 +1169,14 @@ class Resource {
     }
 
     getTextString(level: number, num: number) {
-
 		return this._tbn.subarray(this._readUint16(this._tbn, num * 2))
 	}
 
 	getGameString(num: number) {
-
 		return this._stringsTable.subarray(READ_LE_UINT16(this._stringsTable, num * 2))
 	}
 
 	getCineString(num: number) {
-
 		if (this._cine_off) {
 			const offset = READ_BE_UINT16(this._cine_off, num * 2)
 			return this._cine_txt.subarray(offset)

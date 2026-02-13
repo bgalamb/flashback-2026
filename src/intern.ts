@@ -303,8 +303,6 @@ const S8_to_S16 = (a: number) => {
 	}
 }
 
-const ARRAYSIZE = (ptr: Array<any>) => ptr.length
-
 const CLIP = (val: number, a: number, b: number) => {
     if (val < a) {
         return a
@@ -333,5 +331,5 @@ class Buffer {
     }
 }
 
-export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, ARRAYSIZE, CLIP, Buffer, ADDC_S16, S8_to_S16 }
+export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, CLIP, Buffer, ADDC_S16, S8_to_S16 }
 export type { pge_OpcodeProc, pge_ZOrderCallback }
