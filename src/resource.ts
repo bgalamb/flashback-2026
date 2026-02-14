@@ -436,65 +436,65 @@ class Resource {
         }
     }
 
-    // decodePGE(p: Uint8Array, size: number) {
-    //     let index = 0
-    //     this._pgeNum = this._readUint16(p)
-    //     index += 2
-    //     this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
-    //     if (this._pgeNum > this._pgeInit.length) {
-    //         throw(`Assertion failed: ${this._pgeNum} <= ${this._pgeInit.length}`)
-    //     }
-    //     for (let i = 0; i < this._pgeNum; ++i) {
-    //         const pge: InitPGE = this._pgeInit[i]
-    //         pge.type = this._readUint16(p, index)
-    //         index += 2
-    //         pge.pos_x = this._readUint16(p, index)
-    //         index += 2
-    //         pge.pos_y = this._readUint16(p, index)
-    //         index += 2
-    //         pge.obj_node_number = this._readUint16(p, index)
-    //         index += 2
-    //         pge.life = this._readUint16(p, index)
-    //         index += 2
-    //         for (let lc = 0; lc < 4; ++lc) {
-    //             pge.counter_values[lc] = this._readUint16(p, index)
-    //             index += 2
-    //         }
-    //         pge.object_type = p[index++]
-    //         pge.init_room = p[index++]
-    //         pge.room_location = p[index++]
-    //         pge.init_flags = p[index++]
-    //         pge.colliding_icon_num = p[index++]
-    //         pge.icon_num = p[index++]
-    //         pge.object_id = p[index++]
-    //         pge.skill = p[index++]
-    //         pge.mirror_x = p[index++]
-    //         pge.flags = p[index++]
-    //         pge.unk1C = p[index++]
-    //         index++
-    //         pge.text_num = this._readUint16(p, index)
-    //         index += 2
-    //         //log out the value to understand better
-    //         //log out the value to understand better
-    //         console.log('Init PGE Fields:', {
-    //             type: pge.type,
-    //             pos_x: pge.pos_x,
-    //             pos_y: pge.pos_y,
-    //             obj_node_number: pge.obj_node_number,
-    //             init_room: pge.init_room,
-    //             room_location: pge.room_location,
-    //             init_flags: pge.init_flags,
-    //             colliding_icon_num: pge.colliding_icon_num,
-    //             icon_num: pge.icon_num,
-    //             object_id: pge.object_id,
-    //             skill: pge.skill,
-    //             mirror_x: pge.mirror_x,
-    //             flags: pge.flags,
-    //             unk1C: pge.unk1C,
-    //             text_num: pge.text_num
-    //         });
-    //     }
-    // }
+    decodePGE(p: Uint8Array) {
+        let index = 0
+        this._pgeNum = this._readUint16(p)
+        index += 2
+        this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
+        if (this._pgeNum > this._pgeInit.length) {
+            throw(`Assertion failed: ${this._pgeNum} <= ${this._pgeInit.length}`)
+        }
+        for (let i = 0; i < this._pgeNum; ++i) {
+            const pge: InitPGE = this._pgeInit[i]
+            pge.type = this._readUint16(p, index)
+            index += 2
+            pge.pos_x = this._readUint16(p, index)
+            index += 2
+            pge.pos_y = this._readUint16(p, index)
+            index += 2
+            pge.obj_node_number = this._readUint16(p, index)
+            index += 2
+            pge.life = this._readUint16(p, index)
+            index += 2
+            for (let lc = 0; lc < 4; ++lc) {
+                pge.counter_values[lc] = this._readUint16(p, index)
+                index += 2
+            }
+            pge.object_type = p[index++]
+            pge.init_room = p[index++]
+            pge.room_location = p[index++]
+            pge.init_flags = p[index++]
+            pge.colliding_icon_num = p[index++]
+            pge.icon_num = p[index++]
+            pge.object_id = p[index++]
+            pge.skill = p[index++]
+            pge.mirror_x = p[index++]
+            pge.flags = p[index++]
+            pge.unk1C = p[index++]
+            index++
+            pge.text_num = this._readUint16(p, index)
+            index += 2
+            //log out the value to understand better
+            //log out the value to understand better
+            console.log('Init PGE Fields:', {
+                type: pge.type,
+                pos_x: pge.pos_x,
+                pos_y: pge.pos_y,
+                obj_node_number: pge.obj_node_number,
+                init_room: pge.init_room,
+                room_location: pge.room_location,
+                init_flags: pge.init_flags,
+                colliding_icon_num: pge.colliding_icon_num,
+                icon_num: pge.icon_num,
+                object_id: pge.object_id,
+                skill: pge.skill,
+                mirror_x: pge.mirror_x,
+                flags: pge.flags,
+                unk1C: pge.unk1C,
+                text_num: pge.text_num
+            });
+        }
+    }
 
     decodeOBJ(tmp: Uint8Array, size: number) {
         const offsets = new Uint32Array(256)
@@ -563,17 +563,7 @@ class Resource {
         }
     }
 
-    load_OBJ(f: File) {
-        const len = f.size()
-        const dat = new Uint8Array(len)
-        f.read(dat.buffer, len)
 
-        this._numObjectNodes = READ_LE_UINT16(dat)
-        if (this._numObjectNodes !== 230 ){
-            throw(`assertion failed ${this._numObjectNodes}`)
-        }
-        this.decodeOBJ(dat.subarray(2,len -2), len -2)
-    }
 
     load_SPM(f: File) {
         debugger
@@ -614,69 +604,83 @@ class Resource {
         }
     }
 
-    load_SPRM(f: File) {
-        const len = f.size() - 12
-        if (len > this._sprm.byteLength) {
-            throw(`Assertion error: ${len} <= ${this._sprm.byteLength}`)
-        }
-        f.seek(12)
-        f.read(this._sprm.buffer, len)
-    }
+
 
     load_PGE(f: File) {
+        const len = f.size() - 12
+        const _pge: Uint8Array = new Uint8Array(len)
+        f.read(_pge.buffer, len)
+        this.decodePGE(_pge)
+        // //load the first byte from the file, that's going to indicate the number of PGEs contained
+        // this._pgeNum = f.readUint16LE()
+        // console.info(`There are a total of ${this._pgeNum} PGEs in this file`)
+        // //pgeInitLengt = 256 and it's completely empty
+        // if (this._pgeNum > this._pgeInit.length) {
+        //     throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
+        // }
+        // //this will fill the PGEs in the init array, as many as they are.
+        // for (let i = 0; i < this._pgeNum; ++i) {
+        //     const pge: InitPGE = this._pgeInit[i]
+        //     pge.type = f.readUint16LE()
+        //     pge.pos_x = f.readUint16LE()
+        //     pge.pos_y = f.readUint16LE()
+        //     pge.obj_node_number = f.readUint16LE()
+        //     pge.life = f.readUint16LE()
+        //     for (let lc = 0; lc < 4; ++lc) {
+        //         pge.counter_values[lc] = f.readUint16LE()
+        //     }
+        //     pge.object_type = f.readByte()
+        //     pge.init_room = f.readByte()
+        //     pge.room_location = f.readByte()
+        //     pge.init_flags = f.readByte()
+        //     pge.colliding_icon_num = f.readByte()
+        //     pge.icon_num = f.readByte()
+        //     pge.object_id = f.readByte()
+        //     pge.skill = f.readByte()
+        //     pge.mirror_x = f.readByte()
+        //     pge.flags = f.readByte()
+        //     pge.unk1C = f.readByte()
+        //     f.readByte()
+        //     pge.text_num = f.readUint16LE()
+        //
+        //     //log out the value to understand better
+        //     console.log('Init PGE Fields:', {
+        //         type: pge.type,
+        //         pos_x: pge.pos_x,
+        //         pos_y: pge.pos_y,
+        //         obj_node_number: pge.obj_node_number,
+        //         init_room: pge.init_room,
+        //         room_location: pge.room_location,
+        //         init_flags: pge.init_flags,
+        //         colliding_icon_num: pge.colliding_icon_num,
+        //         icon_num: pge.icon_num,
+        //         object_id: pge.object_id,
+        //         skill: pge.skill,
+        //         mirror_x: pge.mirror_x,
+        //         flags: pge.flags,
+        //         unk1C: pge.unk1C,
+        //         text_num: pge.text_num
+        //     });
+        //
+        // }
+    }
 
-        //load the first byte from the file, that's going to indicate the number of PGEs contained
-        this._pgeNum = f.readUint16LE()
-        console.info(`There are a total of ${this._pgeNum} PGEs in this file`)
-        //pgeInitLengt = 256 and it's completely empty
-        if (this._pgeNum > this._pgeInit.length) {
-            throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
+    load_OBJ(f: File) {
+        const len = f.size()
+        const dat = new Uint8Array(len)
+        f.read(dat.buffer, len)
+
+        this._numObjectNodes = READ_LE_UINT16(dat)
+        if (this._numObjectNodes !== 230 ){
+            throw(`assertion failed ${this._numObjectNodes}`)
         }
-        //this will fill the PGEs in the init array, as many as they are.
-        for (let i = 0; i < this._pgeNum; ++i) {
-            const pge: InitPGE = this._pgeInit[i]
-            pge.type = f.readUint16LE()
-            pge.pos_x = f.readUint16LE()
-            pge.pos_y = f.readUint16LE()
-            pge.obj_node_number = f.readUint16LE()
-            pge.life = f.readUint16LE()
-            for (let lc = 0; lc < 4; ++lc) {
-                pge.counter_values[lc] = f.readUint16LE()
-            }
-            pge.object_type = f.readByte()
-            pge.init_room = f.readByte()
-            pge.room_location = f.readByte()
-            pge.init_flags = f.readByte()
-            pge.colliding_icon_num = f.readByte()
-            pge.icon_num = f.readByte()
-            pge.object_id = f.readByte()
-            pge.skill = f.readByte()
-            pge.mirror_x = f.readByte()
-            pge.flags = f.readByte()
-            pge.unk1C = f.readByte()
-            f.readByte()
-            pge.text_num = f.readUint16LE()
+        this.decodeOBJ(dat.subarray(2,len -2), len -2)
+    }
 
-            //log out the value to understand better
-            console.log('Init PGE Fields:', {
-                type: pge.type,
-                pos_x: pge.pos_x,
-                pos_y: pge.pos_y,
-                obj_node_number: pge.obj_node_number,
-                init_room: pge.init_room,
-                room_location: pge.room_location,
-                init_flags: pge.init_flags,
-                colliding_icon_num: pge.colliding_icon_num,
-                icon_num: pge.icon_num,
-                object_id: pge.object_id,
-                skill: pge.skill,
-                mirror_x: pge.mirror_x,
-                flags: pge.flags,
-                unk1C: pge.unk1C,
-                text_num: pge.text_num
-            });
-
-        }
+    load_SPRM(f: File) {
+        const len = f.size() - 12
+        f.seek(12)
+        f.read(this._sprm.buffer, len)
     }
 
     load_ANI(f: File) {
@@ -728,13 +732,10 @@ class Resource {
     load_CT(pf: File) {
         const len = pf.size()
         const tmp = new Uint8Array(len)
-        if (!tmp) {
-            throw("Unable to allocate CT buffer")
-        } else {
-            pf.read(tmp.buffer, len)
-            if (!bytekiller_unpack(new Uint8Array(this._ctData.buffer), this._ctData.byteLength, tmp, len)) {
-                throw("Bad CRC for collision data")
-            }
+        pf.read(tmp.buffer, len)
+        if (!bytekiller_unpack(new Uint8Array(this._ctData.buffer), this._ctData.byteLength, tmp, len)) {
+            throw("Bad CRC for collision data")
+
         }
     }
 
@@ -742,6 +743,47 @@ class Resource {
         const len = f.size()
         this._fnt = new Uint8Array(len)
         f.read(this._fnt.buffer, len)
+    }
+
+    load_TBN(f: File) {
+        const len = f.size()
+        this._tbn = new Uint8Array(len)
+        f.read(this._tbn.buffer, len)
+    }
+
+    load_CMD(f: File) {
+        const len = f.size()
+        this._cmd = new Uint8Array(len)
+        f.read(this._cmd.buffer, len)
+    }
+
+    load_POL(f: File) {
+        const len = f.size()
+        this._pol = new Uint8Array(len)
+        f.read(this._pol.buffer, len)
+    }
+
+    load_ICN(f: File) {
+        const len = f.size()
+        this._icnLen = len
+        this._icn = new Uint8Array(len)
+        f.read(this._icn.buffer, len)
+    }
+
+
+    load_SPC(f: File) {
+        const len = f.size()
+        this._spc = new Uint8Array(len)
+        f.read(this._spc.buffer, len)
+        this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
+    }
+
+    load_SPRITE(f: File) {
+        const len = f.size() - 12
+        this._spr1 = new Uint8Array(len)
+        f.seek(12)
+        f.read(this._spr1.buffer, len)
+
     }
 
     fileExists(filename: string): boolean {
@@ -831,30 +873,6 @@ class Resource {
 
     }
 
-    load_TBN(f: File) {
-        const len = f.size()
-        this._tbn = new Uint8Array(len)
-        f.read(this._tbn.buffer, len)
-    }
-
-    load_CMD(f: File) {
-        const len = f.size()
-        this._cmd = new Uint8Array(len)
-        f.read(this._cmd.buffer, len)
-    }
-
-    load_POL(f: File) {
-        const len = f.size()
-        this._pol = new Uint8Array(len)
-        f.read(this._pol.buffer, len)
-    }
-
-    load_ICN(f: File) {
-        const len = f.size()
-        this._icnLen = len
-        this._icn = new Uint8Array(len)
-        f.read(this._icn.buffer, len)
-    }
 
     async load_VCE(num: number, segment: number) {
         let res = {
@@ -905,23 +923,7 @@ class Resource {
         return res
     }
 
-    load_SPC(f: File) {
-        const len = f.size()
-        this._spc = new Uint8Array(len)
-        f.read(this._spc.buffer, len)
-        this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
-    }
 
-    load_SPRITE(f: File) {
-        const len = f.size() - 12
-        this._spr1 = new Uint8Array(len)
-        if (!this._spr1) {
-            console.error("Unable to allocate SPR1 buffer");
-        } else {
-            f.seek(12)
-            f.read(this._spr1.buffer, len)
-        }
-    }
 
     async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
         this._entryName = `${fileName}.OFF`;
