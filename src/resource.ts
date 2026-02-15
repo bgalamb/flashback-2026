@@ -203,236 +203,134 @@ class Resource {
         this._readUint16 = READ_LE_UINT16
         this._readUint32 = READ_LE_UINT32
         this._scratchBuffer = new Uint8Array(kScratchBufferSize)
-        if (!this._scratchBuffer) {
-            throw("Unable to allocate temporary memory buffer");
-        }
+
         const kBankDataSize = 0x7000
         this._bankData = new Uint8Array(kBankDataSize)
-        if (!this._bankData) {
-            throw("Unable to allocate bank data buffer");
-        }
+
         this._bankDataTail = kBankDataSize
         this.clearBankData()
     }
 
-	async init() {
-        if (this._fs.exists(ResourceAba.FILENAME)) {
-            this._aba = new ResourceAba(this._fs)
-            await this._aba.readEntries()
-            this._isDemo = true
+    // GENERAL FILE LOADERS
+    private loadFileData(f: File, offset: number = 0, seek: boolean = true, customLength?: number): Uint8Array {
+        const len = customLength ?? (f.size() - offset);
+        const data = new Uint8Array(len);
+        if (offset > 0 && seek) {
+            f.seek(offset);
         }
-        const exists = this.fileExists("LEVEL1.MAP")
-        if (!exists) {
-            this._isDemo = true
+        f.read(data.buffer, len);
+        if (f.ioErr()) {
+            throw(`I/O error when reading '${this._entryName}'`)
         }
+        return data;
     }
 
-    unload(objType: number) {
-        switch (objType) {
-            case ObjectType.OT_CMD:
-                this._cmd = null
-                break
-            case ObjectType.OT_POL:
-                this._pol = null
-                break
-            case ObjectType.OT_CMP:
-                this._cmd = null
-                this._pol = null
-                break
-            default:
-                console.error(`Unimplemented Resource::unload() type ${objType}`)
-                break
-            }
-    }
-
-    async load(objName: string, objType: number, ext: string = "") {
-        let loadStub:LoadStub = null
-        //first let's try to load the real file
-        switch(objType) {
-            case ObjectType.OT_RP:
-                this._entryName = `${objName}.RP`
-                loadStub = this.load_RP.bind(this)
-                break
-
-            case ObjectType.OT_PAL:
-                this._entryName = `${objName}.PAL`
-                loadStub = this.load_PAL.bind(this)
-                break
-
-            case ObjectType.OT_TBN:
-                this._entryName = `${objName}.TBN`
-                if (!this._fs.exists(this._entryName)) {
-                    this._entryName = `${objName}.TBN`
-                }
-                loadStub = this.load_TBN.bind(this)
-                break;
-
-            case ObjectType.OT_ANI:
-                this._entryName = `${objName}.ANI`
-                loadStub = this.load_ANI.bind(this)
-                break
-
-            case ObjectType.OT_BNQ:
-                this._entryName = `${objName}.BNQ`
-                loadStub = this.load_BNQ.bind(this)
-                break
-
-            case ObjectType.OT_SPM:
-                this._entryName = `${objName}.SPM`
-                loadStub = this.load_SPM.bind(this)
-                break
-
-            case ObjectType.OT_SPRM:
-                this._entryName = `${objName}.SPR`
-                loadStub = this.load_SPRM.bind(this)
-                break
-
-            case ObjectType.OT_MBK:
-                this._entryName = `${objName}.MBK`
-                loadStub = this.load_MBK.bind(this)
-                break
-
-            case ObjectType.OT_FNT:
-                this._entryName = `${objName}.FNT`
-                loadStub = this.load_FNT.bind(this)
-                break
-
-            case ObjectType.OT_CMD:
-                this._entryName = `${objName}.CMD`
-                loadStub = this.load_CMD.bind(this)
-                break
-
-            case ObjectType.OT_PGE:
-                this._entryName = `${objName}.PGE`
-                loadStub = this.load_PGE.bind(this)
-                break
-
-            case ObjectType.OT_CT:
-                this._entryName = `${objName}.CT`
-                loadStub = this.load_CT.bind(this)
-                break
-
-            case ObjectType.OT_POL:
-                this._entryName = `${objName}.POL`
-                loadStub = this.load_POL.bind(this)
-                break                
-
-            case ObjectType.OT_ICN:
-                this._entryName = `${objName}.ICN`
-                loadStub = this.load_ICN.bind(this)
-                break
-
-            case ObjectType.OT_SPC:
-                this._entryName = `${objName}.SPC`
-                loadStub = this.load_SPC.bind(this)
-                break
-
-            case ObjectType.OT_SPR:
-                this._entryName = `${objName}.SPR`
-                loadStub = this.load_SPRITE.bind(this)
-                break
-
-            case ObjectType.OT_SGD:
-                this._entryName = `${objName}.SGD`
-                loadStub = this.load_SGD.bind(this)
-                break
-
-            case ObjectType.OT_LEV:
-                this._entryName = `${objName}.LEV`
-                loadStub = this.load_LEV.bind(this)
-                break
-            case ObjectType.OT_OBJ:
-                this._entryName = `${objName}.OBJ`
-                loadStub = this.load_OBJ.bind(this)
-                break
-
-            default:
-                throw(`load not implemented for ${objType} !`)
-        }
-
-        if (ext) {
-            this._entryName = `${objName}.${ext}`
-        }
-
-        const f:File = new File()
-        if (await f.open(this._entryName, "rb", this._fs)) {
-            if (!loadStub) {
-                throw(`assertion failed ${loadStub}`)
-            }
-            loadStub(f)
-            if (f.ioErr()) {
-                throw(`I/O error when reading '${this._entryName}'`)
-            }
+    private loadFileDataByFileName(filename: string): Uint8Array {
+        const file = new File();
+        if (file.open(filename, "rb", this._fs)) {
+            return this.loadFileData(file);
         } else {
-            // as a fallback let's try to load the ABA entry
-            if (this._aba) {
-                const {dat, size } = this._aba.loadEntry(this._entryName)
-                if (dat) {
-                    switch(objType) {
-                        case ObjectType.OT_PAL:
-                            this._pal = dat
-                            break                        
-                        case ObjectType.OT_MBK:
-                            this._mbk = dat
-                            break
-                        case ObjectType.OT_FNT:
-                            this._fnt = dat
-                            break
-                        case ObjectType.OT_BNQ:
-                            this._bnq = dat
-                            break
-                        case ObjectType.OT_ANI:
-                            this._ani = dat
-                            break
-                        case ObjectType.OT_TBN:
-                            this._tbn = dat
-                            break                            
-                        case ObjectType.OT_RP:
-                            if (size !== 0x4A) {
-                                throw(`Unexpected size ${size} for '${this._entryName}'`)
-                            }
-                            this._rp.set(dat.subarray(0, size))
-                            break                            
-                        case ObjectType.OT_CMD:
-                            this._cmd = dat
-                            break
-                        case ObjectType.OT_CT:
-                            if (!bytekiller_unpack(new Uint8Array(this._ctData.buffer), this._ctData.byteLength, dat, size)) {
-                                debugger
-                                throw(`Bad CRC for '${this._entryName}`)
-                            }
-                            break                            
-                        case ObjectType.OT_POL:
-                            this._pol = dat
-                            break
-                        case ObjectType.OT_ICN:
-                            this._icn = dat
-                            break
-                        case ObjectType.OT_SPC:
-                            this._spc = dat
-                            this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
-                            break
-                        case ObjectType.OT_OBJ:
-                            this._numObjectNodes = READ_LE_UINT16(dat)
-                            if (this._numObjectNodes !== 230 ){
-                                throw(`assertion failed ${this._numObjectNodes}`)
-                            }
-                            this.decodeOBJ(dat.subarray(2,size -2), size -2)
-                            break
-                        default:
-                            debugger
-                            throw(`${objType} not supported!`)
-                    }
-                    return
-                }
-            } else if (this._isDemo) {
-                switch(objType) {
-                    case ObjectType.OT_CMD:
-                    case ObjectType.OT_POL:
-                        console.warn(`Unable to load '${this._entryName}' type %${objType}`)
-                }
+            throw(`Failed to open '${filename}'`);
+        }
+    }
+
+    // LOADER switch
+    private readonly OBJECT_TYPE_MAPPING: Record<ObjectType, {
+        extension: string;
+        loader: (f: File) => void
+    }> = {
+        [ObjectType.OT_RP]: {extension: 'RP', loader: this.load_RP},
+        [ObjectType.OT_PAL]: {extension: 'PAL', loader: this.load_PAL},
+        [ObjectType.OT_TBN]: {extension: 'TBN', loader: this.load_TBN},
+        [ObjectType.OT_ANI]: {extension: 'ANI', loader: this.load_ANI},
+        [ObjectType.OT_BNQ]: {extension: 'BNQ', loader: this.load_BNQ},
+        [ObjectType.OT_SPM]: {extension: 'SPM', loader: this.load_SPM},
+        [ObjectType.OT_SPRM]: {extension: 'SPR', loader: this.load_SPRM},
+        [ObjectType.OT_MBK]: {extension: 'MBK', loader: this.load_MBK},
+        [ObjectType.OT_FNT]: {extension: 'FNT', loader: this.load_FNT},
+        [ObjectType.OT_CMD]: {extension: 'CMD', loader: this.load_CMD},
+        [ObjectType.OT_PGE]: {extension: 'PGE', loader: this.load_PGE},
+        [ObjectType.OT_CT]: {extension: 'CT', loader: this.load_CT},
+        [ObjectType.OT_POL]: {extension: 'POL', loader: this.load_POL},
+        [ObjectType.OT_ICN]: {extension: 'ICN', loader: this.load_ICN},
+        [ObjectType.OT_SPC]: {extension: 'SPC', loader: this.load_SPC},
+        [ObjectType.OT_SPR]: {extension: 'SPR', loader: this.load_SPRITE},
+        [ObjectType.OT_SGD]: {extension: 'SGD', loader: this.load_SGD},
+        [ObjectType.OT_LEV]: {extension: 'LEV', loader: this.load_LEV},
+        [ObjectType.OT_OBJ]: {extension: 'OBJ', loader: this.load_OBJ},
+        [ObjectType.OT_MAP]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
             }
-            throw(`Cannot open ${this._entryName}`)
+        },
+        [ObjectType.OT_RPC]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_DEMO]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_TAB]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_TXTBIN]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_OFF]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_CMP]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_OBC]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        },
+        [ObjectType.OT_SPL]: {
+            extension: '',
+            loader: function (f: File): void {
+                throw new Error('Function not implemented.')
+            }
+        }
+    };
+
+    async load(objName: string, objType: number, ext?: string) {
+        const typeConfig = this.OBJECT_TYPE_MAPPING[objType];
+
+        if (!typeConfig) {
+            throw new Error(`Load not implemented for object type: ${objType}`);
+        }
+
+        // Use provided extension or default to mapped extension
+        this._entryName = `${objName}.${ext || typeConfig.extension}`;
+
+        const file = new File();
+        if (await file.open(this._entryName, "rb", this._fs)) {
+            try {
+                typeConfig.loader.call(this, file);
+            } catch (error) {
+                throw new Error(`Failed to load ${this._entryName}: ${error.message}`);
+            }
         }
     }
 
@@ -474,25 +372,6 @@ class Resource {
             index++
             pge.text_num = this._readUint16(p, index)
             index += 2
-            //log out the value to understand better
-            //log out the value to understand better
-            console.log('Init PGE Fields:', {
-                type: pge.type,
-                pos_x: pge.pos_x,
-                pos_y: pge.pos_y,
-                obj_node_number: pge.obj_node_number,
-                init_room: pge.init_room,
-                room_location: pge.room_location,
-                init_flags: pge.init_flags,
-                colliding_icon_num: pge.colliding_icon_num,
-                icon_num: pge.icon_num,
-                object_id: pge.object_id,
-                skill: pge.skill,
-                mirror_x: pge.mirror_x,
-                flags: pge.flags,
-                unk1C: pge.unk1C,
-                text_num: pge.text_num
-            });
         }
     }
 
@@ -524,9 +403,7 @@ class Resource {
                     objects: null,
                     num_objects: 0
                 }
-                if (!on) {
-                    throw(`Unable to allocate ObjectNode num=${i}`)
-                }
+
                 let objData = offsets[i]
                 on.last_obj_number = this._readUint16(tmp, objData)
                 objData += 2
@@ -563,25 +440,20 @@ class Resource {
         }
     }
 
-
-
     load_SPM(f: File) {
         debugger
         const kPersoDatSize = 178647
         const len = f.size()
+
+        //read last 4 bytes
         f.seek(len - 4)
         const size = f.readUint32BE()
+
+        //go back to the begining of the file
         f.seek(0)
-        const tmp = new Uint8Array(len)
-        if (!tmp) {
-            throw("Unable to allocate SPM temporary buffer")
-        }
-        f.read(tmp.buffer, len)
+        const tmp = this.loadFileData(f)
         if (size === kPersoDatSize) {
             this._spr1 = new Uint8Array(size)
-            if (!this._spr1) {
-                throw("Unable to allocate SPR1 buffer")
-            }
             if (!bytekiller_unpack(this._spr1, size, tmp, len)) {
                 throw("Bad CRC for SPM data")
             }
@@ -590,10 +462,13 @@ class Resource {
                 throw(`Assertion error: ${size} <= ${this._sprm.byteLength}`)
             }
             // assert(size <= sizeof(_sprm));
+            // sprm = sprite monster?
             if (!bytekiller_unpack(this._sprm, this._sprm.byteLength, tmp, len)) {
-                throw("Bad CRC for SPM data")
+                throw("Bad CRC for SPRM data")
             }
         }
+
+
         for (let i = 0; i < NUM_SPRITES; ++i) {
             const offset = Resource._spmOffsetsTable[i]
             if (offset >= kPersoDatSize) {
@@ -607,68 +482,13 @@ class Resource {
 
 
     load_PGE(f: File) {
-        const len = f.size() - 12
-        const _pge: Uint8Array = new Uint8Array(len)
-        f.read(_pge.buffer, len)
+        const _pge: Uint8Array =this.loadFileData(f, 12, false)
         this.decodePGE(_pge)
-        // //load the first byte from the file, that's going to indicate the number of PGEs contained
-        // this._pgeNum = f.readUint16LE()
-        // console.info(`There are a total of ${this._pgeNum} PGEs in this file`)
-        // //pgeInitLengt = 256 and it's completely empty
-        // if (this._pgeNum > this._pgeInit.length) {
-        //     throw(`Assertion error: ${this._pgeNum} <= ${this._pgeInit.length}`)
-        // }
-        // //this will fill the PGEs in the init array, as many as they are.
-        // for (let i = 0; i < this._pgeNum; ++i) {
-        //     const pge: InitPGE = this._pgeInit[i]
-        //     pge.type = f.readUint16LE()
-        //     pge.pos_x = f.readUint16LE()
-        //     pge.pos_y = f.readUint16LE()
-        //     pge.obj_node_number = f.readUint16LE()
-        //     pge.life = f.readUint16LE()
-        //     for (let lc = 0; lc < 4; ++lc) {
-        //         pge.counter_values[lc] = f.readUint16LE()
-        //     }
-        //     pge.object_type = f.readByte()
-        //     pge.init_room = f.readByte()
-        //     pge.room_location = f.readByte()
-        //     pge.init_flags = f.readByte()
-        //     pge.colliding_icon_num = f.readByte()
-        //     pge.icon_num = f.readByte()
-        //     pge.object_id = f.readByte()
-        //     pge.skill = f.readByte()
-        //     pge.mirror_x = f.readByte()
-        //     pge.flags = f.readByte()
-        //     pge.unk1C = f.readByte()
-        //     f.readByte()
-        //     pge.text_num = f.readUint16LE()
-        //
-        //     //log out the value to understand better
-        //     console.log('Init PGE Fields:', {
-        //         type: pge.type,
-        //         pos_x: pge.pos_x,
-        //         pos_y: pge.pos_y,
-        //         obj_node_number: pge.obj_node_number,
-        //         init_room: pge.init_room,
-        //         room_location: pge.room_location,
-        //         init_flags: pge.init_flags,
-        //         colliding_icon_num: pge.colliding_icon_num,
-        //         icon_num: pge.icon_num,
-        //         object_id: pge.object_id,
-        //         skill: pge.skill,
-        //         mirror_x: pge.mirror_x,
-        //         flags: pge.flags,
-        //         unk1C: pge.unk1C,
-        //         text_num: pge.text_num
-        //     });
-        //
-        // }
     }
 
     load_OBJ(f: File) {
         const len = f.size()
-        const dat = new Uint8Array(len)
-        f.read(dat.buffer, len)
+        const dat = this.loadFileData(f)
 
         this._numObjectNodes = READ_LE_UINT16(dat)
         if (this._numObjectNodes !== 230 ){
@@ -678,40 +498,28 @@ class Resource {
     }
 
     load_SPRM(f: File) {
-        const len = f.size() - 12
-        f.seek(12)
-        f.read(this._sprm.buffer, len)
+        this._sprm = this.loadFileData(f,12)
     }
 
     load_ANI(f: File) {
-        const len = f.size()
-        this._ani = new Uint8Array(len)
-        f.read(this._ani.buffer, len)
+        this._ani = this.loadFileData(f)
     }
 
     load_LEV(f: File) {
-        const len = f.size()
-        this._lev = new Uint8Array(len)
-        f.read(this._lev.buffer, len)
+        this._lev = this.loadFileData(f)
     }
 
     load_BNQ(f: File) {
-        const len = f.size()
-        this._bnq = new Uint8Array(len)
-        f.read(this._bnq.buffer, len)
+        this._bnq = this.loadFileData(f)
     }
 
     load_SGD(f: File) {
-        const len = f.size()
-        this._sgd = new Uint8Array(len)
-        f.read(this._sgd.buffer, len)
+        this._sgd = this.loadFileData(f)
         this._sgd[0] = 0
     }
 
     load_PAL(f: File) {
-        const len = f.size()
-        this._pal = new Uint8Array(len)
-        f.read(this._pal.buffer, len)
+        this._pal = this.loadFileData(f)
     }
 
     load_RP(f: File) {
@@ -719,20 +527,17 @@ class Resource {
         if (len !== 0x4A) {
             throw(`Unexpected size ${len} for '${this._entryName}'`)
         }
-        f.read(this._rp.buffer, 0x4A)
+       this._rp =this.loadFileData(f)
 
     }
 
     load_MBK(f: File) {
-        const len = f.size()
-        this._mbk = new Uint8Array(len)
-        f.read(this._mbk.buffer, len)
+        this._mbk = this.loadFileData(f)
     }
 
     load_CT(pf: File) {
         const len = pf.size()
-        const tmp = new Uint8Array(len)
-        pf.read(tmp.buffer, len)
+        const tmp =this.loadFileData(pf)
         if (!bytekiller_unpack(new Uint8Array(this._ctData.buffer), this._ctData.byteLength, tmp, len)) {
             throw("Bad CRC for collision data")
 
@@ -740,60 +545,35 @@ class Resource {
     }
 
     load_FNT(f: File) {
-        const len = f.size()
-        this._fnt = new Uint8Array(len)
-        f.read(this._fnt.buffer, len)
+        this._fnt = this.loadFileData(f)
     }
 
     load_TBN(f: File) {
-        const len = f.size()
-        this._tbn = new Uint8Array(len)
-        f.read(this._tbn.buffer, len)
+        this._tbn = this.loadFileData(f)
     }
 
     load_CMD(f: File) {
-        const len = f.size()
-        this._cmd = new Uint8Array(len)
-        f.read(this._cmd.buffer, len)
+        this._cmd = this.loadFileData(f)
     }
 
     load_POL(f: File) {
-        const len = f.size()
-        this._pol = new Uint8Array(len)
-        f.read(this._pol.buffer, len)
+        this._pol = this.loadFileData(f)
     }
 
     load_ICN(f: File) {
-        const len = f.size()
-        this._icnLen = len
-        this._icn = new Uint8Array(len)
-        f.read(this._icn.buffer, len)
+        this._icnLen = f.size()
+        this._icn = this.loadFileData(f)
     }
 
 
     load_SPC(f: File) {
-        const len = f.size()
-        this._spc = new Uint8Array(len)
-        f.read(this._spc.buffer, len)
+        this._spc = this.loadFileData(f)
         this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
     }
 
     load_SPRITE(f: File) {
-        const len = f.size() - 12
-        this._spr1 = new Uint8Array(len)
-        f.seek(12)
-        f.read(this._spr1.buffer, len)
-
+        this._spr1 = this.loadFileData(f,12)
     }
-
-    fileExists(filename: string): boolean {
-        if (this._fs.exists(filename)) {
-            return true
-        } else if (this._aba) {
-            return this._aba.findEntry(filename) !== null
-        }
-        return false
-    }    
 
     clearBankData() {
         this._bankBuffersCount = 0
@@ -873,7 +653,6 @@ class Resource {
 
     }
 
-
     async load_VCE(num: number, segment: number) {
         let res = {
             buf: null as Uint8Array,
@@ -923,8 +702,6 @@ class Resource {
         return res
     }
 
-
-
     async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
         this._entryName = `${fileName}.OFF`;
         try {
@@ -942,49 +719,53 @@ class Resource {
         try {
             const f = new File();
             if (await f.open(this._entryName, "rb", this._fs)) {
-                const len = f.size();
-                const offData = new Uint8Array(len);
-                f.read(offData.buffer, len);
-                if (f.ioErr()) {
-                    throw new Error(`I/O error when reading '${this._entryName}'`);
-                }
-                return offData;
+                return this.loadFileData(f)
             }
-
-            if (this._aba) {
-                const res = this._aba.loadEntry(this._entryName);
-                return res.dat;
-            }
-
-            return null;
         } catch (error) {
             console.error("Error loading offset data:", error);
             return null;
         }
     }
 
-    private _processOffsetData(offData: Uint8Array, sprData: Uint8Array) {
-        let index = 0;
-        while (true) {
-            const pos = READ_LE_UINT16(offData.buffer, index);
-            if (pos === 0xFFFF) break;
-            if (pos >= NUM_SPRITES) {
-                throw new Error(`Invalid sprite index: ${pos}`);
+    private readonly SPRITE_TERMINATOR = 0xFFFF;
+    private readonly INVALID_OFFSET = 0xFFFFFFFF;
+    private readonly ENTRY_SIZE = 6; // 2 bytes for pos + 4 bytes for offset
+
+    private _processOffsetData(offData: Uint8Array, sprData: Uint8Array): void {
+        if (!offData || !sprData) {
+            return;
+        }
+
+        for (let index = 0; index < offData.byteLength; index += this.ENTRY_SIZE) {
+            const spriteIndex = READ_LE_UINT16(offData.buffer, index);
+
+            // Check for terminator condition
+            if (spriteIndex === this.SPRITE_TERMINATOR) {
+                break;
             }
-            const off = READ_LE_UINT32(offData.buffer, index + 2);
-            this._sprData[pos] = off === 0xFFFFFFFF
+
+            // Validate sprite index
+            if (spriteIndex >= NUM_SPRITES) {
+                throw new Error(`Invalid sprite index: ${spriteIndex}`);
+            }
+
+            const spriteOffset = READ_LE_UINT32(offData.buffer, index + 2);
+
+            // Assign sprite data or null based on offset
+            this._sprData[spriteIndex] = spriteOffset === this.INVALID_OFFSET
                 ? null
-                : sprData.subarray(off);
-            index += 6;
+                : sprData.subarray(spriteOffset);
         }
     }
 
-
+    // This file contains the background sound effects
     async load_FIB(fileName: string) {
         this._entryName = `${fileName}.FIB`
         const f = new File()
         if (await f.open(this._entryName, "rb", this._fs)) {
+            //the first byte contains the number of different effects in this file
             this._numSfx = f.readUint16LE()
+
             this._sfxList = new Array(this._numSfx).fill(null).map(() => ({
                 offset: 0,
                 freq: 0,
@@ -992,9 +773,7 @@ class Resource {
                 peak: 0,
                 data: null,
             }))
-            if (!this._sfxList) {
-                console.error("Unable to allocate SoundFx table");
-            }
+
             for (let i = 0; i < this._numSfx; ++i) {
                 const sfx:SoundFx = this._sfxList[i]
                 sfx.offset = f.readUint32LE()
@@ -1010,9 +789,7 @@ class Resource {
                 f.seek(sfx.offset)
                 const len = (sfx.len * 2) - 1
                 const data = new Uint8Array(len)
-                if (!data) {
-                    console.error("Unable to allocate SoundFx data buffer")
-                }
+
                 sfx.data = data
                 let index = 0
                 // Fibonacci-delta decoding
@@ -1058,15 +835,6 @@ class Resource {
                 console.error(`I/O error when reading '${this._entryName}'`)
             }
             return
-        } else if (this._aba) {
-            const { dat, size } = this._aba.loadEntry(this._entryName)
-            if (dat) {
-                if (size !== kMenuMapSize) {
-                    console.error(`Unexpected size ${size} for '${this._entryName}'`)
-                }
-                dstPtr.set(dat.subarray(0, size))
-                return
-            }
         }
         console.error(`Cannot load '${this._entryName}'`)
     }
@@ -1083,94 +851,32 @@ class Resource {
                 console.error(`I/O error when reading '${this._entryName}'`)
             }
             return
-        } else if (this._aba) {
-            const { dat, size } = this._aba.loadEntry(this._entryName)
-            if (dat) {
-                if (size !== kMenuPalSize) {
-                    console.error(`Unexpected size ${size} for '${this._entryName}'`)
-                }
-                dstPtr.set(dat.subarray(0, size))
-                return
-            }
         }
         console.error(`Cannot load '${this._entryName}'`)
     }
 
     async load_CINE() {
-        const prefix = 'ENG'
+        if (this._cine_off === null) {
+            this._entryName = `ENGCINE.BIN`
+            const f:File = new File()
+            if (await f.open(this._entryName, "rb", this._fs)) {
+                this._cine_off = this.loadFileData(f)
+            }
+        }
 
-                if (this._cine_off === null) {
-                    this._entryName = `${prefix}.BIN`
-                    if (!this._fs.exists(this._entryName)) {
-                        this._entryName = "ENGCINE.BIN"
-                    }
-                    const f:File = new File()
-                    if (await f.open(this._entryName, "rb", this._fs)) {
-                        const len = f.size()
-                        this._cine_off = new Uint8Array(len)
-                        if (!this._cine_off) {
-                            throw(`Unable to allocate cinematics offsets (size=${len})`)
-                        }
-                        f.read(this._cine_off, len)
-                        if (f.ioErr()) {
-                            throw(`I/O error when reading '${this._entryName}'`)
-                        }
-                    } else if (this._aba) {
-                        const { dat } = this._aba.loadEntry(this._entryName)
-                        this._cine_off = dat
-                    } else if (this._isDemo) {
-                        return // some demos do not have cutscene datafiles                        
-                    }
-                }
-                if (!this._cine_off) {
-                    throw(`Cannot load '${this._entryName}'`)
-                }
-                if (this._cine_txt === null) {
-                    this._entryName = `${prefix}CINE.TXT`
-                    if (!this._fs.exists(this._entryName)) {
-                        this._entryName = "ENGCINE.TXT"
-                    }
-                    const f:File = new File()
-                    if (await f.open(this._entryName, "rb", this._fs)) {
-                        const len = f.size()
-                        this._cine_txt = new Uint8Array(len)
-                        if (!this._cine_txt) {
-                            throw(`Unable to allocate cinematics text data (size=${len})`)
-                        }
-                        f.read(this._cine_txt, len)
-                        if (f.ioErr()) {
-                            throw(`I/O error when reading '${this._entryName}`)
-                        }
-                    } else if (this._aba) {
-                        const { dat } = this._aba.loadEntry(this._entryName)
-                        this._cine_txt = dat
-                    } else if (this._isDemo) {
-                        return // some demos do not have cutscene datafiles                            
-                    }
-                }
-                if (!this._cine_txt) {
-                    throw(`Cannot load '${this._entryName}'`)
-                }
+        if (this._cine_txt === null) {
+            this._entryName = `ENGCINE.TXT`
+            const f:File = new File()
+            if (await f.open(this._entryName, "rb", this._fs)) {
+                this._cine_txt =this.loadFileData(f)
+            }
+        }
     }
-
 
     getAniData(num: number) {
        const offset = this._readUint16(this._ani, 2 + num * 2)
-
         // Return a subarray starting from the calculated offset
         return this._ani.subarray(2 + offset)
-    }
-
-    free_OBJ() {
-        let prevNode: ObjectNode = null
-        for (let i = 0; i < this._numObjectNodes; ++i) {
-            if (this._objectNodesMap[i] !== prevNode) {
-                const curNode = this._objectNodesMap[i]
-                curNode.objects.length = 0
-                prevNode = curNode
-            }
-            this._objectNodesMap[i] = null
-        }
     }
 
     getTextString(level: number, num: number) {
@@ -1193,6 +899,38 @@ class Resource {
 		return (num >= 0 && num < LocaleData.Id.LI_NUM) ? this._textsTable[num] : "";
 	}
 
+    // Unload, Clear, Free data
+    ///////////////////////////
+    unload(objType: number) {
+        switch (objType) {
+            case ObjectType.OT_CMD:
+                this._cmd = null
+                break
+            case ObjectType.OT_POL:
+                this._pol = null
+                break
+            case ObjectType.OT_CMP:
+                this._cmd = null
+                this._pol = null
+                break
+            default:
+                console.error(`Unimplemented Resource::unload() type ${objType}`)
+                break
+        }
+    }
+
+
+    free_OBJ() {
+        let prevNode: ObjectNode = null
+        for (let i = 0; i < this._numObjectNodes; ++i) {
+            if (this._objectNodesMap[i] !== prevNode) {
+                const curNode = this._objectNodesMap[i]
+                curNode.objects.length = 0
+                prevNode = curNode
+            }
+            this._objectNodesMap[i] = null
+        }
+    }
 
     clearLevelRes() {
         this._tbn = null
@@ -1207,9 +945,6 @@ class Resource {
         this.free_OBJ()
     }
 
-    destructor() {
-        throw 'resource::descrutor not implemented!'
-    }
 }
 
 export { LocaleData, kScratchBufferSize, Resource, ObjectType }

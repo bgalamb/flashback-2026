@@ -361,7 +361,6 @@ class Game {
     // run -> runLoop -> mainloop
     async run() {
         this._randSeed = new Date().getTime()
-        await this._res.init()
         this._res.load_TEXT()
 
         await this._res.load("FB_TXT", ObjectType.OT_FNT)
