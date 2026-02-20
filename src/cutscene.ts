@@ -5,6 +5,8 @@ import { SystemStub, DF_FASTMODE, DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } from '
 import { Video } from './video'
 import { _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataDOS, _enTextsTable, _musicTable, _namesTableDOS,  _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
 import {global_game_options} from "./configs/global_game_options";
+import {SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_W, CHAR_H} from "./configs/config";
+
 
 
 type OpcodeStub = () => void
@@ -212,22 +214,22 @@ class Cutscene {
         let yPos = y
         let xPos = x
         if (textJustify !== kTextJustifyLeft) {
-            xPos += ((lastSep - sep[index++]) / 2) * Video.CHAR_W
+            xPos += ((lastSep - sep[index++]) / 2) * CHAR_W
         }
         for (let i = 0; i < len && p[i] !== 0xA; ++i) {
             if (Cutscene.isNewLineChar(p[i], this._res)) {
-                yPos += Video.CHAR_H
+                yPos += CHAR_H
                 xPos = x
                 if (textJustify !== kTextJustifyLeft) {
-                    xPos += ((lastSep - sep[index++]) / 2) * Video.CHAR_W
+                    xPos += ((lastSep - sep[index++]) / 2) * CHAR_W
                 }
             } else if (p[i] === 0x20) {
-                xPos += Video.CHAR_W
+                xPos += CHAR_W
             } else if (p[i] === 0x9) {
                 // ignore tab
             } else {
                 dcf(page, this._vid._w, xPos, yPos, fnt, color, p[i])
-                xPos += Video.CHAR_W
+                xPos += CHAR_W
             }
         }
     }
@@ -495,10 +497,10 @@ class Cutscene {
         //black frame height?
         const y = 50
 
-        const sw = w * this._vid._layerScale
-        const sh = h * this._vid._layerScale
-        const sx = x * this._vid._layerScale
-        const sy = y * this._vid._layerScale
+        const sw = w
+        const sh = h
+        const sx = x
+        const sy = y
         this._gfx.setClippingRect(sx, sy, sw, sh)
     }
 
@@ -607,7 +609,7 @@ class Cutscene {
 
             const rx = this._vertices[0].x - this._vertices[2].x
             const ry = this._vertices[0].y - this._vertices[1].y
-            scalePoints([po], 1, this._vid._layerScale);
+            scalePoints([po], 1, 1);
             this._gfx.drawEllipse(this._primitiveColor, this._hasAlphaColor, po, rx, ry)
         } else if (numVertices === 0) {
             // TODO
@@ -700,7 +702,7 @@ class Cutscene {
             this._shape_prev_y = this._shape_cur_y
             this._shape_prev_x16 = this._shape_cur_x16
             this._shape_prev_y16 = this._shape_cur_y16
-            scalePoints(this._vertices, numVertices + 1, this._vid._layerScale)
+            scalePoints(this._vertices, numVertices + 1, 1)
             this._gfx.drawPolygon(this._primitiveColor, this._hasAlphaColor, this._vertices, numVertices + 1)            
         }
         data.offset = startOffset
@@ -770,7 +772,7 @@ class Cutscene {
             }
             let rx = this._vertices[0].x - this._vertices[2].x
             let ry = this._vertices[0].y - this._vertices[1].y
-            scalePoints([po], 1, this._vid._layerScale);
+            scalePoints([po], 1, 1);
             this._gfx.drawEllipse(this._primitiveColor, this._hasAlphaColor, po, rx, ry)
         } else if (numVertices === 0) {
             // TODO
@@ -824,7 +826,7 @@ class Cutscene {
             this._shape_prev_y = this._shape_cur_y
             this._shape_prev_x16 = this._shape_cur_x16
             this._shape_prev_y16 = this._shape_cur_y16
-            scalePoints(this._vertices, numVertices, this._vid._layerScale)
+            scalePoints(this._vertices, numVertices, 1)
             this._gfx.drawPolygon(this._primitiveColor, this._hasAlphaColor, this._vertices, numVertices)
         }
         data.offset = startOffset
@@ -1002,8 +1004,8 @@ class Cutscene {
                 }
             }
     
-            const h = 45 * this._vid._layerScale
-            const y = Video.GAMESCREEN_H * this._vid._layerScale - h
+            const h = 45
+            const y = GAMESCREEN_H  - h
 
             this._pageC.fill(0xC0, y * this._vid._w, y * this._vid._w + h * this._vid._w)
             this._page1.fill(0xC0, y * this._vid._w, y * this._vid._w + h * this._vid._w)
@@ -1052,7 +1054,7 @@ class Cutscene {
             data.offset += 2
             const ry = READ_BE_UINT16(data)
             data.offset += 2
-            scalePoints([pt], 1, this._vid._layerScale)
+            scalePoints([pt], 1, 1)
             this._gfx.drawEllipse(this._primitiveColor, this._hasAlphaColor, pt, rx, ry)
         } else if (numVertices === 0) {
             const pt:Point = {
@@ -1060,7 +1062,7 @@ class Cutscene {
                 y: READ_BE_UINT16(data, 2)                
             }
             data.offset += 4
-            scalePoints([pt], 1, this._vid._layerScale)
+            scalePoints([pt], 1, 1)
             this._gfx.drawPoint(this._primitiveColor, pt)
         } else {
             const pt = this._vertices
@@ -1091,7 +1093,7 @@ class Cutscene {
                     index++
                 }
             }
-            scalePoints(this._vertices, numVertices, this._vid._layerScale)
+            scalePoints(this._vertices, numVertices, 1)
             this._gfx.drawPolygon(this._primitiveColor, this._hasAlphaColor, this._vertices, numVertices)
         }
         data.offset = startOffset
@@ -1275,7 +1277,7 @@ class Cutscene {
                     y: y + iy
                 }
 
-                scalePoints([pt], 1, this._vid._layerScale)
+                scalePoints([pt], 1, 1)
                 this._gfx.drawEllipse(color, false, pt, rx, ry)
             } else {
                 const shape = i
@@ -1285,7 +1287,7 @@ class Cutscene {
                     this._vertices[i].y = y + (READ_BE_UINT16(p, offset) << 16 >> 16)
                     offset += 2
                 }
-                scalePoints(this._vertices, verticesCount, this._vid._layerScale)
+                scalePoints(this._vertices, verticesCount, 1)
                 this._gfx.drawPolygon(color, false, this._vertices, verticesCount)
             }
         }

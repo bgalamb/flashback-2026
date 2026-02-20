@@ -3,6 +3,8 @@ import { LocaleData, Resource } from "./resource"
 import { DIR_DOWN, DIR_UP, SystemStub } from "./systemstub_web"
 import { Video } from "./video"
 import { _levelNames } from './staticres'
+import { CHAR_W, CHAR_H} from "./configs/config";
+
 
 const SCREEN_TITLE = 0
 const SCREEN_INFO = 4
@@ -158,7 +160,7 @@ class Menu {
         await this.loadPicture("instru_e")
 
         this._vid.fullRefresh()
-        await this._vid.updateScreen(true)
+        await this._vid.updateScreen()
         do {
             await this._stub.sleep(EVENTS_DELAY)
             await this._stub.processEvents()
@@ -219,15 +221,15 @@ class Menu {
     }
     
     drawString2(str: string, y: number, x: number) {
-        const w = Video.CHAR_W
-        const h = Video.CHAR_H
+        const w = CHAR_W
+        const h = CHAR_H
         let len = 0
 
         for (; str[len]; ++len) {
-            this._vid.PC_drawChar(str.charCodeAt(len), y, x + len, true)
+            this._vid.PC_drawChar(str.charCodeAt(len), y, x + len)
         }
 
-        this._vid.markBlockAsDirty(x * w, y * h, len * w, h, this._vid._layerScale)
+        this._vid.markBlockAsDirty(x * w, y * h, len * w, h, 1)
     }
 
     async loadPicture(prefix: string) {

@@ -9,6 +9,8 @@ import { Video } from './video'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Menu } from './menu'
+import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W} from "./configs/config";
+
 import {
     scoreTable,
     _demoInputs,
@@ -477,7 +479,7 @@ class Game {
         await this.playCutscene(0x49)
 
         const buf = this._score.toString().padStart(8, '0')
-        this._vid.drawString(buf, (Video.GAMESCREEN_W - buf.length * Video.CHAR_W) / 2, 40, 0xE5)
+        this._vid.drawString(buf, (GAMESCREEN_W - buf.length * CHAR_W) / 2, 40, 0xE5)
         while (!this._stub._pi.quit) {
             this._stub.copyRect(0, 0, this._vid._w, this._vid._h, this._vid._frontLayer, this._vid._w)
             await this._stub.updateScreen(0)
@@ -987,7 +989,7 @@ class Game {
         this._vid.PC_decodeIcn(this._res._icn, iconNum, buf)
 
         this._vid.drawSpriteSub1(buf, this._vid._frontLayer.subarray(x + y * this._vid._w), 16, 16, 16, colMask << 4)
-        this._vid.markBlockAsDirty(x, y, 16, 16, this._vid._layerScale)
+        this._vid.markBlockAsDirty(x, y, 16, 16, 1)
     }
 
     drawCurrentInventoryItem() {
@@ -1044,7 +1046,7 @@ class Game {
     printSaveStateCompleted() {
         if (this._saveStateCompleted) {
             const str = this._res.getMenuString(LocaleData.Id.LI_05_COMPLETED)
-            this._vid.drawString(str, ((176 - str.length * Video.CHAR_W) / 2) >> 0, 34, 0xE6)
+            this._vid.drawString(str, ((176 - str.length * CHAR_W) / 2) >> 0, 34, 0xE6)
         }
     }
 
@@ -1110,14 +1112,14 @@ class Game {
         this._vid._tempLayer.set(this._vid._frontLayer.subarray(0, this._vid._layerSize))
         while (timeout >= 0 && !this._stub._pi.quit) {
             let str = this._res.getMenuString(LocaleData.Id.LI_01_CONTINUE_OR_ABORT)
-            this._vid.drawString(str, ((Video.GAMESCREEN_W - str.length * Video.CHAR_W) / 2) >> 0, 64, 0xE3)
+            this._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 64, 0xE3)
             str = this._res.getMenuString(LocaleData.Id.LI_02_TIME)
             let buf = str + " : " + ((timeout / 10) >> 0)
             this._vid.drawString(buf, 96, 88, 0xE3)
             str = this._res.getMenuString(LocaleData.Id.LI_03_CONTINUE)
-            this._vid.drawString(str, ((Video.GAMESCREEN_W - str.length * Video.CHAR_W) / 2) >> 0, 104, colors[0])
+            this._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 104, colors[0])
             str = this._res.getMenuString(LocaleData.Id.LI_04_ABORT)
-            this._vid.drawString(str, ((Video.GAMESCREEN_W - str.length * Video.CHAR_W) / 2) >> 0, 112, colors[1])
+            this._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 112, colors[1])
             buf = "SCORE  " + this._score.toString().padStart(8, "0")
             this._vid.drawString(buf, 64, 154, 0xE3)
             if (this._stub._pi.dirMask & DIR_UP) {
@@ -1197,7 +1199,7 @@ class Game {
 
                     while (1) {
                         const len = Game.getLineLength(str)
-                        const string = this._vid.drawString(new TextDecoder().decode(str).split('\u0000')[0], ((176 - len * Video.CHAR_W) / 2) >> 0, yPos, textColor)
+                        const string = this._vid.drawString(new TextDecoder().decode(str).split('\u0000')[0], ((176 - len * CHAR_W) / 2) >> 0, yPos, textColor)
                         str = new Uint8Array(string.length)
                         for (let idx = 0; idx < string.length; ++idx) {
                             str[idx] = string.charCodeAt(idx)
@@ -1461,7 +1463,7 @@ class Game {
             this._menu.drawString(this._res.getMenuString(LocaleData.Id.LI_19_ABORT_GAME), y + 4, 9, colors[1])
             this._menu.drawString(this._res.getMenuString(LocaleData.Id.LI_20_LOAD_GAME), y + 6, 9, colors[2])
             this._menu.drawString(this._res.getMenuString(LocaleData.Id.LI_21_SAVE_GAME), y + 8, 9, colors[3])
-            this._vid.fillRect(Video.CHAR_W * (x + 1), Video.CHAR_H * (y + 10), Video.CHAR_W * (w - 2), Video.CHAR_H, 0xE2)
+            this._vid.fillRect(CHAR_W * (x + 1), CHAR_W * (y + 10), CHAR_W * (w - 2), CHAR_W, 0xE2)
             const buf = this._res.getMenuString(LocaleData.Id.LI_22_SAVE_SLOT) + " < " + this._stateSlot.toString().padStart(2, "0") + " >"
             this._menu.drawString(buf, y + 10, 9, 1)
     
@@ -1524,7 +1526,7 @@ class Game {
 
         len = str.length
         if (hcenter) {
-            x = ((x - len * Video.CHAR_W) / 2) >> 0
+            x = ((x - len * CHAR_W) / 2) >> 0
         }
 
         this._vid.drawStringLen(str, len, x, y, color)
@@ -1834,7 +1836,7 @@ class Game {
                 this._vid.drawSpriteSub4(new Uint8Array(this._res._scratchBuffer.buffer, src), this._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
             }
         }
-        this._vid.markBlockAsDirty(sprite_x, sprite_y, sprite_clipped_w, sprite_clipped_h, this._vid._layerScale)
+        this._vid.markBlockAsDirty(sprite_x, sprite_y, sprite_clipped_w, sprite_clipped_h, 1)
     }
     
     drawCharacter(dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number) {
@@ -1937,7 +1939,7 @@ class Game {
                 this._vid.drawSpriteSub4(new Uint8Array(dataPtr.buffer, src), this._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
             }
         }
-        this._vid.markBlockAsDirty(pos_x, pos_y, sprite_clipped_w, sprite_clipped_h, this._vid._layerScale)
+        this._vid.markBlockAsDirty(pos_x, pos_y, sprite_clipped_w, sprite_clipped_h, 1)
     }
 
     async handleInventory() {
@@ -1993,10 +1995,10 @@ class Game {
                             selected_pge = items[item_it].live_pge
                             const txt_num = items[item_it].init_pge.text_num
                             const str = this._res.getTextString(this._currentLevel, txt_num)
-                            this.drawString(str, Video.GAMESCREEN_W, 189, 0xED, true)
+                            this.drawString(str, GAMESCREEN_W, 189, 0xED, true)
                             if (items[item_it].init_pge.init_flags & 4) {
                                 const buf = selected_pge.life.toString()
-                                this._vid.drawString(buf, ((Video.GAMESCREEN_W - buf.length * Video.CHAR_W) / 2) >> 0, 197, 0xED)
+                                this._vid.drawString(buf, ((GAMESCREEN_W - buf.length * CHAR_W) / 2) >> 0, 197, 0xED)
                             }
                         }
                         icon_x_pos += 32
@@ -2009,9 +2011,9 @@ class Game {
                     }
                 } else {
                     let buf = "SCORE " + this._score.toString().padStart(8, "0")
-                    this._vid.drawString(buf, (((114 - buf.length * Video.CHAR_W) / 2) >> 0) + 72, 158, 0xE5)
+                    this._vid.drawString(buf, (((114 - buf.length * CHAR_W) / 2) >> 0) + 72, 158, 0xE5)
                     buf = this._res.getMenuString(LocaleData.Id.LI_06_LEVEL) + ":" + this._res.getMenuString(LocaleData.Id.LI_13_EASY + this._skillLevel)
-                    this._vid.drawString(buf, (((114 - buf.length * Video.CHAR_W) / 2) >> 0) + 72, 166, 0xE5)
+                    this._vid.drawString(buf, (((114 - buf.length * CHAR_W) / 2) >> 0) + 72, 166, 0xE5)
                 }
     
                 await this._vid.updateScreen()
@@ -2486,16 +2488,16 @@ class Game {
             const leftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
             if (leftRoom > 0 && this.hasLevelMap(this._currentLevel, leftRoom)) {
                 this._vid.PC_decodeMap(this._currentLevel, leftRoom)
-                this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
+                this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
             } else {
-                this._stub.copyWidescreenLeft(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
+                this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, null)
             }
             const rightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
             if (rightRoom > 0 && this.hasLevelMap(this._currentLevel, rightRoom)) {
                 this._vid.PC_decodeMap(this._currentLevel, rightRoom)
-                this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, this._vid._backLayer)
+                this._stub.copyWidescreenRight(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
             } else {
-                this._stub.copyWidescreenRight(Video.GAMESCREEN_W, Video.GAMESCREEN_H, null)
+                this._stub.copyWidescreenRight(GAMESCREEN_W, GAMESCREEN_H, null)
             }
             widescreenUpdated = true
         }

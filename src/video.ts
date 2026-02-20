@@ -1,25 +1,20 @@
 import { global_game_options } from "./configs/global_game_options"
 import { Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
 import { WidescreenMode } from "./enums/common_enums";
-import { kScratchBufferSize, Resource } from "./resource"
+import { Resource } from "./resource"
 import { _conradPal1, _conradPal2, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
+import {SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W} from "./configs/config";
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
-
-const SCREENBLOCK_W = 8
-const SCREENBLOCK_H = 8
 
 class Video {
     static _conradPal1: Uint8Array = _conradPal1
     static _conradPal2: Uint8Array = _conradPal2
     static _textPal: Uint8Array = _textPal
     static _palSlot0xF: Uint8Array = _palSlot0xF
-    static GAMESCREEN_W = 256
-    static GAMESCREEN_H = 224
-    static CHAR_W = 8
-    static CHAR_H = 8
+
 
     _res: Resource
     _stub: SystemStub
@@ -28,7 +23,6 @@ class Video {
     _w: number
     _h: number
     _layerSize: number
-    _layerScale: number
     _frontLayer: Uint8Array
     _backLayer: Uint8Array
     _tempLayer: Uint8Array
@@ -52,9 +46,8 @@ class Video {
       this._stub = stub
       this._widescreenMode = widescreenMode
 
-      this._layerScale = 1
-      this._w = Video.GAMESCREEN_W * this._layerScale // 256 * 1
-      this._h = Video.GAMESCREEN_H * this._layerScale // 224 * 1
+      this._w = GAMESCREEN_W
+      this._h = GAMESCREEN_H
       this._layerSize = this._w * this._h             // 256 * 224 =  57344
       this._frontLayer = new Uint8Array(this._layerSize)
       this._backLayer = new Uint8Array(this._layerSize)
@@ -73,21 +66,21 @@ class Video {
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
         const fnt = this._res._fnt
         for (let i = 0; i < len; ++i) {
-            this._drawChar(this._frontLayer, this._w, x + i * Video.CHAR_W, y, fnt, color, str.charCodeAt(i))
+            this._drawChar(this._frontLayer, this._w, x + i * CHAR_W, y, fnt, color, str.charCodeAt(i))
         }
-        this.markBlockAsDirty(x, y, len * Video.CHAR_W, Video.CHAR_H, this._layerScale)
+        this.markBlockAsDirty(x, y, len * CHAR_W, CHAR_H, 1)
     }
 
     PC_drawChar(c: number, y: number, x: number) {
         const fnt = this._res._fnt
-        y *= Video.CHAR_W
-        x *= Video.CHAR_H
+        y *= CHAR_W
+        x *= CHAR_H
         let src = (c - 32) * 32
 
         let dst = new Uint8Array(this._frontLayer.buffer, x + this._w * y)
         let index = 0
 
-        for (let h = 0; h < Video.CHAR_H; ++h) {
+        for (let h = 0; h < CHAR_H; ++h) {
             for (let i = 0; i < 4; ++i, ++src) {
                 const c1 = fnt[src] >>> 4
                 if (c1 !== 0) {
@@ -113,7 +106,7 @@ class Video {
                 }
                 index++
             }
-            index += this._w - Video.CHAR_W
+            index += this._w - CHAR_W
         }
     }
 
@@ -186,13 +179,13 @@ class Video {
                 for (let bit = 0; bit < 8; ++bit) {
                     const j = y0 + y
                     const i = x0 + 2 * (x * 8 + bit)
-                    if (i >= 0 && i < Video.GAMESCREEN_W && j >= 0 && j < Video.GAMESCREEN_H) {
+                    if (i >= 0 && i < GAMESCREEN_W && j >= 0 && j < GAMESCREEN_H) {
                         const color = p[pIndex]
                         if (bits & (1 << (15 - (bit * 2)))) {
-                            dst[j * Video.GAMESCREEN_W + i] = color >> 4
+                            dst[j * GAMESCREEN_W + i] = color >> 4
                         }
                         if (bits & (1 << (15 - (bit * 2 + 1)))) {
-                            dst[j * Video.GAMESCREEN_W + i + 1] = color & 15;
+                            dst[j * GAMESCREEN_W + i + 1] = color & 15;
                         }
                     }
                     ++pIndex
@@ -204,7 +197,7 @@ class Video {
     static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array) {
         let num = -1
         let index = 0        
-        const buf = new Uint8Array(Video.GAMESCREEN_W * 32)
+        const buf = new Uint8Array(GAMESCREEN_W * 32)
         let count = READ_BE_UINT16(src) - 1
         index += 2
         do {
@@ -225,18 +218,12 @@ class Video {
                     ptrIndex += 2
                     if (num !== d2) {
                         num = d2
-                        if (size > buf.byteLength) {
-                            throw(`Assertion failed: ${size} <= ${buf.byteLength}`)
-                        }
                         buf.set(ptr.subarray(ptrIndex, size + ptrIndex))
                     }
                 } else {
                     if (num !== d2) {
                         num = d2
                         const size = READ_BE_UINT16(data,  offset) & 0x7FFF
-                        if (size > buf.byteLength) {
-                            throw(`Assertion failed: ${size} <= ${buf.byteLength}`)
-                        }
                         Video.AMIGA_decodeRle(buf, data.subarray(offset))
                     }
                 }
@@ -343,7 +330,7 @@ pitch = 16
 */
 
  static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
-        let pitch = Video.GAMESCREEN_W
+        let pitch = GAMESCREEN_W
         let dstIndex = 0
         let srcIndex = 0
         if (yflip) {
@@ -375,8 +362,8 @@ pitch = 16
         if (offset10 !== 0) {
             // Initialize the source offset
             let a0 = offset10
-            for (let y = 0; y < 224; y += 8) {
-                for (let x = 0; x < 256; x += 8) {
+            for (let y = 0; y < GAMESCREEN_H; y += 8) {
+                for (let x = 0; x < GAMESCREEN_W; x += 8) {
                     const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
                     a0 += 2
                     // Extract the tile index (lower 11 bits)
@@ -400,7 +387,7 @@ pitch = 16
                         // ...
                         // y=8, x=0
                         // pass the dst part where this 8*8 piece needs to go
-                        Video.PC_drawTile(dst.subarray(y * Video.GAMESCREEN_W + x), a2, mask, xflip, yflip, -1)
+                        Video.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), a2, mask, xflip, yflip, -1)
                     }
                 }
             }
@@ -408,8 +395,8 @@ pitch = 16
         if (offset12 !== 0) {
             // Initialize the source offset
             let a0 = offset12
-            for (let y = 0; y < 224; y += 8) {
-                for (let x = 0; x < 256; x += 8) {
+            for (let y = 0; y < GAMESCREEN_H; y += 8) {
+                for (let x = 0; x < GAMESCREEN_W; x += 8) {
                     const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
                     a0 += 2
                     // Extract the tile index (lower 11 bits)
@@ -433,7 +420,7 @@ pitch = 16
                         } else if ((d3 & 0x8000) !== 0) {
                             mask = 0x80 + ((d3 >> 6) & 0x10)
                         }
-                        Video.PC_drawTile(dst.subarray(y * Video.GAMESCREEN_W + x), a2, mask, xflip, yflip, 0)
+                        Video.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), a2, mask, xflip, yflip, 0)
                     }
                 }
             }
@@ -442,9 +429,9 @@ pitch = 16
 
     fillRect(x: number, y: number, w: number, h: number, color: number) {
         const p = this._frontLayer
-        let index = y * this._layerScale * this._w + x * this._layerScale;
-        for (let j = 0; j < h * this._layerScale; ++j) {
-            p.fill(color, index, index + w * this._layerScale)
+        let index = y * this._w + x;
+        for (let j = 0; j < h; ++j) {
+            p.fill(color, index, index + w)
             index += this._w
         }
     }
@@ -459,10 +446,10 @@ pitch = 16
             if (c === 0 || c === 0xB || c === 0xA || isNaN(c)) {
                 break
             }
-            this._drawChar(this._frontLayer, this._w, x + len * Video.CHAR_W, y, fnt, col, c)
+            this._drawChar(this._frontLayer, this._w, x + len * CHAR_W, y, fnt, col, c)
             ++len
         }
-        this.markBlockAsDirty(x, y, len * Video.CHAR_W, Video.CHAR_H, this._layerScale)
+        this.markBlockAsDirty(x, y, len * CHAR_W, CHAR_H, 1)
 
         return str
     }
@@ -507,7 +494,7 @@ pitch = 16
             // workaround for wrong palette colors (fire)
             this._mapPalSlot4 = 5
         }
-        const kPlaneSize = (256 * 224 / 4) >> 0
+        const kPlaneSize = (GAMESCREEN_W * GAMESCREEN_H / 4) >> 0
         if (packed) {
             for (let i = 0; i < 4; ++i) {
                 const sz = READ_LE_UINT16(map, p)
@@ -518,9 +505,9 @@ pitch = 16
             }
         } else {
             for (let i = 0; i < 4; ++i) {
-                for (let y = 0; y < 224; ++y) {
+                for (let y = 0; y < GAMESCREEN_H; ++y) {
                     for (let x = 0; x < 64; ++x) {
-                        this._frontLayer[i + x * 4 + 256 * y] = map[p + kPlaneSize * i + x + 64 * y]
+                        this._frontLayer[i + x * 4 + GAMESCREEN_W * y] = map[p + kPlaneSize * i + x + 64 * y]
                     }
                 }
             }
@@ -620,7 +607,7 @@ pitch = 16
         const tmp = this._res._scratchBuffer
         //the first bytes represent the offsets in _lev file offset by room number
         const offset = READ_BE_UINT32(this._res._lev, room * 4)
-        if (!bytekiller_unpack(tmp, kScratchBufferSize, this._res._lev, offset)) {
+        if (!bytekiller_unpack(tmp, tmp.length, this._res._lev, offset)) {
             console.warn(`Bad CRC for level ${level} room ${room}`)
             return
         }
@@ -657,7 +644,7 @@ pitch = 16
             }
             const d3 = tmp[a1++]
             //read a next value that would indicate how much data to load
-            // 255 means all, other number means N times 32 bytes and hope we don't overread
+            // 255 means all, other number means N * (a newly read size) * 32 bytes
 
             if (d3 === 255) {
                 if (sz + d1 > kTempMbkSize * 32) {
@@ -711,7 +698,7 @@ pitch = 16
         if (chr < 32) {
             throw (`assert failed: ${chr} < 32`)
         }
-        let src_offset = (chr - 32) * 8 * 4   
+        let src_offset = (chr - 32) * 8 * 4
         for (let y = 0; y < 8; ++y) {
             for (let x = 0; x < 4; ++x) {
                 const c1 = src[src_offset + x] >>> 4
@@ -726,7 +713,7 @@ pitch = 16
                 dst_offset++
             }
             src_offset += 4
-            dst_offset += pitch - Video.CHAR_W
+            dst_offset += pitch - CHAR_W
         }
     }
 
@@ -745,7 +732,7 @@ pitch = 16
 
     async fadeOutPalette() {
         for (let step = 16; step >= 0; --step) {
-            for (let c = 0; c < 256; ++c) {
+            for (let c = 0; c < GAMESCREEN_W; ++c) {
                 const col:Color = {
                     r: 0,
                     g: 0,
@@ -884,7 +871,7 @@ pitch = 16
                 }
             }
             srcIndex += pitch
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
     
@@ -899,7 +886,7 @@ pitch = 16
                 }
             }
             srcIndex += pitch
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
     
@@ -913,7 +900,7 @@ pitch = 16
                 }
             }
             srcIndex += pitch
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
     
@@ -928,7 +915,7 @@ pitch = 16
                 }
             }
             srcIndex += pitch
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
     
@@ -942,7 +929,7 @@ pitch = 16
                 }
             }
             ++srcIndex
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
     
@@ -957,7 +944,7 @@ pitch = 16
                 }
             }
             ++srcIndex
-            dstIndex += 256
+            dstIndex += GAMESCREEN_W
         }
     }
 
@@ -1038,4 +1025,4 @@ pitch = 16
     }    
 }
 
-export { Video }
+export { Video, GAMESCREEN_W, GAMESCREEN_H }

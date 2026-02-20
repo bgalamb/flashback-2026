@@ -91,7 +91,6 @@ const NUM_CUTSCENE_TEXTS = 117
 const NUM_SPRITES = 1287
 
 const kPaulaFreq = 3546897
-const kScratchBufferSize = 320 * 224 + 1024
 
 class Resource {
 	static _voicesOffsetsTable: Uint16Array = _voicesOffsetsTable
@@ -202,7 +201,7 @@ class Resource {
         this._bnq = null
         this._readUint16 = READ_LE_UINT16
         this._readUint32 = READ_LE_UINT32
-        this._scratchBuffer = new Uint8Array(kScratchBufferSize)
+        this._scratchBuffer = new Uint8Array(320 * 224 + 1024)
 
         const kBankDataSize = 0x7000
         this._bankData = new Uint8Array(kBankDataSize)
@@ -980,4 +979,4 @@ class Resource {
 
 }
 
-export { LocaleData, kScratchBufferSize, Resource, ObjectType }
+export { LocaleData, Resource, ObjectType }
