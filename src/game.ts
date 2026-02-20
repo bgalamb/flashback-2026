@@ -140,7 +140,7 @@ class Game {
     _pge_liveTable1 = new Array<LivePGE>(256)
 
 
-    // This is a filtered table which only contains PGEs for the current room.
+    // This is a filtered table that contains PGEs at their original indexes only when they are in current room.
     _pge_liveTable2 = new Array<LivePGE>(256)
     _pge_groups = new Array<GroupPGE>(256).fill(null).map(() => ({
         next_entry: null,
@@ -205,14 +205,19 @@ class Game {
         this._rewindLen = 0
     }
 
-    pge_loadForCurrentLevel(idx: number) {
-        // InitPGE and LivePGE are different things. Init is the one which is initially in the file
-        // declare the live PGE
-        const live_pge: LivePGE = this._pgeLive[idx]
-        // declare init PGE
-        const init_pge: InitPGE = this._res._pgeInit[idx]
+    private setCurrentRoom(room: number) {
+        this._currentRoom = room
+    }
 
-        // Init THE LIVING PGE based on the Data tha was loaded
+    pge_loadForCurrentLevel(idx: number, currentRoom: number) {
+        // InitPGE and LivePGE are different things.
+        // - init_PGE is the one initially in the file
+        const init_pge: InitPGE = this._res._pgeInit[idx]
+        // - live_PGE is the living PGE created from the init_PGE
+        const live_pge: LivePGE = this._pgeLive[idx]
+
+
+        // Copy data from init_PGE -> live_PGE
         live_pge.init_PGE = init_pge;
         live_pge.obj_type = init_pge.type
         live_pge.pos_x = init_pge.pos_x
@@ -240,23 +245,29 @@ class Game {
         }
 
         // the PGE is in a valid place in the room and PGE is in the current room
-        // then the PGE is filtered to a separate table pge_livetable2
-        // so pge_Livetable2 <= pgeInit
-        if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (this._currentRoom === init_pge.init_room))) {
+        if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (currentRoom === init_pge.init_room))) {
+            // [X X X X X 1 X X ] --> is in the room
             flags |= 4
-            //this is the place where liveTable2 get's initialized
+            //put pge at this index to liveTable2 too, leave others empty
             this._pge_liveTable2[idx] = live_pge
         }
         if (init_pge.mirror_x !== 0) {
+            // [X X X X X X X 1 ] --> mirrored
             flags |= 1
         }
         if (init_pge.init_flags & 8) {
+            // [X X X 1 X X X X ] --> init flags on
             flags |= 0x10
         }
+
+        // [X 1 X X X X X X] ( = [ X X X X X X 1 X]  shifted left 5x)
         flags |= (init_pge.init_flags & 3) << 5
+
         if (init_pge.flags & 2) {
+            // [1 X X X X X X X ] --> some unknown flag
             flags |= 0x80
         }
+
         live_pge.flags = flags
         // the _numObjectNodes is set to 230 when the OBJ is loaded
         if (init_pge.obj_node_number >= this._res._numObjectNodes) {
@@ -679,7 +690,7 @@ class Game {
         }
     }
 
-    pge_process(pge: LivePGE) {
+    pge_process(pge: LivePGE, currentRoom:number) {
         this._pge_playAnimSound = true;
         this._pge_currentPiegeFacingDir = (pge.flags & 1) !== 0
         this._pge_currentPiegeRoom = pge.room_location
@@ -710,7 +721,7 @@ class Game {
                 }
                 let _ax = this.pge_execute(pge, init_pge, obj)
 
-                if (this._currentLevel === 6 && (this._currentRoom === 50 || this._currentRoom === 51)) {
+                if (this._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
                     if (pge.index === 79 && _ax === 0xFFFF && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
                         if (this.col_getGridPos(this._pgeLive[79], 0) === this.col_getGridPos(this._pgeLive[0], 0)) {
                             this.pge_updateGroup(79, 0, 4)
@@ -768,6 +779,7 @@ class Game {
         }
     }
 
+    // TODO I can't change this._currentRoom here because it's set here
     pge_setupOtherPieges(pge: LivePGE, init_pge: InitPGE) {
         let room_ct_data:Int8Array = null
         if (pge.pos_x <= -10) {
@@ -791,8 +803,9 @@ class Game {
             }
             if (init_pge.object_type === 1) {
                 this._currentRoom = room
-                this.col_prepareRoomState()
+                this.col_prepareRoomState(this._currentRoom)
                 this._loadMap = true
+                // room is not 128 and less than 64
                 if (!(this._currentRoom & 0x80) && this._currentRoom < 0x40) {
                     let pge_it:LivePGE = this._pge_liveTable1[this._currentRoom]
                     while (pge_it) {
@@ -1245,19 +1258,17 @@ class Game {
         }
     }
 
-    async mainLoop() {
-
-        // we don't specify a cutscene here, just check if there is anything to play
-        // and if yes, then play it
-        await this.playCutscene()
-
+    private async didFinishAllLevels() {
         //case when the user finished all levels?
         if (this._cut.getId() === 0x3D) {
             await this.showFinalScore()
             this._endLoop = true
-            return
+            return true
         }
+        return false
+    }
 
+    private async didDie(){
         //case when user died?
         if (this._deathCutsceneCounter) {
             --this._deathCutsceneCounter
@@ -1277,8 +1288,35 @@ class Game {
                         this.resetGameState()
                     }
                 }
-                return
+                return true
             }
+        }
+        return false
+    }
+
+    private processPGE(pge_liveTableByIdx: LivePGE[], currentRoom: number){
+        //loop through all pges and process the ones that are in pge_Live2 only
+        for (let i = 0; i < this._res._pgeNum; ++i) {
+            const pge: LivePGE = pge_liveTableByIdx[i]
+            if (pge) {
+                this._col_currentPiegeGridPosY = ((pge.pos_y / 36) >> 0) & ~1
+                this._col_currentPiegeGridPosX = (pge.pos_x + 8) >> 4
+                this.pge_process(pge, currentRoom)
+            }
+        }
+    }
+
+    async mainLoop() {
+
+        // we don't specify a cutscene here, just check if there is anything to play
+        await this.playCutscene()
+
+        if( await this.didFinishAllLevels()){
+            return
+        }
+
+        if (await this.didDie()){
+            return
         }
 
         this._vid._frontLayer.set(this._vid._backLayer.subarray(0, this._vid._layerSize))
@@ -1286,46 +1324,33 @@ class Game {
         //get the user input
         await this.pge_getUserLeftRightUpDownKeyInput()
 
+        this.pge_prepare(this._currentRoom)
 
-        this.pge_prepare()
-
-        this.col_prepareRoomState()
+        this.col_prepareRoomState(this._currentRoom)
 
         const oldLevel = this._currentLevel
-        this.renders > this.debugStartFrame && console.log(`*** processing pge size=${this._res._pgeNum}`)
-        for (let i = 0; i < this._res._pgeNum; ++i) {
-            const pge: LivePGE = this._pge_liveTable2[i]
-            this.renders > this.debugStartFrame && console.log(`>> livePge[${i}]: 0x${pge} anim_seq=${pge ? pge.anim_seq : null} index=${pge ? pge.index : null}`)
-            if (pge) {
-                this._col_currentPiegeGridPosY = ((pge.pos_y / 36) >> 0) & ~1
-                this._col_currentPiegeGridPosX = (pge.pos_x + 8) >> 4
-                this.pge_process(pge)
-            }
-            this.renders > this.debugStartFrame && console.log('<< livePge END')
-        }
-        this.renders > this.debugStartFrame && console.log(`*** end pge size=${this._res._pgeNum}`)
+
+        this.processPGE(this._pge_liveTable2,this._currentRoom)
+
         if (oldLevel != this._currentLevel) {
-            if (this._res._isDemo) {
-                this._currentLevel = oldLevel
-            }
             await this.changeLevel()
             this._pge_opTempVar1 = 0
             return
         }
 
         if (this._loadMap) {
-            if (this._currentRoom === 0xFF || !this.hasLevelMap(this._currentLevel, this._pgeLive[0].room_location)) {
+            if (this._currentRoom === 0xFF || !this.hasLevelMap(this._pgeLive[0].room_location)) {
                 //what's this here?
                 this._cut.setId(6)
                 this._deathCutsceneCounter = 1
             } else {
                 this._currentRoom = this._pgeLive[0].room_location
-                await this.loadLevelMap()
+                await this.loadLevelMap(this._currentRoom)
                 this._loadMap = false
                 this._vid.fullRefresh()
             }
         }
-        await this.prepareAnimationsInRooms()
+        await this.prepareAnimationsInRooms(this._currentRoom)
         await this.drawAnims()
         this.renders++
         this.drawCurrentInventoryItem()
@@ -1542,23 +1567,26 @@ class Game {
     //             ┌───────────┐
     //             │ROOM DOWN  │
     //             └───────────┘
-    async prepareAnimationsInRooms() {
-        if (!(this._currentRoom & 0x80) && this._currentRoom < 0x40) {
+    async prepareAnimationsInRooms(currentRoom:number) {
+        // current room is not 128 and less than 64
+        // [1 0 0 0 0 0 0 0]
+        // [0 1 0 0 0 0 0 0]
+        if (!(currentRoom & 0x80) && currentRoom < 0x40) {
             // Prepare animations for current room
-            await this.prepareCurrentRoomAnims();
+            await this.prepareCurrentRoomAnims(currentRoom);
 
             // Prepare animations for adjacent rooms
-            await this.prepareAdjacentRoomAnims(CT_UP_ROOM, 0, -216, this.isAboveRoomPge);
-            await this.prepareAdjacentRoomAnims(CT_DOWN_ROOM, 0, 216, this.isBelowRoomPge);
-            await this.prepareAdjacentRoomAnims(CT_LEFT_ROOM, -256, 0, this.isLeftRoomPge);
-            await this.prepareAdjacentRoomAnims(CT_RIGHT_ROOM, 256, 0, this.isRightRoomPge);
+            await this.prepareAdjacentRoomAnims(CT_UP_ROOM, 0, -216, this.isAboveRoomPge, currentRoom);
+            await this.prepareAdjacentRoomAnims(CT_DOWN_ROOM, 0, 216, this.isBelowRoomPge, currentRoom);
+            await this.prepareAdjacentRoomAnims(CT_LEFT_ROOM, -256, 0, this.isLeftRoomPge, currentRoom);
+            await this.prepareAdjacentRoomAnims(CT_RIGHT_ROOM, 256, 0, this.isRightRoomPge, currentRoom);
         }
     }
 
-    private async prepareCurrentRoomAnims() {
-        let pge = this._pge_liveTable1[this._currentRoom];
+    private async prepareCurrentRoomAnims(currentRoom:number) {
+        let pge = this._pge_liveTable1[currentRoom];
         while (pge) {
-            await this.prepareAnimsHelper(pge, 0, 0);
+            await this.prepareAnimsHelper(pge, 0, 0, currentRoom);
             pge = pge.next_PGE_in_room;
         }
     }
@@ -1567,14 +1595,15 @@ class Game {
         roomOffset: number,
         offsetX: number,
         offsetY: number,
-        shouldPrepare: (pge: LivePGE) => boolean
+        shouldPrepare: (pge: LivePGE) => boolean,
+        currentRoom:number
     ) {
-        const pge_room = this._res._ctData[roomOffset + this._currentRoom];
+        const pge_room = this._res._ctData[roomOffset + currentRoom];
         if (pge_room >= 0 && pge_room < 0x40) {
             let pge = this._pge_liveTable1[pge_room];
             while (pge) {
                 if (shouldPrepare(pge)) {
-                    await this.prepareAnimsHelper(pge, offsetX, offsetY);
+                    await this.prepareAnimsHelper(pge, offsetX, offsetY, currentRoom);
                 }
                 pge = pge.next_PGE_in_room;
             }
@@ -1599,9 +1628,9 @@ class Game {
     }
 
 
-    async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number) {
+    async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number, currentRoom:number) {
         if (!(pge.flags & 8)) {
-            if (pge.index !== 0 && await this.loadMonsterSprites(pge) === 0) {
+            if (pge.index !== 0 && await this.loadMonsterSprites(pge, currentRoom) === 0) {
                 return
             }
             let dataPtr = null
@@ -2134,7 +2163,7 @@ class Game {
         await this._vid.fadeOut()
         this.clearStateRewind()
         await this.loadLevelData()
-        await this.loadLevelMap()
+        await this.loadLevelMap(this._currentRoom)
         this._vid.setPalette0xF()
         this._vid.setTextPalette()
         this._vid.fullRefresh()
@@ -2152,16 +2181,16 @@ class Game {
         }
     }
 
-    col_prepareRoomState() {
+    col_prepareRoomState(currentRoom: number) {
         this._col_activeCollisionSlots.fill(0xFF)
-        this._col_currentLeftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
-        this._col_currentRightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
+        this._col_currentLeftRoom = this._res._ctData[CT_LEFT_ROOM + currentRoom]
+        this._col_currentRightRoom = this._res._ctData[CT_RIGHT_ROOM + currentRoom]
 
         for (let i = 0; i != this._col_curPos; ++i) {
             const _di: CollisionSlot = this._col_slotsTable[i]
             const room = (_di.ct_pos / 64) >> 0
 
-            if (room === this._currentRoom) {
+            if (room === currentRoom) {
                 this._col_activeCollisionSlots[0x30 + (_di.ct_pos & 0x3F)] = i
             } else if (room === this._col_currentLeftRoom) {
                 this._col_activeCollisionSlots[0x00 + (_di.ct_pos & 0x3F)] = i
@@ -2350,33 +2379,33 @@ class Game {
     }
 
 
-    pge_prepare() {
+    pge_prepare(currentRoom:number) {
         // Clear collision state before preparing PGEs
         this.col_clearState();
-
         // Process PGEs in the current room
-        this.processPGEsInCurrentRoom();
-
+        this.processPGEsInCurrentRoom(currentRoom);
         // Process PGEs in other rooms
-        this.processPGEsInOtherRooms();
+        this.processPGEsInOtherRooms(currentRoom);
     }
 
-    private processPGEsInCurrentRoom() {
+    private processPGEsInCurrentRoom(currentRoom:number) {
         // Skip processing if current room has special flag set
-        if (this._currentRoom & 0x80) return;
+        // room number > 128
+        // [1 0 0 0 0 0 0 0 ]
+        if (currentRoom & 0x80) return;
 
-        let pge = this._pge_liveTable1[this._currentRoom];
+        let pge = this._pge_liveTable1[currentRoom];
         while (pge) {
             this.updatePGEState(pge);
             pge = pge.next_PGE_in_room;
         }
     }
 
-    private processPGEsInOtherRooms() {
+    private processPGEsInOtherRooms(currentRoom: number) {
         // Process PGEs that are not in the current room
         for (let i = 0; i < this._res._pgeNum; ++i) {
             const pge = this._pge_liveTable2[i];
-            if (pge && this._currentRoom !== pge.room_location) {
+            if (pge && currentRoom !== pge.room_location) {
                 this.col_preparePiegeState(pge);
             }
         }
@@ -2437,7 +2466,7 @@ class Game {
         this._textToDisplay = 0xFFFF
     }
 
-    async loadMonsterSprites(pge: LivePGE) {
+    async loadMonsterSprites(pge: LivePGE, currentRoom:number) {
         const initPge: InitPGE = pge.init_PGE;
 
         if (initPge.obj_node_number !== 0x49 && initPge.object_type !== 10) {
@@ -2448,7 +2477,7 @@ class Game {
             return 0xFFFF;
         }
 
-        if (pge.room_location !== this._currentRoom) {
+        if (pge.room_location !== currentRoom) {
             return 0;
         }
 
@@ -2470,7 +2499,7 @@ class Game {
     }
 
 
-    hasLevelMap(level: number, room: number) {
+    hasLevelMap( room: number) {
         if (this._res._map) {
             return READ_LE_UINT32(this._res._map, room * 6) !== 0
         } else if (this._res._lev) {
@@ -2479,21 +2508,21 @@ class Game {
         return false
     }
 
-    async loadLevelMap() {
+    async loadLevelMap(currentRoom:number) {
         let widescreenUpdated = false
         this._currentIcon = 0xFF
 
         if (this._stub.hasWidescreen() && this._widescreenMode === WidescreenMode.kWidescreenAdjacentRooms) {
             debugger
-            const leftRoom = this._res._ctData[CT_LEFT_ROOM + this._currentRoom]
-            if (leftRoom > 0 && this.hasLevelMap(this._currentLevel, leftRoom)) {
+            const leftRoom = this._res._ctData[CT_LEFT_ROOM + currentRoom]
+            if (leftRoom > 0 && this.hasLevelMap( leftRoom)) {
                 this._vid.PC_decodeMap(this._currentLevel, leftRoom)
                 this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
             } else {
                 this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, null)
             }
-            const rightRoom = this._res._ctData[CT_RIGHT_ROOM + this._currentRoom]
-            if (rightRoom > 0 && this.hasLevelMap(this._currentLevel, rightRoom)) {
+            const rightRoom = this._res._ctData[CT_RIGHT_ROOM + currentRoom]
+            if (rightRoom > 0 && this.hasLevelMap( rightRoom)) {
                 this._vid.PC_decodeMap(this._currentLevel, rightRoom)
                 this._stub.copyWidescreenRight(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
             } else {
@@ -2501,14 +2530,20 @@ class Game {
             }
             widescreenUpdated = true
         }
-        this._vid.PC_decodeMap(this._currentLevel, this._currentRoom)
+        this._vid.PC_decodeMap(this._currentLevel, currentRoom)
 
         if (!widescreenUpdated) {
             this._vid.updateWidescreen()
         }
     }
 
-    async loadLevelData() {
+    private clearLive_PGETables(){
+        //these all pge all fields will be emptied
+        this._pge_liveTable1.fill(null).map(() => CreatePGE())
+        this._pge_liveTable2.fill(null).map(() => CreatePGE())
+    }
+
+    async loadLevelData(): Promise<number> {
         this._res.clearLevelRes()
         const lvl = _gameLevels[this._currentLevel]
 
@@ -2544,17 +2579,29 @@ class Game {
         this._col_slots2Next = null
 
         //these all pge all fields will be emptied
-        this._pge_liveTable1.fill(null).map(() => CreatePGE())
-        this._pge_liveTable2.fill(null).map(() => CreatePGE())
-    
-        this._currentRoom = this._res._pgeInit[0].init_room
-        let n = this._res._pgeNum
+        this.clearLive_PGETables()
 
+        const currentRoom = this._res._pgeInit[0].init_room
+        this.setCurrentRoom(currentRoom)
+
+        // load all PGEs for current level+room
+        let n = this._res._pgeNum
         while (n--) {
-            this.pge_loadForCurrentLevel(n)
+            this.pge_loadForCurrentLevel(n, currentRoom)
         }
 
+        // this creates a table and the PGEs a linked list
+        this.create_pge_LiveTable1()
 
+        this.pge_resetGroups()
+
+        this._validSaveState = false
+        this._mix.playMusic(Mixer.MUSIC_TRACK + lvl.track)
+
+        return currentRoom
+    }
+
+    private create_pge_LiveTable1(){
         // organize PGEs by levels into a new liveTable, _pge_liveTable1
         for (let i = 0; i < this._res._pgeNum; ++i) {
             if (this._res._pgeInit[i].skill <= this._skillLevel) {
@@ -2564,14 +2611,10 @@ class Game {
                 // it builds a linked list, starting with the one that can be reached from the pge_liveTable1
                 pge.next_PGE_in_room = this._pge_liveTable1[pge.room_location]
                 // This is where pge_liveTable1 get's filled for the first time
+                // it's indexed by rooms
                 this._pge_liveTable1[pge.room_location] = pge
             }
         }
-
-        this.pge_resetGroups()
-        this._validSaveState = false
-    
-        this._mix.playMusic(Mixer.MUSIC_TRACK + lvl.track)
     }
 
     pge_resetGroups() {
