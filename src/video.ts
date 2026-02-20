@@ -51,6 +51,7 @@ class Video {
       this._res = res
       this._stub = stub
       this._widescreenMode = widescreenMode
+
       this._layerScale = 1
       this._w = Video.GAMESCREEN_W * this._layerScale // 256 * 1
       this._h = Video.GAMESCREEN_H * this._layerScale // 224 * 1
@@ -203,7 +204,7 @@ class Video {
     static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array) {
         let num = -1
         let index = 0        
-        const buf = new Uint8Array(256 * 32)
+        const buf = new Uint8Array(Video.GAMESCREEN_W * 32)
         let count = READ_BE_UINT16(src) - 1
         index += 2
         do {
@@ -249,9 +250,99 @@ class Video {
         } while (--count >= 0)
     }
 
+// this is drawing a 8*8 tile with 2 colors, the first color is used for the background, the second for the foreground
+/*
+yflip = false
+xflip = false
+pitch = 16
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+64   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+48   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+32   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+16   |4>|4>|5>|5>|6>|6>|7>|7>|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+0    |0>|0>|1>|1>|2>|2>|3>|3>|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+==============================================================
+yflip = false
+xflip = true
+pitch = 16
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+64   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+48   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+32   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+16   |<7|<7|<6|<6|<5|<5|<4|<4|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+0    |<3|<3|<2|<2|<1|<1|<0|<0|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+==============================================================
+yflip = false
+xflip = true
+pitch = 16
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+112  |0>|0>|1>|1>|2>|2>|3>|3>|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+96   |4>|4>|5>|5>|6>|6>|7>|7>|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+80   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+64   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+48   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+32   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+16   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+0    |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+==============================================================
+
+==============================================================
+yflip = false
+xflip = true
+pitch = 16
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+112  |<3|<3|<2|<2|<1|<1|<0|<0|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+96   |<7|<7|<6|<6|<5|<5|<4|<4|  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+80   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+64   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+48   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+32   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+16   |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+0    |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+==============================================================
 
 
-    static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
+*/
+
+ static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
         let pitch = Video.GAMESCREEN_W
         let dstIndex = 0
         let srcIndex = 0
@@ -282,53 +373,67 @@ class Video {
 
     static decodeLevHelper(dst: Uint8Array, src: Uint8Array, offset10: number, offset12: number, a5: Uint8Array, sgdBuf: boolean, isPC: boolean) {
         if (offset10 !== 0) {
+            // Initialize the source offset
             let a0 = offset10
             for (let y = 0; y < 224; y += 8) {
                 for (let x = 0; x < 256; x += 8) {
                     const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
                     a0 += 2
+                    // Extract the tile index (lower 11 bits)
                     const d0 = d3 & 0x7FF
+                    // Process non-zero tile indices
                     if (d0 !== 0) {
+                        // Get the tile data from a5 buffer
                         const a2 = a5.subarray(d0 * 32)
+                        // Check for vertical and horizontal flipping
                         const yflip = (d3 & (1 << 12)) !== 0
                         const xflip = (d3 & (1 << 11)) !== 0
+
+                        // Set mask if bit 15 is set
                         let mask = 0;
                         if ((d3 & 0x8000) !== 0) {
                             mask = 0x80 + ((d3 >> 6) & 0x10)
                         }
-                        if (isPC) {
-                            Video.PC_drawTile(dst.subarray(y * 256 + x), a2, mask, xflip, yflip, -1)
-                        }
-
+                        // y=0, x=0
+                        // y=0, x=8
+                        // y=0, x=16
+                        // ...
+                        // y=8, x=0
+                        // pass the dst part where this 8*8 piece needs to go
+                        Video.PC_drawTile(dst.subarray(y * Video.GAMESCREEN_W + x), a2, mask, xflip, yflip, -1)
                     }
                 }
             }
         }
         if (offset12 !== 0) {
+            // Initialize the source offset
             let a0 = offset12
             for (let y = 0; y < 224; y += 8) {
                 for (let x = 0; x < 256; x += 8) {
                     const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
                     a0 += 2
+                    // Extract the tile index (lower 11 bits)
                     let d0 = d3 & 0x7FF
+
+                    // Adjust tile index if sgdBuf is true
                     if (d0 !== 0 && sgdBuf) {
                         d0 -= 896
                     }
                     if (d0 !== 0) {
+                        // Get the tile data from a5 buffer
                         const a2 = a5.subarray(d0 * 32)
+                        // Check for vertical and horizontal flipping
                         const yflip = (d3 & (1 << 12)) !== 0
                         const xflip = (d3 & (1 << 11)) !== 0
+
+                        // Determine the mask for color/palette manipulation
                         let mask = 0
                         if ((d3 & 0x6000) !== 0 && sgdBuf) {
                             mask = 0x10
                         } else if ((d3 & 0x8000) !== 0) {
                             mask = 0x80 + ((d3 >> 6) & 0x10)
                         }
-
-                        if (isPC) {
-                            Video.PC_drawTile(dst.subarray(y * 256 + x), a2, mask, xflip, yflip, 0)
-                        }
-
+                        Video.PC_drawTile(dst.subarray(y * Video.GAMESCREEN_W + x), a2, mask, xflip, yflip, 0)
                     }
                 }
             }
@@ -453,6 +558,63 @@ class Video {
         // slots 0xC and 0xD are cutscene palettes
         this.setTextPalette()
     }
+
+    // _lev is a packed file. The first byte indicate where the compressed data starts.
+    // Address     Size                                Name/Purpose
+    // +---------+----------------------------------+-----------------------------------------------------------+
+    // | 0x00    | 4bytes (16-bit BE value)         | offset to start reading room 0 data from unpacked buffer  |
+    // +---------+----------------------------------+-----------------------------------------------------------+
+    // | 0x04    | 4bytes (16-bit BE value)         | offset to start reading room 1 data from unpacked buffer  |
+    // +---------+----------------------------------+-----------------------------------------------------------+
+    // | 0x08    | 4bytes (16-bit BE value)         | offset to start reading room 2 data from unpacked buffer  |
+    // +---------+----------------------------------+-----------------------------------------------------------+
+    // | 0x0B    | 4bytes (16-bit BE value)         | offset to start reading room 3 data from unpacked buffer  |
+    // +---------+----------------------------------+-----------------------------------------------------------+
+    // | 0x10    | 4bytes (16-bit BE value)         | offset to start reading room 4 data from unpacked buffer  |
+    // +---------+----------------------------------+-----------------------------------------------------------+
+
+    // The unzipped data is a sequence of blocks. Each block has the following format:
+    // Address    Size    Name/Purpose
+    // +---------+-------+------------------------------------------+
+    // | 0x00    | 10    | unknown data                             |
+    // +---------+-------+------------------------------------------+
+    // | 0x0A    | 2     | offset10 (16-bit BE value)              |
+    // +---------+-------+------------------------------------------+
+    // | 0x0C    | 2     | offset12 (16-bit BE value)              |
+    // +---------+-------+------------------------------------------+
+    // | 0x0E    | 2     | read_start_offset (16-bit BE value), where the real data starts within this file   |
+    // +---------+-------+------------------------------------------+
+
+    // Repeat: VAR=read_start_offset. Note thi is reading from bank and not from this file.
+    // +---------+-------+------------------------------------------+
+    // | VAR     | 2     | d0_data (16-bit BE value)               |
+    // |         |       | - Bit 15 (0x8000): End marker if set    |
+    // |         |       | - Other bits: Bank data index           |
+    // +---------+-------+------------------------------------------+
+    // bank_data_size and bank_data are retrieved from a bank data buffer(other than this)
+    // +---------+-------+------------------------------------------+
+    // | VAR+2   | 1     | d3 (control byte)                       |
+    // |         |       | - If 255: Read entire bank              |
+    // |         |       | - If not 255: save d3 and Read next byte |
+    // +---------+-------+------------------------------------------+
+    // | VAR+2+1 | 1     | d4 multiplier for the read               |
+    // |         |       |  - d4 * (d3 + 1) * 32bytes               |
+    // +---------+-------+------------------------------------------+
+
+    // Buf structure, where the above data gets read looks like this:
+    // Address    Size    Name/Purpose
+    // +---------+-------+------------------------------------------+
+    // | 0x00    | 32    | empty bits                               |
+    // +---------+-------+------------------------------------------+
+    // | 0x20    | bank_data_size | all bank_data content           |
+    // +---------+-------+------------------------------------------+
+    // OR
+    // +---------+-------+------------------------------------------+
+    // | 0x20    | d4 * d3 * 32 | some bank_data content            |
+    // +---------+-------+------------------------------------------+
+    // REPEAT THE ABOVE BLOCKS UNTIL END OF FILE
+
+
 
     AMIGA_decodeLev(level: number, room: number) {
         const tmp = this._res._scratchBuffer
