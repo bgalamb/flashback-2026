@@ -129,8 +129,16 @@ class Game {
     _inp_demPos: number
 
     _pge_playAnimSound: boolean
+
+    // This is the table where the PGEs are loaded from the PGE file
     _pgeLive = new Array<LivePGE>(256).fill(null).map(() => createLivePGE())
+    // This is a filtered table where PGEs are (re)arranged by roomLocation
+    // the PGE that is found in the array will have a link to the next PGE in the room, and that PGe to the next
+    // it's a linked list
     _pge_liveTable1 = new Array<LivePGE>(256)
+
+
+    // This is a filtered table which only contains PGEs for the current room.
     _pge_liveTable2 = new Array<LivePGE>(256)
     _pge_groups = new Array<GroupPGE>(256).fill(null).map(() => ({
         next_entry: null,
@@ -196,8 +204,8 @@ class Game {
     }
 
     pge_loadForCurrentLevel(idx: number) {
-        // InitPGE and LivePGE are different things. Init is the one which is inistally in the file
-        // decalre the live PGE
+        // InitPGE and LivePGE are different things. Init is the one which is initially in the file
+        // declare the live PGE
         const live_pge: LivePGE = this._pgeLive[idx]
         // declare init PGE
         const init_pge: InitPGE = this._res._pgeInit[idx]
@@ -229,8 +237,12 @@ class Game {
             return
         }
 
+        // the PGE is in a valid place in the room and PGE is in the current room
+        // then the PGE is filtered to a separate table pge_livetable2
+        // so pge_Livetable2 <= pgeInit
         if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (this._currentRoom === init_pge.init_room))) {
             flags |= 4
+            //this is the place where liveTable2 get's initialized
             this._pge_liveTable2[idx] = live_pge
         }
         if (init_pge.mirror_x !== 0) {
@@ -815,21 +827,32 @@ class Game {
         }
         this.pge_addToCurrentRoomList(pge, this._pge_currentPiegeRoom);
     }
-    
+
     pge_addToCurrentRoomList(pge: LivePGE, room: number) {
+        // Only proceed if the PGE is not already in the target room
         if (room !== pge.room_location) {
+            // Get the first PGE in the target room's list
             let cur_pge: LivePGE = this._pge_liveTable1[room]
             let prev_pge: LivePGE = null
+
+            // Traverse the room's PGE list to find the target PGE
             while (cur_pge && cur_pge !== pge) {
                 prev_pge = cur_pge
                 cur_pge = cur_pge.next_PGE_in_room
             }
+
+            // If the PGE is found in the list
             if (cur_pge) {
+                // Remove the PGE from its current position in the list
                 if (!prev_pge) {
+                    // If it's the first PGE in the room
                     this._pge_liveTable1[room] = pge.next_PGE_in_room
                 } else {
+                    // If it's not the first PGE, link previous PGE to next PGE
                     prev_pge.next_PGE_in_room = cur_pge.next_PGE_in_room
                 }
+
+                // Add the PGE to the start of the list in its original room
                 const temp: LivePGE = this._pge_liveTable1[pge.room_location]
                 pge.next_PGE_in_room = temp
                 this._pge_liveTable1[pge.room_location] = pge
@@ -2324,28 +2347,46 @@ class Game {
         }
     }
 
+
     pge_prepare() {
-        //is this collision state clearing?
-        this.col_clearState()
-        if (!(this._currentRoom & 0x80)) {
-            let pge: LivePGE = this._pge_liveTable1[this._currentRoom]
-            let i = 0
-            while (pge) {
-                this.col_preparePiegeState(pge)
-                if (!(pge.flags & 4) && (pge.init_PGE.flags & 4)) {
-                    this._pge_liveTable2[pge.index] = pge
-                    pge.flags |= 4
-                }
-                pge = pge.next_PGE_in_room
-                i++
+        // Clear collision state before preparing PGEs
+        this.col_clearState();
+
+        // Process PGEs in the current room
+        this.processPGEsInCurrentRoom();
+
+        // Process PGEs in other rooms
+        this.processPGEsInOtherRooms();
+    }
+
+    private processPGEsInCurrentRoom() {
+        // Skip processing if current room has special flag set
+        if (this._currentRoom & 0x80) return;
+
+        let pge = this._pge_liveTable1[this._currentRoom];
+        while (pge) {
+            this.updatePGEState(pge);
+            pge = pge.next_PGE_in_room;
+        }
+    }
+
+    private processPGEsInOtherRooms() {
+        // Process PGEs that are not in the current room
+        for (let i = 0; i < this._res._pgeNum; ++i) {
+            const pge = this._pge_liveTable2[i];
+            if (pge && this._currentRoom !== pge.room_location) {
+                this.col_preparePiegeState(pge);
             }
         }
+    }
 
-        for (let i = 0; i < this._res._pgeNum; ++i) {
-            const pge: LivePGE = this._pge_liveTable2[i]
-            if (pge && this._currentRoom !== pge.room_location) {
-                this.col_preparePiegeState(pge)
-            }
+    private updatePGEState(pge: LivePGE) {
+        this.col_preparePiegeState(pge);
+
+        // Update PGE state in live table if conditions are met
+        if (!(pge.flags & 4) && (pge.init_PGE.flags & 4)) {
+            this._pge_liveTable2[pge.index] = pge;
+            pge.flags |= 4;
         }
     }
 
@@ -2511,25 +2552,16 @@ class Game {
             this.pge_loadForCurrentLevel(n)
         }
 
-        if (this._demoBin !== -1) {
-            this._cut.setId(-1)
-            if (_demoInputs[this._demoBin].room !== 255) {
-                this._pgeLive[0].room_location = _demoInputs[this._demoBin].room
-                this._pgeLive[0].pos_x = _demoInputs[this._demoBin].x
-                this._pgeLive[0].pos_y = _demoInputs[this._demoBin].y
-                this._inp_demPos = 0
-            } else {
-                this._inp_demPos = 1
-            }
-            this._printLevelCodeCounter = 0
-        }
 
+        // organize PGEs by levels into a new liveTable, _pge_liveTable1
         for (let i = 0; i < this._res._pgeNum; ++i) {
             if (this._res._pgeInit[i].skill <= this._skillLevel) {
                 this.renders > this.debugStartFrame && console.log(`i=${i} => skill!`)
                 const pge = this._pgeLive[i]
+                // the pge that was previously here, now get's added to the PGE referenced by the nextPGEinRoom link
+                // it builds a linked list, starting with the one that can be reached from the pge_liveTable1
                 pge.next_PGE_in_room = this._pge_liveTable1[pge.room_location]
-                // This is where pge_liveTable get's filled for the first time
+                // This is where pge_liveTable1 get's filled for the first time
                 this._pge_liveTable1[pge.room_location] = pge
             }
         }
