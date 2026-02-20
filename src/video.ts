@@ -598,7 +598,7 @@ pitch = 16
     // |         |       | - If not 255: save d3 and Read next byte |
     // +---------+-------+------------------------------------------+
     // | VAR+2+1 | 1     | d4 multiplier for the read               |
-    // |         |       |  - d4 * (d3 + 1) * 32bytes               |
+    // |         |       |  - d4 * 32bytes * (d3 + 1)               |
     // +---------+-------+------------------------------------------+
 
     // Buf structure, where the above data gets read looks like this:
@@ -618,6 +618,7 @@ pitch = 16
 
     AMIGA_decodeLev(level: number, room: number) {
         const tmp = this._res._scratchBuffer
+        //the first bytes represent the offsets in _lev file offset by room number
         const offset = READ_BE_UINT32(this._res._lev, room * 4)
         if (!bytekiller_unpack(tmp, kScratchBufferSize, this._res._lev, offset)) {
             console.warn(`Bad CRC for level ${level} room ${room}`)
@@ -627,17 +628,21 @@ pitch = 16
         let offset10 = READ_BE_UINT16(tmp, 10)
         const offset12 = READ_BE_UINT16(tmp, 12)
         const offset14 = READ_BE_UINT16(tmp, 14)
+
         const kTempMbkSize = 1024
         const buf = new Uint8Array(kTempMbkSize * 32)
-        if (!buf) {
-            throw("Unable to allocate mbk temporary buffer")
-        }
+
+        //empty the firs 32 bytes
         let sz = 0
         for (let i = 0; i < 32; ++i) {
             buf[i] = 0
         }
+
+        //this is a counter, which sums how much we read from bank data to buf altogether
         sz += 32
         let a1 = offset14
+
+        // endless loop ends only when the end criteria is found
         for (let loop = true; loop;) {
             let d0 = READ_BE_UINT16(tmp, a1)
             a1 += 2
@@ -651,6 +656,9 @@ pitch = 16
                 a6 = this._res.loadBankData(d0)
             }
             const d3 = tmp[a1++]
+            //read a next value that would indicate how much data to load
+            // 255 means all, other number means N times 32 bytes and hope we don't overread
+
             if (d3 === 255) {
                 if (sz + d1 > kTempMbkSize * 32) {
                     throw(`Assertion failed: ${sz + d1} <= ${kTempMbkSize * 32}`)
@@ -678,7 +686,14 @@ pitch = 16
             offset10 = 0
         }
 
-        Video.decodeLevHelper(this._frontLayer, tmp, offset10, offset12, buf, tmp[1] !== 0, true)
+        Video.decodeLevHelper(
+            this._frontLayer, //dst
+            tmp, //src
+            offset10,
+            offset12,
+            buf, //buffer with tile data
+            tmp[1] !== 0, //sgd buffer
+            true) //always true
         this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
         this._mapPalSlot1 = READ_BE_UINT16(tmp, 2)
         this._mapPalSlot2 = READ_BE_UINT16(tmp, 4)
