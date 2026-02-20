@@ -225,16 +225,16 @@ class Resource {
         return data;
     }
 
-    private loadFileDataByFileName(filename: string): Uint8Array {
+    private async loadFileDataByFileName(filename: string): Promise<Uint8Array> {
         const file = new File();
-        if (file.open(filename, "rb", this._fs)) {
+        if (await file.open(filename, "rb", this._fs)) {
             return this.loadFileData(file);
         } else {
             throw(`Failed to open '${filename}'`);
         }
     }
 
-    // LOADER switch
+    // MAIN LOADER table
     private readonly OBJECT_TYPE_MAPPING: Record<ObjectType, {
         extension: string;
         loader: (f: File) => void
@@ -314,6 +314,7 @@ class Resource {
         }
     };
 
+    // MAIN LOADER
     async load(objName: string, objType: number, ext?: string) {
         const typeConfig = this.OBJECT_TYPE_MAPPING[objType];
 
@@ -333,6 +334,40 @@ class Resource {
             }
         }
     }
+
+// +--------------------------------------------------------------------------------------------+
+// |                              PGE (Page/Game Entity) Structure                              |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | Field             | Type      | Size (bytes)  | Description                                |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | Total PGE Count   | uint16    | 2             | Number of PGE entries                      |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | Per PGE Entry:    |           |               |                                            |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | type              | uint16    | 2             | PGE type identifier                        |
+// | pos_x             | uint16    | 2             | X-axis position                            |
+// | pos_y             | uint16    | 2             | Y-axis position                            |
+// | obj_node_number   | uint16    | 2             | Associated object node number              |
+// | life              | uint16    | 2             | Life/health value                          |
+// | counter_values    | uint16[4] | 8             | 4 counter values (2 bytes each)            |
+// | object_type       | uint8     | 1             | Type of object                             |
+// | init_room         | uint8     | 1             | Initial room                               |
+// | room_location     | uint8     | 1             | Current room location                      |
+// | init_flags        | uint8     | 1             | Initial flags                              |
+// | colliding_icon_num| uint8     | 1             | Colliding icon number                      |
+// | icon_num          | uint8     | 1             | Icon number                                |
+// | object_id         | uint8     | 1             | Object identifier                          |
+// | skill             | uint8     | 1             | Skill level                                |
+// | mirror_x          | uint8     | 1             | X-axis mirroring                           |
+// | flags             | uint8     | 1             | Additional flags                           |
+// | unk1C             | uint8     | 1             | Unknown/reserved byte                      |
+// | text_num          | uint16    | 2             | Text/string number                         |
+// +--------------------------------------------------------------------------------------------+
+    load_PGE(f: File) {
+        const _pge: Uint8Array =this.loadFileData(f, 12, false)
+        this.decodePGE(_pge)
+    }
+
 
     decodePGE(p: Uint8Array) {
         let index = 0
@@ -373,6 +408,45 @@ class Resource {
             pge.text_num = this._readUint16(p, index)
             index += 2
         }
+    }
+
+// +--------------------------------------------------------------------------------------------+
+// |                              Object Node Structure                                         |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | Field             | Type      | Size (bytes)  | Description                                |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | last_obj_number   | uint16    | 2             | Last object number in the node             |
+// | num_objects       | uint16    | -             | Number of objects in the node              |
+// | objects           | Array<Obj>| -             | Collection of objects in the node          |
+// +--------------------------------------------------------------------------------------------+
+//
+// +--------------------------------------------------------------------------------------------+
+// |                             Individual Object Structure                                    |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | Field             | Type      | Size (bytes)  | Description                                |
+// +--------------------+-----------+---------------+-------------------------------------------+
+// | type              | uint16    | 2             | Object type                                |
+// | dx                | int8      | 1             | X-axis displacement                        |
+// | dy                | int8      | 1             | Y-axis displacement                        |
+// | init_obj_type     | uint16    | 2             | Initial object type                        |
+// | opcode2           | uint8     | 1             | Opcode 2                                   |
+// | opcode1           | uint8     | 1             | Opcode 1                                   |
+// | flags             | uint8     | 1             | Object flags                               |
+// | opcode3           | uint8     | 1             | Opcode 3                                   |
+// | init_obj_number   | uint16    | 2             | Initial object number                      |
+// | opcode_arg1       | int16     | 2             | Opcode argument 1                          |
+// | opcode_arg2       | int16     | 2             | Opcode argument 2                          |
+// | opcode_arg3       | int16     | 2             | Opcode argument 3                          |
+// +--------------------------------------------------------------------------------------------+
+    load_OBJ(f: File) {
+        const len = f.size()
+        const dat = this.loadFileData(f)
+
+        this._numObjectNodes = READ_LE_UINT16(dat)
+        if (this._numObjectNodes !== 230 ){
+            throw(`assertion failed ${this._numObjectNodes}`)
+        }
+        this.decodeOBJ(dat.subarray(2,len -2), len -2)
     }
 
     decodeOBJ(tmp: Uint8Array, size: number) {
@@ -479,24 +553,6 @@ class Resource {
         }
     }
 
-
-
-    load_PGE(f: File) {
-        const _pge: Uint8Array =this.loadFileData(f, 12, false)
-        this.decodePGE(_pge)
-    }
-
-    load_OBJ(f: File) {
-        const len = f.size()
-        const dat = this.loadFileData(f)
-
-        this._numObjectNodes = READ_LE_UINT16(dat)
-        if (this._numObjectNodes !== 230 ){
-            throw(`assertion failed ${this._numObjectNodes}`)
-        }
-        this.decodeOBJ(dat.subarray(2,len -2), len -2)
-    }
-
     load_SPRM(f: File) {
         this._sprm = this.loadFileData(f,12)
     }
@@ -564,7 +620,6 @@ class Resource {
         this._icnLen = f.size()
         this._icn = this.loadFileData(f)
     }
-
 
     load_SPC(f: File) {
         this._spc = this.loadFileData(f)
@@ -702,34 +757,20 @@ class Resource {
         return res
     }
 
-    async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
-        this._entryName = `${fileName}.OFF`;
-        try {
-            const offData = await this._loadOffsetData();
-            if (!offData) {
-                throw new Error(`Cannot load '${this._entryName}'`);
-            }
-            this._processOffsetData(offData, sprData);
-        } catch (error) {
-            console.error(error.message);
-        }
-    }
 
-    private async _loadOffsetData(): Promise<Uint8Array | null> {
-        try {
-            const f = new File();
-            if (await f.open(this._entryName, "rb", this._fs)) {
-                return this.loadFileData(f)
-            }
-        } catch (error) {
-            console.error("Error loading offset data:", error);
-            return null;
-        }
-    }
-
+    //LOAD SPRITE
     private readonly SPRITE_TERMINATOR = 0xFFFF;
     private readonly INVALID_OFFSET = 0xFFFFFFFF;
     private readonly ENTRY_SIZE = 6; // 2 bytes for pos + 4 bytes for offset
+
+    async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
+        this._entryName = `${fileName}.OFF`;
+        const offData = await this.loadFileDataByFileName(this._entryName)
+        if (!offData) {
+            throw new Error(`Cannot load '${this._entryName}'`);
+        }
+        this._processOffsetData(offData, sprData);
+    }
 
     private _processOffsetData(offData: Uint8Array, sprData: Uint8Array): void {
         if (!offData || !sprData) {
@@ -758,7 +799,7 @@ class Resource {
         }
     }
 
-    // This file contains the background sound effects
+    // LOAD SOUND EFFECTS
     async load_FIB(fileName: string) {
         this._entryName = `${fileName}.FIB`
         const f = new File()
@@ -857,19 +898,11 @@ class Resource {
 
     async load_CINE() {
         if (this._cine_off === null) {
-            this._entryName = `ENGCINE.BIN`
-            const f:File = new File()
-            if (await f.open(this._entryName, "rb", this._fs)) {
-                this._cine_off = this.loadFileData(f)
-            }
+            this._cine_off = await this.loadFileDataByFileName(`ENGCINE.BIN`)
         }
 
         if (this._cine_txt === null) {
-            this._entryName = `ENGCINE.TXT`
-            const f:File = new File()
-            if (await f.open(this._entryName, "rb", this._fs)) {
-                this._cine_txt =this.loadFileData(f)
-            }
+            this._cine_txt =await this.loadFileDataByFileName(`ENGCINE.TXT`)
         }
     }
 
