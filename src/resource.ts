@@ -1,7 +1,6 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
 import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
-import { ResourceAba } from "./resource_aba"
 import {  _gameSavedSoundLen, _splNames, _spmOffsetsTable, _stringsTableEN, _textsTableEN, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
 import { bytekiller_unpack } from './unpack'
 
@@ -101,7 +100,6 @@ class Resource {
 
     _fs: FileSystem
     _isDemo: boolean
-    _aba: ResourceAba
     _readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _scratchBuffer: Uint8Array
@@ -166,7 +164,6 @@ class Resource {
         // 	memset(this, 0, sizeof(Resource));
         this._fs = fs
         this._isDemo = false
-        this._aba = null
         this._cine_txt = null
         this._cine_off = null
         this._perso = null

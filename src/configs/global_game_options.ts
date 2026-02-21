@@ -1,5 +1,4 @@
 export const global_game_options = {
-    bypass_protection: false,
     fade_out_palette: false,
     use_tile_data: false,
     use_text_cutscenes: false,

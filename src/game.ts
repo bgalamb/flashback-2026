@@ -184,9 +184,9 @@ class Game {
     renders: number
     debugStartFrame: number
 
-    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, widescreenMode: WidescreenMode, autoSave: boolean) {
+    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean) {
         this._res = new Resource(fs)
-        this._vid = new Video(this._res, stub, widescreenMode)
+        this._vid = new Video(this._res, stub)
         this._cut = new Cutscene(this._res, stub, this._vid)
         this._menu = new Menu(this._res, stub, this._vid)
         this._mix = new Mixer(fs, stub)
@@ -199,7 +199,6 @@ class Game {
         this._skillLevel = this._menu._skill = Skill.kSkillNormal
         this._currentLevel = this._menu._level = level
         this._demoBin = -1
-        this._widescreenMode = widescreenMode
         this._autoSave = autoSave
         this._rewindPtr = -1
         this._rewindLen = 0
@@ -330,10 +329,6 @@ class Game {
         if(this._cut.getId() == -1){
             return
         }
-        //disable widescreen
-        if (this._stub.hasWidescreen()) {
-            this._stub.enableWidescreen(false)
-        }
 
         //stop music
         this._mix.stopMusic()
@@ -358,14 +353,7 @@ class Game {
         }
 
         this._mix.stopMusic()
-        if (this._stub.hasWidescreen()) {
-            this._stub.enableWidescreen(true)
-        }
 
-    }
-
-    handleProtectionScreenWords() {
-        return true
     }
 
     async runLoop() {
@@ -390,14 +378,6 @@ class Game {
 
         await this._res.load("FB_TXT", ObjectType.OT_FNT)
 
-        if (!global_game_options.bypass_protection && !global_game_options.use_words_protection) {
-            while (!this.handleProtectionScreenShape()) {
-                if (this._stub._pi.quit) {
-                    return;
-                }
-            }
-        }
-
         // initialize the 4channel mixer for the sound and effects
         // basically there can be 4 parallel effect playin. eg robot blip and door splash (=2)
         this._mix.init()
@@ -412,15 +392,6 @@ class Game {
 
         await this._res.load_SPRITE_OFFSETS("PERSO", this._res._spr1)
         await this._res.load_FIB("GLOBAL")
-
-        if (!global_game_options.bypass_protection && global_game_options.use_words_protection) {
-            // TODO
-            while (!this.handleProtectionScreenWords()) {
-                if (this._stub._pi.quit) {
-                    return
-                }
-            }
-        }
 
         const presentMenu = true
 
@@ -440,9 +411,6 @@ class Game {
 
             if (this._stub._pi.quit) {
                 break
-            }
-            if (this._stub.hasWidescreen()) {
-                this._stub.clearWidescreen()
             }
 
             if (this._currentLevel === 7) {
@@ -484,9 +452,6 @@ class Game {
     }
 
     async showFinalScore() {
-        if (this._stub.hasWidescreen()) {
-            this._stub.clearWidescreen()
-        }
         await this.playCutscene(0x49)
 
         const buf = this._score.toString().padStart(8, '0')
@@ -1112,9 +1077,6 @@ class Game {
     }
 
     async handleContinueAbort() {
-        if (this._stub.hasWidescreen()) {
-            this._stub.clearWidescreen()
-        }
         await this.playCutscene(0x48)
         let timeout = 100
         let current_color = 0
@@ -2512,29 +2474,8 @@ class Game {
         let widescreenUpdated = false
         this._currentIcon = 0xFF
 
-        if (this._stub.hasWidescreen() && this._widescreenMode === WidescreenMode.kWidescreenAdjacentRooms) {
-            debugger
-            const leftRoom = this._res._ctData[CT_LEFT_ROOM + currentRoom]
-            if (leftRoom > 0 && this.hasLevelMap( leftRoom)) {
-                this._vid.PC_decodeMap(this._currentLevel, leftRoom)
-                this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
-            } else {
-                this._stub.copyWidescreenLeft(GAMESCREEN_W, GAMESCREEN_H, null)
-            }
-            const rightRoom = this._res._ctData[CT_RIGHT_ROOM + currentRoom]
-            if (rightRoom > 0 && this.hasLevelMap( rightRoom)) {
-                this._vid.PC_decodeMap(this._currentLevel, rightRoom)
-                this._stub.copyWidescreenRight(GAMESCREEN_W, GAMESCREEN_H, this._vid._backLayer)
-            } else {
-                this._stub.copyWidescreenRight(GAMESCREEN_W, GAMESCREEN_H, null)
-            }
-            widescreenUpdated = true
-        }
         this._vid.PC_decodeMap(this._currentLevel, currentRoom)
 
-        if (!widescreenUpdated) {
-            this._vid.updateWidescreen()
-        }
     }
 
     private clearLive_PGETables(){

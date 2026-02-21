@@ -246,7 +246,6 @@ class Menu {
         this._vid._backLayer.set(this._vid._frontLayer.subarray(0, this._vid._layerSize))
         await this._res.load_PAL_menu(prefix, this._res._scratchBuffer)
         this._stub.setPalette(this._res._scratchBuffer, 256)
-        this._vid.updateWidescreen()
     }
 
 }

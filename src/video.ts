@@ -41,10 +41,9 @@ class Video {
     _shakeOffset: number
     _drawChar: drawCharFunc
 
-    constructor(res: Resource, stub: SystemStub, widescreenMode: WidescreenMode) {
+    constructor(res: Resource, stub: SystemStub) {
       this._res = res
       this._stub = stub
-      this._widescreenMode = widescreenMode
 
       this._w = GAMESCREEN_W
       this._h = GAMESCREEN_H
@@ -1011,18 +1010,6 @@ pitch = 16
             this._fullRefresh = true
         }
     }
-
-    updateWidescreen() {
-        if (this._stub.hasWidescreen()) {
-            if (this._widescreenMode === WidescreenMode.kWidescreenMirrorRoom) {
-                this._stub.copyWidescreenMirror(this._w, this._h, this._backLayer)
-            } else if (this._widescreenMode === WidescreenMode.kWidescreenBlur) {
-                this._stub.copyWidescreenBlur(this._w, this._h, this._backLayer)
-            } else {
-                this._stub.clearWidescreen()
-            }
-        }
-    }    
 }
 
 export { Video, GAMESCREEN_W, GAMESCREEN_H }

@@ -61,9 +61,7 @@ class SystemStub {
 	_screenW: number
 	_screenH: number
 	_scalerType: ScalerType
-	_widescreenMode: number
 	_wideMargin: number
-	_enableWidescreen: boolean
 	_screenshot: number
 	_audioCbData: ArrayBuffer
 	_audioContext: AudioContext
@@ -289,26 +287,6 @@ class SystemStub {
 				this._pi.shift = false
 				break
 
-			case 'f':
-				this.goFullscreen()
-				break
-		}
-	}
-
-	goFullscreen = () => {
-		if (this._canvas) {
-			this._canvas.classList.add('fullscreen')
-			// if we go fullscreen immediately after
-			// adding the class, on Safari the canvas
-			// will keep its (tiny) size and won't be fullscreen.
-			// so we make sure the class has been applied by
-			// triggering a reflow
-			this._canvas.offsetWidth
-			try {
-				this._canvas.requestFullscreen()
-			} catch(e) {
-				this._canvas.webkitRequestFullscreen()
-			}
 		}
 	}
 
@@ -316,9 +294,6 @@ class SystemStub {
 		document.addEventListener('keyup', this.onKbEvent)
 		document.addEventListener('keydown', this.onKbEvent)
 		document.addEventListener('click', this.resumeAudio)
-		document.addEventListener('dblclick', this.toggleFullscreen)
-		document.addEventListener('fullscreenchange', this.updateCanvasCSS)
-		document.addEventListener('webkitfullscreenchange', this.updateCanvasCSS)
 	}
 
 	onKbEvent = (e) => {
@@ -330,15 +305,7 @@ class SystemStub {
 		this._events.push(e)
 	}
 
-	updateCanvasCSS = () => {
-		if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-			this._canvas.classList.remove('fullscreen')
-		} else {
-			this._canvas.classList.add('fullscreen')
-		}		
-	}
-
-	async init(title: string, w: number, h: number, fullscreen: boolean, widescreenMode: number, scalerParameters: ScalerParameters) {
+	async init(title: string, w: number, h: number, fullscreen: boolean, scalerParameters: ScalerParameters) {
 		this.initCanvas(w, h)
 		await this.initAudio()
 		this.initEvents()
@@ -374,9 +341,7 @@ class SystemStub {
 		this._rgbPalette = new Uint8ClampedArray(256 * 4)
 		this._darkPalette = new Uint8ClampedArray(256 * 4)
 		this._screenW = this._screenH = 0
-		this._widescreenMode = widescreenMode
 		this._wideMargin = 0
-		this._enableWidescreen = false
 		this.setScreenSize(w, h)
 		this._screenshot = 1
 	}
@@ -532,28 +497,10 @@ class SystemStub {
 		let windowW = this._screenW * this._scaleFactor
 		let windowH = this._screenH * this._scaleFactor
 
-		if (this._widescreenMode !== WidescreenMode.kWidescreenNone) {
-			windowW = windowH * 16 / 9;
-		}
-
-		if (this._widescreenMode !== WidescreenMode.kWidescreenNone) {
-			const w = (this._widescreenMode == WidescreenMode.kWidescreenBlur) ? this._screenW : this._screenH * 16 / 9
-			const h = this._screenH
-
-			this._wideMargin = (w - this._screenW) / 2
-		}
 	}
 
 	startAudio(callback: AudioCallback, param: any) {
 		console.log('SystemStub::startAudio not implemented!')
-	}
-
-	hasWidescreen() {
-		return this._widescreenMode !== WidescreenMode.kWidescreenNone
-	}
-
-	enableWidescreen(enable: boolean) {
-		this._enableWidescreen = enable
 	}
 
 	fadeScreen() {
@@ -588,33 +535,31 @@ class SystemStub {
 		const ctx = this._context
 		ctx.clearRect(0, 0, this._screenW, this._screenH)
 		let r
-		if (this._widescreenMode !== WidescreenMode.kWidescreenNone) {
-			throw('not implemented!')
-		} else {
-			if (this._fadeOnUpdateScreen) {
-				r = {
-					x: 0,
-					y: 0,
-					w: this._screenW,
-					h: this._screenH
-				}
-				for (let i = 1; i <= 16; ++i) {
-					this._context.fillStyle = `rgba(0,0,0, ${(256 - i * 16) / 255})`
-					ctx.putImageData(this._imageData, r.x, r.y)					
-					ctx.fillRect(r.x, r.y, r.w, r.h)
-					await this.sleep(15)
-				}
-				this._fadeOnUpdateScreen = false
-				return
-			}
 
+		if (this._fadeOnUpdateScreen) {
 			r = {
 				x: 0,
-				y: shakeOffset * this._scaleFactor,
+				y: 0,
 				w: this._screenW,
 				h: this._screenH
-			}			
+			}
+			for (let i = 1; i <= 16; ++i) {
+				this._context.fillStyle = `rgba(0,0,0, ${(256 - i * 16) / 255})`
+				ctx.putImageData(this._imageData, r.x, r.y)
+				ctx.fillRect(r.x, r.y, r.w, r.h)
+				await this.sleep(15)
+			}
+			this._fadeOnUpdateScreen = false
+			return
 		}
+
+		r = {
+			x: 0,
+			y: shakeOffset * this._scaleFactor,
+			w: this._screenW,
+			h: this._screenH
+		}
+
 		ctx.putImageData(this._imageData, r.x, r.y)
 	}
 

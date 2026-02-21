@@ -9,7 +9,6 @@ const g_caption = "REminiscence"
 
 //By default the structure has everything false, so here we change some values
 const initOptions = async () => {
-    global_game_options.bypass_protection = true
     global_game_options.fade_out_palette = false
     global_game_options.use_text_cutscenes = false
     global_game_options.use_seq_cutscenes = true
@@ -44,7 +43,6 @@ const main = async (config = DEFAULT_CONFIG ) => {
     const levelNum = config.levelnum
     const fullscreen = config.fullscreen
     const autoSave = config.autosave
-    const widescreen = WidescreenMode.kWidescreenNone
 
     //the framework (currently browser) where the game is embedded
     const stub = new SystemStub()
@@ -53,8 +51,8 @@ const main = async (config = DEFAULT_CONFIG ) => {
     const fs = new FileSystem()
     await fs.setRootDirectory(dataPath)
 
-    const game = new Game(stub, fs, savePath, levelNum, widescreen, autoSave)
-    await stub.init(g_caption, game._vid._w, game._vid._h, fullscreen, widescreen, scalerParameters)
+    const game = new Game(stub, fs, savePath, levelNum, autoSave)
+    await stub.init(g_caption, game._vid._w, game._vid._h, fullscreen, scalerParameters)
     await game.run()
 }
 
