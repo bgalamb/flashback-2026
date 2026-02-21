@@ -23,7 +23,6 @@ import {
 import {
     monsterListsByLevel
 } from './staticres-monsters'
-import { global_game_options } from './configs/global_game_options'
 import { File } from './file'
 import { _pge_opcodeTable } from './game_opcodes'
 
@@ -36,6 +35,8 @@ const CT_UP_ROOM    = 0x00
 const CT_DOWN_ROOM  = 0x40
 const CT_RIGHT_ROOM = 0x80
 const CT_LEFT_ROOM  = 0xC0
+
+const PGE_NUM = 256
 
 type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
@@ -133,21 +134,21 @@ class Game {
     _pge_playAnimSound: boolean
 
     // This is the table where the PGEs are loaded from the PGE file
-    _pgeLive = new Array<LivePGE>(256).fill(null).map(() => createLivePGE())
+    _pgeLive = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
     // This is a filtered table where PGEs are (re)arranged by roomLocation
     // the PGE that is found in the array will have a link to the next PGE in the room, and that PGe to the next
     // it's a linked list
-    _pge_liveTable1 = new Array<LivePGE>(256)
+    _pge_liveTable1 = new Array<LivePGE>(PGE_NUM)
 
 
     // This is a filtered table that contains PGEs at their original indexes only when they are in current room.
-    _pge_liveTable2 = new Array<LivePGE>(256)
-    _pge_groups = new Array<GroupPGE>(256).fill(null).map(() => ({
+    _pge_liveTable2 = new Array<LivePGE>(PGE_NUM)
+    _pge_groups = new Array<GroupPGE>(PGE_NUM).fill(null).map(() => ({
         next_entry: null,
         index: 0,
         group_id: 0,
     }))
-    _pge_groupsTable = new Array<GroupPGE>(256)
+    _pge_groupsTable = new Array<GroupPGE>(PGE_NUM)
     _pge_nextFreeGroup: GroupPGE
 
 	_pge_currentPiegeRoom: number
@@ -161,14 +162,14 @@ class Game {
 
     _col_curPos: number
     _col_curSlot: CollisionSlot
-    _col_slotsTable: CollisionSlot[] = new Array(256)
-    _col_slots: CollisionSlot[] = new Array(256).fill(null).map(() => ({
+    _col_slotsTable: CollisionSlot[] = new Array(PGE_NUM)
+    _col_slots: CollisionSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
         ct_pos: 0,
         prev_slot: null,
         live_pge: null,
         index: 0      
     }))
-	_col_slots2: CollisionSlot2[] = new Array(256).fill(null).map(() => ({
+	_col_slots2: CollisionSlot2[] = new Array(PGE_NUM).fill(null).map(() => ({
         next_slot: null,
         unk2: null,
         data_size: 0,
@@ -748,10 +749,10 @@ class Game {
     pge_setupOtherPieges(pge: LivePGE, init_pge: InitPGE) {
         let room_ct_data:Int8Array = null
         if (pge.pos_x <= -10) {
-            pge.pos_x += 256
+            pge.pos_x += GAMESCREEN_W
             room_ct_data = this._res._ctData.subarray(CT_LEFT_ROOM)
-        } else if (pge.pos_x >= 256) {
-            pge.pos_x -= 256
+        } else if (pge.pos_x >= GAMESCREEN_W) {
+            pge.pos_x -= GAMESCREEN_W
             room_ct_data = this._res._ctData.subarray(CT_RIGHT_ROOM)
         } else if (pge.pos_y < 0) {
             pge.pos_y += 216
@@ -1041,7 +1042,7 @@ class Game {
             if (this._textToDisplay === 0xFFFF) {
                 const icon_num = obj - 1
                 this.drawIcon(icon_num, 80, 8, 0xA)
-                const txt_num = pge_out.init_PGE.text_num % 256
+                const txt_num = pge_out.init_PGE.text_num % PGE_NUM
                 const str = this._res.getTextString(this._currentLevel, txt_num)
                 this.drawString(str, 176, 26, 0xE6, true)
                 if (icon_num === 2) {
@@ -1540,8 +1541,8 @@ class Game {
             // Prepare animations for adjacent rooms
             await this.prepareAdjacentRoomAnims(CT_UP_ROOM, 0, -216, this.isAboveRoomPge, currentRoom);
             await this.prepareAdjacentRoomAnims(CT_DOWN_ROOM, 0, 216, this.isBelowRoomPge, currentRoom);
-            await this.prepareAdjacentRoomAnims(CT_LEFT_ROOM, -256, 0, this.isLeftRoomPge, currentRoom);
-            await this.prepareAdjacentRoomAnims(CT_RIGHT_ROOM, 256, 0, this.isRightRoomPge, currentRoom);
+            await this.prepareAdjacentRoomAnims(CT_LEFT_ROOM, -GAMESCREEN_W, 0, this.isLeftRoomPge, currentRoom);
+            await this.prepareAdjacentRoomAnims(CT_RIGHT_ROOM, GAMESCREEN_W, 0, this.isRightRoomPge, currentRoom);
         }
     }
 
@@ -1582,7 +1583,7 @@ class Game {
     }
 
     private isLeftRoomPge(pge: LivePGE): boolean {
-        return pge.pos_x > 224;
+        return pge.pos_x > GAMESCREEN_H;
     }
 
     private isRightRoomPge(pge: LivePGE): boolean {
@@ -1628,7 +1629,7 @@ class Game {
                 }
                 xpos -= _cl
             }
-            if (xpos <= -32 || xpos >= 256 || ypos < -48 || ypos >= 224) {
+            if (xpos <= -32 || xpos >= GAMESCREEN_W || ypos < -48 || ypos >= GAMESCREEN_H) {
                 return
             }
             xpos += 8
@@ -1766,10 +1767,10 @@ class Game {
         let sprite_clipped_w
         if (sprite_x >= 0) {
             sprite_clipped_w = sprite_x + sprite_w
-            if (sprite_clipped_w < 256) {
+            if (sprite_clipped_w < GAMESCREEN_W) {
                 sprite_clipped_w = sprite_w
             } else {
-                sprite_clipped_w = 256 - sprite_x
+                sprite_clipped_w = GAMESCREEN_W - sprite_x
                 if (sprite_flags & 0x10) {
                     sprite_mirror_x = true
                     src += sprite_w - 1
@@ -1792,11 +1793,11 @@ class Game {
     
         let sprite_clipped_h
         if (sprite_y >= 0) {
-            sprite_clipped_h = 224 - sprite_h
+            sprite_clipped_h = GAMESCREEN_H - sprite_h
             if (sprite_y < sprite_clipped_h) {
                 sprite_clipped_h = sprite_h
             } else {
-                sprite_clipped_h = 224 - sprite_y
+                sprite_clipped_h = GAMESCREEN_H - sprite_y
             }
         } else {
             sprite_clipped_h = sprite_h + sprite_y
@@ -1811,7 +1812,7 @@ class Game {
             src += sprite_w - 1
         }
     
-        let dst_offset = 256 * sprite_y + sprite_x
+        let dst_offset = GAMESCREEN_W * sprite_y + sprite_x
         let sprite_col_mask = (flags & 0x60) >> 1
     
         if (this._eraseBackground) {
@@ -1847,10 +1848,10 @@ class Game {
     
         let sprite_clipped_w
         if (pos_x >= 0) {
-            if (pos_x + sprite_w < 256) {
+            if (pos_x + sprite_w < GAMESCREEN_W) {
                 sprite_clipped_w = sprite_w
             } else {
-                sprite_clipped_w = 256 - pos_x
+                sprite_clipped_w = GAMESCREEN_W - pos_x
                 if (flags & 2) {
                     var14 = true
                     if (var16) {
@@ -1888,10 +1889,10 @@ class Game {
     
         let sprite_clipped_h
         if (pos_y >= 0) {
-            if (pos_y < 224 - sprite_h) {
+            if (pos_y < GAMESCREEN_H - sprite_h) {
                 sprite_clipped_h = sprite_h
             } else {
-                sprite_clipped_h = 224 - pos_y
+                sprite_clipped_h = GAMESCREEN_H - pos_y
             }
         } else {
             sprite_clipped_h = sprite_h + pos_y
@@ -1914,7 +1915,7 @@ class Game {
             }
         }
     
-        let dst_offset = 256 * pos_y + pos_x
+        let dst_offset = GAMESCREEN_W * pos_y + pos_x
         const sprite_col_mask = ((flags & 0x60) === 0x60) ? 0x50 : 0x40
     
         if (!(flags & 2)) {
@@ -2244,11 +2245,11 @@ class Game {
         if (x < 0) {
             c = this._res._ctData[CT_LEFT_ROOM + c]
             if (c < 0) return 0xFFFF
-            x += 256
-        } else if (x >= 256) {
+            x += GAMESCREEN_W
+        } else if (x >= GAMESCREEN_W) {
             c = this._res._ctData[CT_RIGHT_ROOM + c]
             if (c < 0) return 0xFFFF
-            x -= 256
+            x -= GAMESCREEN_W
         } else if (y < 0) {
             c = this._res._ctData[CT_UP_ROOM + c]
             if (c < 0) return 0xFFFF
@@ -2385,6 +2386,9 @@ class Game {
 
     async pge_getUserLeftRightUpDownKeyInput() {
         await this.inp_update()
+
+        // this is where the key input is handled
+        // each key is masked to a different bit and aggregated into a single number
         this._inp_lastKeysHit = this._stub._pi.dirMask
         if ((this._inp_lastKeysHit & 0xC) && (this._inp_lastKeysHit & 0x3)) {
             const mask = (this._inp_lastKeysHit & 0xF0) | (this._inp_lastKeysHitLeftRight & 0xF)

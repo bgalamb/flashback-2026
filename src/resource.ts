@@ -367,7 +367,7 @@ class Resource {
 
     decodePGE(p: Uint8Array) {
         let index = 0
-        this._pgeNum = this._readUint16(p)
+        this._pgeNum = READ_LE_UINT16(p)
         index += 2
         this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
         if (this._pgeNum > this._pgeInit.length) {
@@ -375,18 +375,18 @@ class Resource {
         }
         for (let i = 0; i < this._pgeNum; ++i) {
             const pge: InitPGE = this._pgeInit[i]
-            pge.type = this._readUint16(p, index)
+            pge.type = READ_LE_UINT16(p, index)
             index += 2
-            pge.pos_x = this._readUint16(p, index)
+            pge.pos_x = READ_LE_UINT16(p, index)
             index += 2
-            pge.pos_y = this._readUint16(p, index)
+            pge.pos_y = READ_LE_UINT16(p, index)
             index += 2
-            pge.obj_node_number = this._readUint16(p, index)
+            pge.obj_node_number = READ_LE_UINT16(p, index)
             index += 2
-            pge.life = this._readUint16(p, index)
+            pge.life = READ_LE_UINT16(p, index)
             index += 2
             for (let lc = 0; lc < 4; ++lc) {
-                pge.counter_values[lc] = this._readUint16(p, index)
+                pge.counter_values[lc] = READ_LE_UINT16(p, index)
                 index += 2
             }
             pge.object_type = p[index++]
@@ -401,7 +401,7 @@ class Resource {
             pge.flags = p[index++]
             pge.unk1C = p[index++]
             index++
-            pge.text_num = this._readUint16(p, index)
+            pge.text_num = READ_LE_UINT16(p, index)
             index += 2
         }
     }
@@ -450,7 +450,7 @@ class Resource {
         let tmpOffset = 0
         this._numObjectNodes = 230
         for (let i = 0; i <this. _numObjectNodes; ++i) {
-            offsets[i] = this._readUint32(tmp, tmpOffset)
+            offsets[i] = READ_LE_UINT32(tmp, tmpOffset)
             tmpOffset += 4
         }
         offsets[this._numObjectNodes] = size
@@ -475,30 +475,30 @@ class Resource {
                 }
 
                 let objData = offsets[i]
-                on.last_obj_number = this._readUint16(tmp, objData)
+                on.last_obj_number = READ_LE_UINT16(tmp, objData)
                 objData += 2
                 on.num_objects = objectsCount[iObj]
                 on.objects = new Array(on.num_objects)
                 for (let j = 0; j < on.num_objects; ++j) {
                     // Object *obj = &on->objects[j];
                     const obj = CreateObj()
-                    obj.type = this._readUint16(tmp, objData)
+                    obj.type = READ_LE_UINT16(tmp, objData)
                     objData += 2
                     obj.dx = tmp[objData++] << 24 >> 24
                     obj.dy = tmp[objData++] << 24 >> 24
-                    obj.init_obj_type = this._readUint16(tmp, objData)
+                    obj.init_obj_type = READ_LE_UINT16(tmp, objData)
                     objData += 2
                     obj.opcode2 = tmp[objData++]
                     obj.opcode1 = tmp[objData++]
                     obj.flags = tmp[objData++]
                     obj.opcode3 = tmp[objData++]
-                    obj.init_obj_number = this._readUint16(tmp, objData)
+                    obj.init_obj_number = READ_LE_UINT16(tmp, objData)
                     objData += 2
-                    obj.opcode_arg1 = this._readUint16(tmp, objData) << 16 >> 16
+                    obj.opcode_arg1 = READ_LE_UINT16(tmp, objData) << 16 >> 16
                     objData += 2
-                    obj.opcode_arg2 = this._readUint16(tmp, objData) << 16 >> 16
+                    obj.opcode_arg2 = READ_LE_UINT16(tmp, objData) << 16 >> 16
                     objData += 2
-                    obj.opcode_arg3 = this._readUint16(tmp, objData) << 16 >> 16
+                    obj.opcode_arg3 = READ_LE_UINT16(tmp, objData) << 16 >> 16
                     objData += 2
                     on.objects[j] = obj
                 }
@@ -903,13 +903,13 @@ class Resource {
     }
 
     getAniData(num: number) {
-       const offset = this._readUint16(this._ani, 2 + num * 2)
+       const offset = READ_LE_UINT16(this._ani, 2 + num * 2)
         // Return a subarray starting from the calculated offset
         return this._ani.subarray(2 + offset)
     }
 
     getTextString(level: number, num: number) {
-		return this._tbn.subarray(this._readUint16(this._tbn, num * 2))
+		return this._tbn.subarray(READ_LE_UINT16(this._tbn, num * 2))
 	}
 
 	getGameString(num: number) {
