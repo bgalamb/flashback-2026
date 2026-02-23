@@ -301,7 +301,7 @@ class Cutscene {
                 case 22: // Level 2 fuse repaired
                 case 23: // switches
                 case 24: // Level 2 fuse is blown
-                    if (global_game_options.play_asc_cutscene && !this._res._isDemo) {
+                    if (global_game_options.play_asc_cutscene && !false) {
                         cutName = 12 // ASC
                     }
                     break

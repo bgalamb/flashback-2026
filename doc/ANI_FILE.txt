@@ -1,0 +1,8 @@
+contains the animation data for all PGE?
+
+16 bytes -  ani_sequence
+6 + ani_sequence * 4 -> animation frame
+
+16 bytes from the animation frame - > fl ?
+anim_frame[2] - x movement
+anim_frame[3] - z movement

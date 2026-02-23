@@ -1,0 +1,1 @@
+Contains the offsets for the sprites

@@ -28,6 +28,7 @@
 | text_num          | uint16    | 2             | Text/string number                         |
 +--------------------------------------------------------------------------------------------+
 
+
 Then
 -1-
 the data is stored in a table,
@@ -45,3 +46,71 @@ the data is stored in a table,
 Object nodes are read from the object node array by the object_node_number index. property by the current live_PGE and we get an array of Obj.
 From the beginning of this array search for the object which has the same obj_type as our current live_pge.obj_type
 > live_pge.first_obj_number = i
+
+
+Live PGE FLAGS
+==============
+1 mirrored x axis
+2 ?
+4 ? 1 -> is alive; 0 -> dead
+8 ? 1 -> inactive; 0 -> active
+16
+64
+128
+
+
+PGE TYPES
+==========
+object_type === 10 --> monster
+object_type === 1  --> conrad?
+0bject_type === 455 --> door?
+453 ? door or junkie, head?
+451? head, hand, door?
+
+
+PGE_INDEXES
+===============
+0 - conrad
+49 - monster
+
+
+interface InitPGE {
+    type: number
+    pos_x: number
+    pos_y: number
+    obj_node_number: number
+    life: number
+    counter_values: number[]
+    object_type: number
+    init_room: number
+    room_location: number  --> this is the room, where he is
+    init_flags: number
+    colliding_icon_num: number
+    icon_num: number
+    object_id: number
+    skill: number
+    mirror_x: number
+    flags: number
+    unk1C: number
+    text_num: number
+}
+
+interface LivePGE {
+    obj_type: number
+    pos_x: number
+    pos_y: number
+    anim_seq: number
+    room_location: number --> this is the room where he is spawned
+    life: number
+    counter_value: number
+    collision_slot: number
+    next_inventory_PGE: number
+    current_inventory_PGE: number
+    unkF: number
+    anim_number: number
+    flags: number
+    index: number
+    first_obj_number: number
+    next_PGE_in_room: LivePGE
+    init_PGE: InitPGE
+}

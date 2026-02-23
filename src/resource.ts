@@ -1,95 +1,12 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
 import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
-import {  _gameSavedSoundLen, _splNames, _spmOffsetsTable, _stringsTableEN, _textsTableEN, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
+import {  _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
 import { bytekiller_unpack } from './unpack'
+import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './resource/constants'
+import { createObjectTypeMapping } from './resource/loaders'
+import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './resource/parsers'
 
-type LoadStub = (file: File) => void
-
-
-const normalizeSPL = (sfx: SoundFx) => {
-	const kGain = 2
-
-	sfx.peak = Math.abs(sfx.data[0])
-	for (let i = 1; i < sfx.len; ++i) {
-		const sample = sfx.data[i]
-		if (Math.abs(sample) > sfx.peak) {
-			sfx.peak = Math.abs(sample)
-		}
-		sfx.data[i] = (sample / kGain) >> 0
-	}
-}
-
-const LocaleData = {
-    Id: {
-            LI_01_CONTINUE_OR_ABORT: 0,
-            LI_02_TIME: 1,
-            LI_03_CONTINUE: 2,
-            LI_04_ABORT: 3,
-            LI_05_COMPLETED: 4,
-            LI_06_LEVEL: 5,
-            LI_07_START: 6,
-            LI_08_SKILL: 7,
-            LI_09_PASSWORD: 8,
-            LI_10_INFO: 9,
-            LI_11_QUIT: 10,
-            LI_12_SKILL_LEVEL: 11,
-            LI_13_EASY: 12,
-            LI_14_NORMAL: 13,
-            LI_15_EXPERT: 14,
-            LI_16_ENTER_PASSWORD1: 15,
-            LI_17_ENTER_PASSWORD2: 16,
-            LI_18_RESUME_GAME: 17,
-            LI_19_ABORT_GAME: 18,
-            LI_20_LOAD_GAME: 19,
-            LI_21_SAVE_GAME: 20,
-            LI_22_SAVE_SLOT: 21,
-            LI_23_DEMO: 22,
-            LI_NUM: 23
-        },
-
-    _textsTableEN: _textsTableEN,
-    _stringsTableEN: _stringsTableEN,
-
-}
-
-enum ObjectType {
-    OT_MBK,
-    OT_PGE,
-    OT_PAL,
-    OT_CT,
-    OT_MAP,
-    OT_SPC,
-    OT_RP,
-    OT_RPC,
-    OT_DEMO,
-    OT_ANI,
-    OT_OBJ,
-    OT_TBN,
-    OT_SPR,
-    OT_TAB,
-    OT_ICN,
-    OT_FNT,
-    OT_TXTBIN,
-    OT_CMD,
-    OT_POL,
-    OT_SPRM,
-    OT_OFF,
-    OT_CMP,
-    OT_OBC,
-    OT_SPL,
-    OT_LEV,
-    OT_SGD,
-    OT_BNQ,
-    OT_SPM
-}
-
-const NUM_SFXS = 66
-const NUM_BANK_BUFFERS = 50
-const NUM_CUTSCENE_TEXTS = 117
-const NUM_SPRITES = 1287
-
-const kPaulaFreq = 3546897
 
 class Resource {
 	static _voicesOffsetsTable: Uint16Array = _voicesOffsetsTable
@@ -99,7 +16,6 @@ class Resource {
 	static _gameSavedSoundLen: number = _gameSavedSoundLen
 
     _fs: FileSystem
-    _isDemo: boolean
     _readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
     _scratchBuffer: Uint8Array
@@ -126,6 +42,7 @@ class Resource {
     _tbn: Uint8Array
     _ctData: Int8Array = new Int8Array(0x1D00)
     _spr1: Uint8Array
+    // this contains all the data for the sprites
     _sprData: Uint8Array[] = new Array(NUM_SPRITES)
     _sprm: Uint8Array = new Uint8Array(0x10000)
 
@@ -150,9 +67,6 @@ class Resource {
     _cine_txt: Uint8Array
     _textsTable: string[]
     _stringsTable: Uint8Array
-    _dem: Uint8Array
-    _demLen: number
-    _resourceMacDataSize: number
     _clutSize: number
     _clut: Color[]
     _perso: Uint8Array
@@ -163,16 +77,12 @@ class Resource {
     constructor(fs: FileSystem) {
         // 	memset(this, 0, sizeof(Resource));
         this._fs = fs
-        this._isDemo = false
         this._cine_txt = null
         this._cine_off = null
         this._perso = null
         this._monster = null
         this._str = null
         this._credits = null
-        this._dem = null
-        this._demLen = 0
-        this._resourceMacDataSize = 0
         this._cmd = null
         this._pol = null
         this._cineStrings = null
@@ -205,10 +115,11 @@ class Resource {
 
         this._bankDataTail = kBankDataSize
         this.clearBankData()
+
     }
 
     // GENERAL FILE LOADERS
-    private loadFileData(f: File, offset: number = 0, seek: boolean = true, customLength?: number): Uint8Array {
+    protected loadFileData(f: File, offset: number = 0, seek: boolean = true, customLength?: number): Uint8Array {
         const len = customLength ?? (f.size() - offset);
         const data = new Uint8Array(len);
         if (offset > 0 && seek) {
@@ -231,84 +142,7 @@ class Resource {
     }
 
     // MAIN LOADER table
-    private readonly OBJECT_TYPE_MAPPING: Record<ObjectType, {
-        extension: string;
-        loader: (f: File) => void
-    }> = {
-        [ObjectType.OT_RP]: {extension: 'RP', loader: this.load_RP},
-        [ObjectType.OT_PAL]: {extension: 'PAL', loader: this.load_PAL},
-        [ObjectType.OT_TBN]: {extension: 'TBN', loader: this.load_TBN},
-        [ObjectType.OT_ANI]: {extension: 'ANI', loader: this.load_ANI},
-        [ObjectType.OT_BNQ]: {extension: 'BNQ', loader: this.load_BNQ},
-        [ObjectType.OT_SPM]: {extension: 'SPM', loader: this.load_SPM},
-        [ObjectType.OT_SPRM]: {extension: 'SPR', loader: this.load_SPRM},
-        [ObjectType.OT_MBK]: {extension: 'MBK', loader: this.load_MBK},
-        [ObjectType.OT_FNT]: {extension: 'FNT', loader: this.load_FNT},
-        [ObjectType.OT_CMD]: {extension: 'CMD', loader: this.load_CMD},
-        [ObjectType.OT_PGE]: {extension: 'PGE', loader: this.load_PGE},
-        [ObjectType.OT_CT]: {extension: 'CT', loader: this.load_CT},
-        [ObjectType.OT_POL]: {extension: 'POL', loader: this.load_POL},
-        [ObjectType.OT_ICN]: {extension: 'ICN', loader: this.load_ICN},
-        [ObjectType.OT_SPC]: {extension: 'SPC', loader: this.load_SPC},
-        [ObjectType.OT_SPR]: {extension: 'SPR', loader: this.load_SPRITE},
-        [ObjectType.OT_SGD]: {extension: 'SGD', loader: this.load_SGD},
-        [ObjectType.OT_LEV]: {extension: 'LEV', loader: this.load_LEV},
-        [ObjectType.OT_OBJ]: {extension: 'OBJ', loader: this.load_OBJ},
-        [ObjectType.OT_MAP]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_RPC]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_DEMO]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_TAB]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_TXTBIN]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_OFF]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_CMP]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_OBC]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_SPL]: {
-            extension: '',
-            loader: function (f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        }
-    };
+    private readonly OBJECT_TYPE_MAPPING = createObjectTypeMapping(this);
 
     // MAIN LOADER
     async load(objName: string, objType: number, ext?: string) {
@@ -366,44 +200,9 @@ class Resource {
 
 
     decodePGE(p: Uint8Array) {
-        let index = 0
-        this._pgeNum = READ_LE_UINT16(p)
-        index += 2
-        this._pgeInit = this._pgeInit.fill(null).map(() => CreateInitPGE())
-        if (this._pgeNum > this._pgeInit.length) {
-            throw(`Assertion failed: ${this._pgeNum} <= ${this._pgeInit.length}`)
-        }
-        for (let i = 0; i < this._pgeNum; ++i) {
-            const pge: InitPGE = this._pgeInit[i]
-            pge.type = READ_LE_UINT16(p, index)
-            index += 2
-            pge.pos_x = READ_LE_UINT16(p, index)
-            index += 2
-            pge.pos_y = READ_LE_UINT16(p, index)
-            index += 2
-            pge.obj_node_number = READ_LE_UINT16(p, index)
-            index += 2
-            pge.life = READ_LE_UINT16(p, index)
-            index += 2
-            for (let lc = 0; lc < 4; ++lc) {
-                pge.counter_values[lc] = READ_LE_UINT16(p, index)
-                index += 2
-            }
-            pge.object_type = p[index++]
-            pge.init_room = p[index++]
-            pge.room_location = p[index++]
-            pge.init_flags = p[index++]
-            pge.colliding_icon_num = p[index++]
-            pge.icon_num = p[index++]
-            pge.object_id = p[index++]
-            pge.skill = p[index++]
-            pge.mirror_x = p[index++]
-            pge.flags = p[index++]
-            pge.unk1C = p[index++]
-            index++
-            pge.text_num = READ_LE_UINT16(p, index)
-            index += 2
-        }
+        const parsed = decodePGEData(p, this._pgeInit.length)
+        this._pgeNum = parsed.pgeNum
+        this._pgeInit = parsed.pgeInit
     }
 
 // +--------------------------------------------------------------------------------------------+
@@ -446,68 +245,10 @@ class Resource {
     }
 
     decodeOBJ(tmp: Uint8Array, size: number) {
-        const offsets = new Uint32Array(256)
-        let tmpOffset = 0
         this._numObjectNodes = 230
-        for (let i = 0; i <this. _numObjectNodes; ++i) {
-            offsets[i] = READ_LE_UINT32(tmp, tmpOffset)
-            tmpOffset += 4
-        }
-        offsets[this._numObjectNodes] = size
-        let numObjectsCount = 0
-        const objectsCount = new Uint16Array(256)
-        for (let i = 0; i < this._numObjectNodes; ++i) {
-            let diff = offsets[i + 1] - offsets[i]
-            if (diff !== 0) {
-                objectsCount[numObjectsCount] = ((diff - 2) / 0x12) >> 0
-                ++numObjectsCount
-            }
-        }
-        let prevOffset = 0
-        let prevNode: ObjectNode = null
-        let iObj = 0
-        for (let i = 0; i < this._numObjectNodes; ++i) {
-            if (prevOffset !== offsets[i]) {
-                const on: ObjectNode = {
-                    last_obj_number: 0,
-                    objects: null,
-                    num_objects: 0
-                }
-
-                let objData = offsets[i]
-                on.last_obj_number = READ_LE_UINT16(tmp, objData)
-                objData += 2
-                on.num_objects = objectsCount[iObj]
-                on.objects = new Array(on.num_objects)
-                for (let j = 0; j < on.num_objects; ++j) {
-                    // Object *obj = &on->objects[j];
-                    const obj = CreateObj()
-                    obj.type = READ_LE_UINT16(tmp, objData)
-                    objData += 2
-                    obj.dx = tmp[objData++] << 24 >> 24
-                    obj.dy = tmp[objData++] << 24 >> 24
-                    obj.init_obj_type = READ_LE_UINT16(tmp, objData)
-                    objData += 2
-                    obj.opcode2 = tmp[objData++]
-                    obj.opcode1 = tmp[objData++]
-                    obj.flags = tmp[objData++]
-                    obj.opcode3 = tmp[objData++]
-                    obj.init_obj_number = READ_LE_UINT16(tmp, objData)
-                    objData += 2
-                    obj.opcode_arg1 = READ_LE_UINT16(tmp, objData) << 16 >> 16
-                    objData += 2
-                    obj.opcode_arg2 = READ_LE_UINT16(tmp, objData) << 16 >> 16
-                    objData += 2
-                    obj.opcode_arg3 = READ_LE_UINT16(tmp, objData) << 16 >> 16
-                    objData += 2
-                    on.objects[j] = obj
-                }
-                ++iObj
-                prevOffset = offsets[i]
-                prevNode = on
-            }
-            this._objectNodesMap[i] = prevNode
-        }
+        const parsed = decodeOBJData(tmp, size, this._numObjectNodes)
+        this._numObjectNodes = parsed.numObjectNodes
+        this._objectNodesMap = parsed.objectNodesMap
     }
 
     load_SPM(f: File) {
@@ -768,31 +509,16 @@ class Resource {
         this._processOffsetData(offData, sprData);
     }
 
-    private _processOffsetData(offData: Uint8Array, sprData: Uint8Array): void {
-        if (!offData || !sprData) {
-            return;
-        }
-
-        for (let index = 0; index < offData.byteLength; index += this.ENTRY_SIZE) {
-            const spriteIndex = READ_LE_UINT16(offData.buffer, index);
-
-            // Check for terminator condition
-            if (spriteIndex === this.SPRITE_TERMINATOR) {
-                break;
-            }
-
-            // Validate sprite index
-            if (spriteIndex >= NUM_SPRITES) {
-                throw new Error(`Invalid sprite index: ${spriteIndex}`);
-            }
-
-            const spriteOffset = READ_LE_UINT32(offData.buffer, index + 2);
-
-            // Assign sprite data or null based on offset
-            this._sprData[spriteIndex] = spriteOffset === this.INVALID_OFFSET
-                ? null
-                : sprData.subarray(spriteOffset);
-        }
+    private _processOffsetData(offDataForAMonster: Uint8Array, sprDataForAMonster: Uint8Array): void {
+        processSpriteOffsetData(
+            offDataForAMonster,
+            sprDataForAMonster,
+            this._sprData,
+            NUM_SPRITES,
+            this.SPRITE_TERMINATOR,
+            this.INVALID_OFFSET,
+            this.ENTRY_SIZE
+        )
     }
 
     // LOAD SOUND EFFECTS

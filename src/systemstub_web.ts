@@ -579,7 +579,7 @@ class SystemStub {
 		let paused = false
 		while (true) {
 			while (this._events.length) {
-				this.processEvent(this._events.shift(), paused)
+				this.processEvent(this._events.shift())
 				if (this._pi.quit) {
 					return
 				}

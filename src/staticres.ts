@@ -643,12 +643,6 @@ const _enTextsTable = [
 	{ num: -1, str: null }
 ]
 
-const _demoInputs = [
-	{ name: "demo1.bin",  level: 0, room: 0x33, x: 0x60, y: 0x46 },
-	{ name: "demo51.bin", level: 5, room: 0x00, x: 0x60, y: 0xD6 },
-	{ name: "demo3.bin" , level: 2, room: 0xFF, x: 0x00, y: 0x00 }
-]
-
 const _gameLevels = [
 	{ name: "level1", name2: "level1", nameAmiga: "level1", cutscene_id: 0x00, sound: 1, track: 3 },
 	{ name: "level2", name2: "level2", nameAmiga: "level2", cutscene_id: 0x2F, sound: 1, track: 4 },
@@ -3692,4 +3686,4 @@ const _flagEn16x12 = Uint8Array.from([
 ])
 
 
-export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _demoInputs, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _levelNames, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _modulesFiles, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }
+export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _levelNames, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _modulesFiles, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }
