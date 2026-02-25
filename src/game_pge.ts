@@ -23,7 +23,9 @@ import {
     PGE_FLAG_FLIP_X,
     PGE_FLAG_MIRRORED,
     PGE_FLAG_SPECIAL_ANIM,
-    UINT8_MAX
+    UINT8_MAX,
+    UINT16_MAX,
+    CT_ROOM_SIZE
 } from './game_constants'
 import { gamePgePlayAnimSound as gameAudioPgePlayAnimSound } from './game_audio'
 import {
@@ -34,6 +36,7 @@ import {
     gamePgeSetCurrentInventoryObject as gameInventoryPgeSetCurrentInventoryObject,
     gamePgeUpdateInventory as gameInventoryPgeUpdateInventory
 } from './game_inventory'
+
 
 export function gamePgeLoadForCurrentLevel(game: Game, idx: number, currentRoom: number) {
     const initial_pge_from_file: InitPGE = game._res._pgeAllInitialStateFromFile[idx]
@@ -104,7 +107,7 @@ export function gamePgeSetupDefaultAnim(game: Game, pge: LivePGE) {
         pge.anim_seq = 0
     }
     const anim_frame = anim_data.subarray(6 + pge.anim_seq * 4)
-    if (game._res._readUint16(anim_frame) !== 0xFFFF) {
+    if (game._res._readUint16(anim_frame) !== UINT16_MAX) {
         let f = game._res._readUint16(anim_data)
         if (pge.flags & PGE_FLAG_MIRRORED) {
             f ^= 0x8000
@@ -114,7 +117,7 @@ export function gamePgeSetupDefaultAnim(game: Game, pge: LivePGE) {
             pge.flags |= PGE_FLAG_FLIP_X
         }
         pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
-        if (game._res._readUint16(anim_data, 4) & 0xFFFF) {
+        if (game._res._readUint16(anim_data, 4) & UINT16_MAX) {
             pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
 
@@ -156,7 +159,7 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
             debugger
             throw(`Game::pge_execute() missing call to pge_opcode 0x${obj.opcode1.toString(16)}`)
         }
-        if (!(op(args, game) & 0xFF)) {
+        if (!(op(args, game) & UINT8_MAX)) {
             return 0
         }
     }
@@ -171,7 +174,7 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
             console.warn(`Game::pge_execute() missing call to pge_opcode 0x${obj.opcode2.toString(16)}`)
             return 0
         }
-        if (!(op2(args, game) & 0xFF)) {
+        if (!(op2(args, game) & UINT8_MAX)) {
             return 0
         }
     }
@@ -225,7 +228,7 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
             game._pge_processOBJ = false
         }
     }
-    return 0xFFFF
+    return UINT16_MAX
 }
 
 export function gamePgeProcessOBJ(game: Game, pge: LivePGE) {
@@ -238,10 +241,10 @@ export function gamePgeProcessOBJ(game: Game, pge: LivePGE) {
     let obj: Obj = on.objects[objIndex]
     let i = pge.first_obj_number
     while (i < on.last_obj_number && pge.obj_type === obj.type) {
-        if (obj.opcode2 === 0x6B) return 0xFFFF
-        if (obj.opcode2 === 0x22 && obj.opcode_arg2 <= 4) return 0xFFFF
-        if (obj.opcode1 === 0x6B) return 0xFFFF
-        if (obj.opcode1 === 0x22 && obj.opcode_arg1 <= 4) return 0xFFFF
+        if (obj.opcode2 === 0x6B) return UINT16_MAX
+        if (obj.opcode2 === 0x22 && obj.opcode_arg2 <= 4) return UINT16_MAX
+        if (obj.opcode1 === 0x6B) return UINT16_MAX
+        if (obj.opcode1 === 0x22 && obj.opcode_arg1 <= 4) return UINT16_MAX
         objIndex++
         obj = on.objects[objIndex]
         ++i
@@ -319,7 +322,7 @@ export function gamePgeInnerProcess(game: Game, pge: LivePGE, currentRoom: numbe
             const _ax = game.pge_execute(pge, init_pge, obj)
 
             if (game._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
-                if (pge.index === 79 && _ax === 0xFFFF && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
+                if (pge.index === 79 && _ax === UINT16_MAX && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
                     if (game.col_getGridPos(game._pgeLiveAll[79], 0) === game.col_getGridPos(game._pgeLiveAll[0], 0)) {
                         game.pge_updateGroup(79, 0, 4)
                     }
@@ -355,7 +358,7 @@ export function gamePgeSetupAnim(game: Game, pge: LivePGE) {
     }
     const anim_frame = anim_data.subarray(6 + pge.anim_seq * 4)
 
-    if (game._res._readUint16(anim_frame) !== 0xFFFF) {
+    if (game._res._readUint16(anim_frame) !== UINT16_MAX) {
         let fl = game._res._readUint16(anim_frame)
         if (pge.flags & PGE_FLAG_MIRRORED) {
             fl ^= 0x8000
@@ -369,7 +372,7 @@ export function gamePgeSetupAnim(game: Game, pge: LivePGE) {
             pge.flags |= PGE_FLAG_FLIP_X
         }
         pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
-        if (game._res._readUint16(anim_data, 4) & 0xFFFF) {
+        if (game._res._readUint16(anim_data, 4) & UINT16_MAX) {
             pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
         pge.anim_number = game._res._readUint16(anim_frame) & 0x7FFF
@@ -479,7 +482,7 @@ export function gamePgeSetupNextAnimFrame(game: Game, pge: LivePGE, le: GroupPGE
         const anim_frame = anim_data.subarray(6 + _dl * 4)
         let index = 0
         while (_dh > _dl) {
-            if (game._res._readUint16(anim_frame, index) !== 0xFFFF) {
+            if (game._res._readUint16(anim_frame, index) !== UINT16_MAX) {
                 if (game._pge_currentPiegeFacingDir) {
                     pge.pos_x = pge.pos_x - (anim_frame[2 + index] << 24 >> 24)
                 } else {

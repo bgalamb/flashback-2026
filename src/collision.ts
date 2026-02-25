@@ -1,4 +1,4 @@
-import { CT_LEFT_ROOM, CT_RIGHT_ROOM, Game } from './game'
+import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from './game'
 import { CollisionSlot, InitPGE, LivePGE, Obj, ObjectNode } from './intern'
 import type { col_Callback1, col_Callback2 } from './game'
 
@@ -8,7 +8,7 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 	let collision_score = 0
 	let pge_room = pge.room_location << 24 >> 24
 
-	if (pge_room < 0 || pge_room >= 0x40) {
+	if (pge_room < 0 || pge_room >= CT_DOWN_ROOM) {
 		return 0
 	}
 	let thr = pge.init_PGE.counter_values[0]
@@ -247,7 +247,7 @@ const col_detectGunHitCallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, a
 
 const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
 	let pge_room = pge.room_location
-	if (pge_room < 0 || pge_room >= 0x40) return 0
+	if (pge_room < 0 || pge_room >= CT_DOWN_ROOM) return 0
 	let thr, pos_dx, pos_dy
 	if (argC === -1) {
 		thr = pge.init_PGE.counter_values[0]

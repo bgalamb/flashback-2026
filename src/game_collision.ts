@@ -96,7 +96,7 @@ export function gameColGetGridData(game: Game, pge: LivePGE, dy: number, dx: num
         }
 
         room_ct_data = room_ct_data.subarray(pge_grid_x + 16 + pge_grid_y * 16 + next_room * 0x70)
-        return room_ct_data[0x40]
+        return room_ct_data[CT_DOWN_ROOM]
     } else if (pge_grid_x >= 16) {
         room_ct_data = game._res._ctData.subarray(CT_RIGHT_ROOM)
         next_room = room_ct_data[pge.room_location]

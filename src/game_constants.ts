@@ -1,4 +1,17 @@
 const UINT8_MAX = 0xFF
+const UINT16_MAX = 0xFFFF
+const kIngameSaveSlot = 0
+const kRewindSize = 120 // 10mins (~2MB)
+const kAutoSaveSlot = UINT8_MAX
+const kAutoSaveIntervalMs = 5 * 1000
+
+const CT_ROOM_SIZE = 0x40
+const CT_UP_ROOM = 0x00
+const CT_DOWN_ROOM = 0x40
+const CT_RIGHT_ROOM = 0x80
+const CT_LEFT_ROOM = 0xC0
+
+const PGE_NUM = 256
 const PGE_FLAG_MIRRORED = 0x01
 const PGE_FLAG_FLIP_X = 0x02
 const PGE_FLAG_ACTIVE = 0x04
@@ -16,6 +29,17 @@ const OBJ_FLAG_SET_DEAD = 0x08
 
 export {
   UINT8_MAX,
+  UINT16_MAX,
+  kIngameSaveSlot,
+  kRewindSize,
+  kAutoSaveSlot,
+  kAutoSaveIntervalMs,
+  CT_ROOM_SIZE,
+  CT_UP_ROOM,
+  CT_DOWN_ROOM,
+  CT_RIGHT_ROOM,
+  CT_LEFT_ROOM,
+  PGE_NUM,
   PGE_FLAG_MIRRORED,
   PGE_FLAG_FLIP_X,
   PGE_FLAG_ACTIVE,

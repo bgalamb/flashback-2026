@@ -22,7 +22,19 @@ import {
 } from './staticres-monsters'
 import { File } from './file'
 import { _pge_opcodeTable } from './game_opcodes'
-import { UINT8_MAX } from './game_constants'
+import {
+    UINT8_MAX,
+    kIngameSaveSlot,
+    kRewindSize,
+    kAutoSaveSlot,
+    kAutoSaveIntervalMs,
+    CT_ROOM_SIZE,
+    CT_UP_ROOM,
+    CT_DOWN_ROOM,
+    CT_RIGHT_ROOM,
+    CT_LEFT_ROOM,
+    PGE_NUM,
+} from './game_constants'
 import { gamePlaySound } from './game_audio'
 import {
     gameColClearState,
@@ -100,18 +112,6 @@ import {
     gamePgeUpdateInventory,
     gamePgeAddToInventory
 } from './game_pge'
-
-const kIngameSaveSlot = 0
-const kRewindSize = 120 // 10mins (~2MB)
-const kAutoSaveSlot = UINT8_MAX
-const kAutoSaveIntervalMs = 5 * 1000
-
-const CT_UP_ROOM    = 0x00
-const CT_DOWN_ROOM  = 0x40
-const CT_RIGHT_ROOM = 0x80
-const CT_LEFT_ROOM  = 0xC0
-
-const PGE_NUM = 256
 
 type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
