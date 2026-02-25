@@ -6,6 +6,7 @@ import { ObjectType, LocaleData } from './resource'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP } from './systemstub_web'
 import { CHAR_W, GAMESCREEN_W } from './configs/config'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
+import { UINT8_MAX } from './game_constants'
 
 export async function gamePlayCutscene(game: Game, id: number = -1) {
     if (id !== -1) {
@@ -145,7 +146,7 @@ export async function gameHandleContinueAbort(game: Game) {
     let timeout = 100
     let current_color = 0
     const colors = [0xE4, 0xE5]
-    let color_inc = 0xFF
+    let color_inc = UINT8_MAX
     const col: Color = { r: 0, g: 0, b: 0 }
     game._stub.getPaletteEntry(0xE4, col)
     game._vid._tempLayer.set(game._vid._frontLayer.subarray(0, game._vid._layerSize))
@@ -191,9 +192,9 @@ export async function gameHandleContinueAbort(game: Game) {
         if (col.b >= COLOR_MAX) {
             color_inc = 0
         } else if (col.b < COLOR_MIN) {
-            color_inc = 0xFF
+            color_inc = UINT8_MAX
         }
-        if (color_inc === 0xFF) {
+        if (color_inc === UINT8_MAX) {
             col.b += COLOR_STEP
             col.g += COLOR_STEP
         } else {
@@ -242,7 +243,7 @@ export async function gameDidDie(game: Game) {
 }
 
 export function gamePgeProcessLoop(game: Game, pge_liveTable2: LivePGE[], currentRoom: number) {
-    for (let i = 0; i < game._res._pgeNum; ++i) {
+    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
         const pge: LivePGE = pge_liveTable2[i]
         if (pge) {
             game._col_currentPiegeGridPosY = ((pge.pos_y / 36) >> 0) & ~1
@@ -263,7 +264,7 @@ export async function gameMainLoop(game: Game) {
     game.col_prepareRoomState(game._currentRoom)
 
     const oldLevel = game._currentLevel
-    gamePgeProcessLoop(game, game._pge_liveTable2, game._currentRoom)
+    gamePgeProcessLoop(game, game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly, game._currentRoom)
 
     if (oldLevel !== game._currentLevel) {
         await game.changeLevel()
@@ -272,11 +273,11 @@ export async function gameMainLoop(game: Game) {
     }
 
     if (game._loadMap) {
-        if (game._currentRoom === 0xFF || !game.hasLevelMap(game._pgeLive[0].room_location)) {
+        if (game._currentRoom === 0xFF || !game.hasLevelMap(game._pgeLiveAll[0].room_location)) {
             game._cut.setId(6)
             game._deathCutsceneCounter = 1
         } else {
-            game._currentRoom = game._pgeLive[0].room_location
+            game._currentRoom = game._pgeLiveAll[0].room_location
             await game.loadLevelMap(game._currentRoom)
             game._loadMap = false
             game._vid.fullRefresh()
@@ -303,7 +304,7 @@ export async function gameMainLoop(game: Game) {
     }
     game.inp_handleSpecialKeys()
     if (game._autoSave && game._stub.getTimeStamp() - game._saveTimestamp >= kAutoSaveIntervalMs) {
-        if (game._pgeLive[0].life > 0 && game._deathCutsceneCounter === 0) {
+        if (game._pgeLiveAll[0].life > 0 && game._deathCutsceneCounter === 0) {
             game.saveGameState(kAutoSaveSlot)
             game._saveTimestamp = game._stub.getTimeStamp()
         }
@@ -312,7 +313,7 @@ export async function gameMainLoop(game: Game) {
 
 export function gameInpHandleSpecialKeys(game: Game) {
     if (game._stub._pi.dbgMask & DF_SETLIFE) {
-        game._pgeLive[0].life = 0x7FFF
+        game._pgeLiveAll[0].life = 0x7FFF
     }
     if (game._stub._pi.load) {
         game.loadGameState(game._stateSlot)

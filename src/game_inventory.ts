@@ -3,10 +3,11 @@ import type { Game } from './game'
 import { LocaleData } from './resource'
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from './systemstub_web'
 import { CHAR_W, GAMESCREEN_W } from './configs/config'
+import { UINT8_MAX } from './game_constants'
 
 export function gamePgeReorderInventory(game: Game, pge: LivePGE) {
-    if (pge.unkF !== 0xFF) {
-        const _bx: LivePGE = game._pgeLive[pge.unkF]
+    if (pge.unkF !== UINT8_MAX) {
+        const _bx: LivePGE = game._pgeLiveAll[pge.unkF]
         const _di: LivePGE = game.pge_getInventoryItemBefore(_bx, pge)
         if (_di === _bx) {
             if (_di.current_inventory_PGE === pge.index) {
@@ -21,7 +22,7 @@ export function gamePgeReorderInventory(game: Game, pge: LivePGE) {
 }
 
 export function gamePgeUpdateInventory(game: Game, pge1: LivePGE, pge2: LivePGE) {
-    if (pge2.unkF !== 0xFF) {
+    if (pge2.unkF !== UINT8_MAX) {
         game.pge_reorderInventory(pge2)
     }
 
@@ -31,8 +32,8 @@ export function gamePgeUpdateInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
 
 export async function gameHandleInventory(game: Game) {
     let selected_pge: LivePGE = null
-    const pge: LivePGE = game._pgeLive[0]
-    if (pge.life > 0 && pge.current_inventory_PGE !== 0xFF) {
+    const pge: LivePGE = game._pgeLiveAll[0]
+    if (pge.life > 0 && pge.current_inventory_PGE !== UINT8_MAX) {
         game.playSound(66, 0)
         const items: InventoryItem[] = new Array(24).fill(null).map(() => ({
             icon_num: 0,
@@ -41,17 +42,17 @@ export async function gameHandleInventory(game: Game) {
         }))
         let num_items = 0
         let inv_pge = pge.current_inventory_PGE
-        while (inv_pge !== 0xFF) {
+        while (inv_pge !== UINT8_MAX) {
             items[num_items] = {
-                icon_num: game._res._pgeInit[inv_pge].icon_num,
-                init_pge: game._res._pgeInit[inv_pge],
-                live_pge: game._pgeLive[inv_pge]
+                icon_num: game._res._pgeAllInitialStateFromFile[inv_pge].icon_num,
+                init_pge: game._res._pgeAllInitialStateFromFile[inv_pge],
+                live_pge: game._pgeLiveAll[inv_pge]
             }
 
-            inv_pge = game._pgeLive[inv_pge].next_inventory_PGE
+            inv_pge = game._pgeLiveAll[inv_pge].next_inventory_PGE
             ++num_items
         }
-        items[num_items].icon_num = 0xFF
+        items[num_items].icon_num = UINT8_MAX
         let current_item = 0
         const num_lines = (((num_items - 1) / 4) >> 0) + 1
         let current_line = 0
@@ -72,7 +73,7 @@ export async function gameHandleInventory(game: Game) {
                 let icon_x_pos = 72
                 for (let i = 0; i < 4; ++i) {
                     const item_it = current_line * 4 + i
-                    if (items[item_it].icon_num === 0xFF) {
+                    if (items[item_it].icon_num === UINT8_MAX) {
                         break
                     }
                     game.drawIcon(items[item_it].icon_num, icon_x_pos, 157, 0xA)
@@ -156,8 +157,8 @@ export function gamePgeGetInventoryItemBefore(game: Game, pge: LivePGE, last_pge
     let _di: LivePGE = pge
     let n = _di.current_inventory_PGE
 
-    while (n !== 0xFF) {
-        const _si: LivePGE = game._pgeLive[n]
+    while (n !== UINT8_MAX) {
+        const _si: LivePGE = game._pgeLiveAll[n]
         if (_si === last_pge) {
             break
         } else {
@@ -169,13 +170,13 @@ export function gamePgeGetInventoryItemBefore(game: Game, pge: LivePGE, last_pge
 }
 
 export function gamePgeRemoveFromInventory(game: Game, pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
-    pge2.unkF = 0xFF
+    pge2.unkF = UINT8_MAX
     if (pge3 === pge1) {
         pge3.current_inventory_PGE = pge2.next_inventory_PGE
-        pge2.next_inventory_PGE = 0xFF
+        pge2.next_inventory_PGE = UINT8_MAX
     } else {
         pge1.next_inventory_PGE = pge2.next_inventory_PGE
-        pge2.next_inventory_PGE = 0xFF
+        pge2.next_inventory_PGE = UINT8_MAX
     }
 }
 
@@ -192,8 +193,8 @@ export function gamePgeAddToInventory(game: Game, pge1: LivePGE, pge2: LivePGE, 
 }
 
 export function gamePgeSetCurrentInventoryObject(game: Game, pge: LivePGE) {
-    const _bx: LivePGE = game.pge_getInventoryItemBefore(game._pgeLive[0], pge)
-    if (_bx === game._pgeLive[0]) {
+    const _bx: LivePGE = game.pge_getInventoryItemBefore(game._pgeLiveAll[0], pge)
+    if (_bx === game._pgeLiveAll[0]) {
         if (_bx.current_inventory_PGE !== pge.index) {
             return 0
         }
@@ -202,7 +203,7 @@ export function gamePgeSetCurrentInventoryObject(game: Game, pge: LivePGE) {
             return 0
         }
     }
-    game.pge_removeFromInventory(_bx, pge, game._pgeLive[0])
-    game.pge_addToInventory(game._pgeLive[0], pge, game._pgeLive[0])
+    game.pge_removeFromInventory(_bx, pge, game._pgeLiveAll[0])
+    game.pge_addToInventory(game._pgeLiveAll[0], pge, game._pgeLiveAll[0])
     return 0xFFFF
 }

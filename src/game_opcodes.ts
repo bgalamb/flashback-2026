@@ -333,10 +333,10 @@ const pge_ZOrder = (pge: LivePGE, num: number, compare: pge_ZOrderCallback, unk:
 		let slot_bak = slot
 		slot = 0xFF
 		while (cs !== null) {
-			if (compare(cs.live_pge, pge, num, unk, game) !== 0) {
+			if (compare(cs.pge, pge, num, unk, game) !== 0) {
 				return 1
 			}
-			if (pge === cs.live_pge) {
+			if (pge === cs.pge) {
 				slot = cs.index & 0x00FF
 			}
 			cs = cs.prev_slot
@@ -349,7 +349,7 @@ const pge_ZOrder = (pge: LivePGE, num: number, compare: pge_ZOrderCallback, unk:
 }
 
 const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, game: Game) => {
-	let pge_unk1C = pge.init_PGE.unk1C
+	let pge_collision_segments = pge.init_PGE.number_of_collision_segments
 	if (!(pge.room_location & 0x80) && pge.room_location < 0x40) {
         const grid_data = game._res._ctData.subarray(0x100)
 		let dataIndex = 0x70 * pge.room_location
@@ -362,18 +362,18 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
 		let i = 255
 		pge_pos_x = i
 		if (game._pge_currentPiegeFacingDir) {
-			i = pge_unk1C - 1
+			i = pge_collision_segments - 1
 			dataIndex -= i
 		}
         let while_i = 0
 		while (slot1) {
 			if (slot1.unk2.buffer === grid_data.buffer && slot1.unk2.byteOffset === (grid_data.byteOffset + dataIndex)) {
-				slot1.data_size = pge_unk1C - 1
-                if (pge_unk1C >= 0x70) {
-                    throw(`Assertion failed: ${pge_unk1C} < 0x70`)
+				slot1.data_size = pge_collision_segments - 1
+                if (pge_collision_segments >= 0x70) {
+                    throw(`Assertion failed: ${pge_collision_segments} < 0x70`)
                 }
-                grid_data.subarray(dataIndex).fill(var8, 0, pge_unk1C)
-				dataIndex += pge_unk1C
+                grid_data.subarray(dataIndex).fill(var8, 0, pge_collision_segments)
+				dataIndex += pge_collision_segments
 				return 1
 			} else {
 				++i
@@ -388,12 +388,12 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
 		if (slotIndex < 255) {
 			slot1 = game._col_slots2Cur
 			slot1.unk2 = grid_data.subarray(dataIndex)
-			slot1.data_size = pge_unk1C - 1
+			slot1.data_size = pge_collision_segments - 1
 			const dst = slot1.data_buf
 			const src = grid_data.subarray(dataIndex)
             let srcIndex = 0
             let dstIndex = 0
-			let n = pge_unk1C
+			let n = pge_collision_segments
             if (n >= 0x10) {
                 throw(`Assertion failed: ${n} < 0x10`)
             }
@@ -426,13 +426,13 @@ const pge_op_pickupObject = (args:ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_addItemToInventory = (args: ObjectOpcodeArgs, game: Game) => {
-	game.pge_updateInventory(game._pgeLive[args.a], args.pge)
+	game.pge_updateInventory(game._pgeLiveAll[args.a], args.pge)
 	args.pge.room_location = 0xFF
 	return 0xFFFF
 }
 
 const pge_op_copyPiege = (args: ObjectOpcodeArgs, game: Game) => {
-	const src:LivePGE = game._pgeLive[args.a]
+	const src:LivePGE = game._pgeLiveAll[args.a]
 	const dst:LivePGE = args.pge
 
 	dst.pos_x = src.pos_x
@@ -448,8 +448,8 @@ const pge_op_copyPiege = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_canUseCurrentInventoryItem = (args: ObjectOpcodeArgs, game: Game) => {
-	const pge:LivePGE = game._pgeLive[0]
-	if (pge.current_inventory_PGE !== 0xFF && game._res._pgeInit[pge.current_inventory_PGE].object_id === args.a) {
+	const pge:LivePGE = game._pgeLiveAll[0]
+	if (pge.current_inventory_PGE !== 0xFF && game._res._pgeAllInitialStateFromFile[pge.current_inventory_PGE].object_id === args.a) {
 		return 1
 	}
 
@@ -549,8 +549,8 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 				if (_bl >= 0) {
 					let col_slot:CollisionSlot = game._col_slotsTable[_bl]
 					do {
-						if (args.pge !== col_slot.live_pge && (col_slot.live_pge.flags & 4)) {
-							if (col_slot.live_pge.init_PGE.object_type === args.b) {
+						if (args.pge !== col_slot.pge && (col_slot.pge.flags & 4)) {
+							if (col_slot.pge.init_PGE.object_type === args.b) {
 								return 1
 							}
 						}
@@ -597,8 +597,8 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 				if (_bl >= 0) {
 					let col_slot:CollisionSlot = game._col_slotsTable[_bl]
 					do {
-						if (args.pge !== col_slot.live_pge && (col_slot.live_pge.flags & 4)) {
-							if (col_slot.live_pge.init_PGE.object_type === args.b) {
+						if (args.pge !== col_slot.pge && (col_slot.pge.flags & 4)) {
+							if (col_slot.pge.init_PGE.object_type === args.b) {
 								return 1
 							}
 						}
@@ -622,9 +622,9 @@ const pge_op_wakeUpPiege = (args: ObjectOpcodeArgs, game: Game) => {
 	if (args.a <= 3) {
 		const num = args.pge.init_PGE.counter_values[args.a]
 		if (num >= 0) {
-			const pge: LivePGE = game._pgeLive[num]
+			const pge: LivePGE = game._pgeLiveAll[num]
 			pge.flags |= 4
-			game._pge_liveTable2[num] = pge
+			game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[num] = pge
 		}
 	}
 	return 1
@@ -634,8 +634,8 @@ const pge_op_removePiege = (args: ObjectOpcodeArgs, game: Game) => {
 	if (args.a <= 3) {
 		const num = args.pge.init_PGE.counter_values[args.a]
 		if (num >= 0) {
-			game._pge_liveTable2[num] = null
-			game._pgeLive[num].flags &= ~4
+			game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[num] = null
+			game._pgeLiveAll[num].flags &= ~4
 		}
 	}
 	return 1
@@ -645,7 +645,7 @@ const pge_op_killPiege = (args: ObjectOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
 	pge.room_location = 0xFE
 	pge.flags &= ~4
-	game._pge_liveTable2[pge.index] = null
+	game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge.index] = null
 	if (pge.init_PGE.object_type === 10) {
 		game._score += 200
 	}
@@ -667,7 +667,7 @@ const pge_op_scrollPosY = (args: ObjectOpcodeArgs, game: Game) => {
 	args.pge.pos_y += args.a
 	let pge_num = pge.current_inventory_PGE
 	while (pge_num !== 0xFF) {
-		pge = game._pgeLive[pge_num]
+		pge = game._pgeLiveAll[pge_num]
 		pge.pos_y += args.a
 		pge_num = pge.next_inventory_PGE
 	}
@@ -683,7 +683,7 @@ const pge_op_playDefaultDeathCutscene = (args: ObjectOpcodeArgs, game: Game) => 
 
 const pge_op_isNotFacingConrad = (args: ObjectOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
-	const pge_conrad:LivePGE = game._pgeLive[0]
+	const pge_conrad:LivePGE = game._pgeLiveAll[0]
 	if ((pge.pos_y / 72) >> 0 === ((pge_conrad.pos_y - 8) / 72) >> 0)  { // same grid cell
 		if (pge.room_location === pge_conrad.room_location) {
 			if (args.a === 0) {
@@ -724,7 +724,7 @@ const pge_op_isNotFacingConrad = (args: ObjectOpcodeArgs, game: Game) => {
 
 const pge_op_isFacingConrad = (args: ObjectOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
-	const pge_conrad:LivePGE = game._pgeLive[0]
+	const pge_conrad:LivePGE = game._pgeLiveAll[0]
 	if ((pge.pos_y / 72) >> 0 === ((pge_conrad.pos_y - 8) / 72) >> 0) {
 		if (pge.room_location === pge_conrad.room_location) {
 			if (args.a === 0) {
@@ -796,10 +796,10 @@ const pge_o_unk0x7E = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_hasInventoryItem = (args: ObjectOpcodeArgs, game: Game) => {
-	let pge:LivePGE = game._pgeLive[0]
+	let pge:LivePGE = game._pgeLiveAll[0]
 	let _dl = pge.current_inventory_PGE
 	while (_dl !== 0xFF) {
-		pge = game._pgeLive[_dl]
+		pge = game._pgeLiveAll[_dl]
 		if (pge.init_PGE.object_id === args.a) {
 			return 0xFFFF
 		}
@@ -980,7 +980,7 @@ const pge_o_unk0x53 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_isPiegeNear = (args: ObjectOpcodeArgs, game: Game) => {
-	if (game.col_findPiege(game._pgeLive[0], args.a) !== null) {
+	if (game.col_findPiege(game._pgeLiveAll[0], args.a) !== null) {
 		return 1
 	}
 	return 0
@@ -1082,7 +1082,7 @@ const pge_op_removePiegeIfNotNear = (args: ObjectOpcodeArgs, game: Game) => {
     const kill_pge = () => {
         pge.flags &= ~4
         pge.collision_slot = 0xFF
-        game._pge_liveTable2[pge.index] = null
+        game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge.index] = null
         return skip_pge()
     }
 
@@ -1140,7 +1140,7 @@ const pge_o_unk0x47 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_o_unk0x48 = (args: ObjectOpcodeArgs, game: Game) => {
-	const pge:LivePGE = game.col_findPiege(game._pgeLive[0], args.pge.init_PGE.counter_values[0])
+	const pge:LivePGE = game.col_findPiege(game._pgeLiveAll[0], args.pge.init_PGE.counter_values[0])
 	if (pge && pge.life === args.pge.life) {
 		game.pge_updateGroup(args.pge.index, pge.index, args.a)
 		return 1
@@ -1149,16 +1149,16 @@ const pge_o_unk0x48 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_o_unk0x49 = (args: ObjectOpcodeArgs, game: Game) => {
-	return pge_ZOrder(game._pgeLive[0], args.a, pge_ZOrderIfIndex, args.pge.init_PGE.counter_values[0], game)
+	return pge_ZOrder(game._pgeLiveAll[0], args.a, pge_ZOrderIfIndex, args.pge.init_PGE.counter_values[0], game)
 }
 
 const pge_o_unk0x4A = (args: ObjectOpcodeArgs, game: Game) => {
 	const pge: LivePGE = args.pge
 	pge.room_location = 0xFE
 	pge.flags &= ~4
-	game._pge_liveTable2[pge.index] = null
-	const inv_pge:LivePGE = game.pge_getInventoryItemBefore(game._pgeLive[args.a], pge)
-	if (inv_pge === game._pgeLive[args.a]) {
+	game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge.index] = null
+	const inv_pge:LivePGE = game.pge_getInventoryItemBefore(game._pgeLiveAll[args.a], pge)
+	if (inv_pge === game._pgeLiveAll[args.a]) {
 		if (pge.index !== inv_pge.current_inventory_PGE) {
 			return 1
 		}
@@ -1167,7 +1167,7 @@ const pge_o_unk0x4A = (args: ObjectOpcodeArgs, game: Game) => {
 			return 1
 		}
 	}
-	game.pge_removeFromInventory(inv_pge, pge, game._pgeLive[args.a])
+	game.pge_removeFromInventory(inv_pge, pge, game._pgeLiveAll[args.a])
 	return 1
 }
 
@@ -1179,12 +1179,12 @@ const pge_o_unk0x7F = (args: ObjectOpcodeArgs, game: Game) => {
 	while (var4 !== 0xFF) {
 		let slot: CollisionSlot = game._col_slotsTable[var4]
 		while (slot) {
-			if (slot.live_pge !== args.pge) {
-				if (slot.live_pge.init_PGE.object_type === 3 && var2 !== slot.live_pge.unkF) {
+			if (slot.pge !== args.pge) {
+				if (slot.pge.init_PGE.object_type === 3 && var2 !== slot.pge.unkF) {
 					return 0
 				}
 			}
-			if (slot.live_pge === args.pge) {
+			if (slot.pge === args.pge) {
 				var4 = slot.index & 0x00FF
 			}
 			slot = slot.prev_slot
@@ -1253,7 +1253,7 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 				if (_bl >= 0) {
 					let collision_slot:CollisionSlot = game._col_slotsTable[_bl]
 					do {
-						_si = collision_slot.live_pge
+						_si = collision_slot.pge
 						if (args.pge !== _si && (_si.flags & 4) && _si.life >= 0) {
 							if (_si.init_PGE.object_type === 1 || _si.init_PGE.object_type === 10) {
 								return 1
@@ -1304,7 +1304,7 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 				if (_bl >= 0) {
 					let collision_slot:CollisionSlot = game._col_slotsTable[_bl]
 					do {
-						_si = collision_slot.live_pge
+						_si = collision_slot.pge
 						if (args.pge !== _si && (_si.flags & 4) && _si.life >= 0) {
 							if (_si.init_PGE.object_type === 1 || _si.init_PGE.object_type === 10) {
 								return 1
@@ -1484,12 +1484,12 @@ const pge_o_unk0x73 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_setLifeCounter = (args: ObjectOpcodeArgs, game: Game) => {
-	game._pgeLive[args.a].life = args.pge.init_PGE.counter_values[0]
+	game._pgeLiveAll[args.a].life = args.pge.init_PGE.counter_values[0]
 	return 1
 }
 
 const pge_op_decLifeCounter = (args: ObjectOpcodeArgs, game: Game) => {
-	args.pge.life = game._pgeLive[args.a].life - 1
+	args.pge.life = game._pgeLiveAll[args.a].life - 1
 	return 1
 }
 

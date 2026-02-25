@@ -2,6 +2,7 @@ import type { AnimBufferState, LivePGE } from './intern'
 import type { Game } from './game'
 import { MAX_VOLUME } from './mixer'
 import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './configs/config'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } from './game_constants'
 
 const PGE_NUM = 256
 
@@ -25,15 +26,15 @@ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, 
 }
 
 export function gameDrawCurrentInventoryItem(game: Game) {
-    const src = game._pgeLive[0].current_inventory_PGE
-    if (src !== 0xFF) {
-        game._currentIcon = game._res._pgeInit[src].icon_num
+    const src = game._pgeLiveAll[0].current_inventory_PGE
+    if (src !== UINT8_MAX) {
+        game._currentIcon = game._res._pgeAllInitialStateFromFile[src].icon_num
         game.drawIcon(game._currentIcon, 232, 8, 0xA)
     }
 }
 
 export function gameDrawLevelTexts(game: Game) {
-    const pge: LivePGE = game._pgeLive[0]
+    const pge: LivePGE = game._pgeLiveAll[0]
     let { obj, pge_out } = game.col_findCurrentCollidingObject(pge, 3, 0xFF, 0xFF)
     if (obj === 0) {
         const res = game.col_findCurrentCollidingObject(pge_out, 0xFF, 5, 9)
@@ -70,7 +71,7 @@ export async function gameDrawStoryTexts(game: Game) {
             game.drawIcon(game._currentInventoryIconNum, 80, 8, 0xA)
             let yPos = 26
 
-            if (str[index] === 0xFF) {
+            if (str[index] === UINT8_MAX) {
                 textColor = str[index + 1]
                 index += 3
 
@@ -149,13 +150,13 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
     game._animBuffers._states[stateNum] = state
     const lastPos = game._animBuffers._curPos[stateNum]
 
-    if (lastPos !== 0xFF) {
+    if (lastPos !== UINT8_MAX) {
         let index = lastPos
         let numAnims = lastPos + 1
-        game._animBuffers._curPos[stateNum] = 0xFF
+        game._animBuffers._curPos[stateNum] = UINT8_MAX
         do {
             const pge: LivePGE = state[index].pge
-            if (!(pge.flags & 8)) {
+            if (!(pge.flags & PGE_FLAG_SPECIAL_ANIM)) {
                 if (stateNum === 1 && (game._blinkingConradCounter & 1)) {
                     break
                 }
@@ -192,7 +193,7 @@ export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: nu
     }
     const posy = y - (dataPtr[2] << 24 >> 24)
     let posx = x
-    if (flags & 2) {
+    if (flags & PGE_FLAG_FLIP_X) {
         posx = posx + (dataPtr[1] << 24 >> 24)
     } else {
         posx = posx - (dataPtr[1] << 24 >> 24)
@@ -211,14 +212,14 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
 
     let sprite_y = y + dataPtr[2]
     let sprite_x: number
-    if (flags & 2) {
+    if (flags & PGE_FLAG_FLIP_X) {
         sprite_x = x - dataPtr[1] - (((dataPtr[3] & 0xC) + 4) * 2)
     } else {
         sprite_x = x + dataPtr[1]
     }
 
     let sprite_flags = dataPtr[3]
-    if (flags & 2) {
+    if (flags & PGE_FLAG_FLIP_X) {
         sprite_flags ^= 0x10
     }
 
@@ -317,7 +318,7 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
             sprite_clipped_w = sprite_w
         } else {
             sprite_clipped_w = GAMESCREEN_W - pos_x
-            if (flags & 2) {
+            if (flags & PGE_FLAG_FLIP_X) {
                 var14 = true
                 if (var16) {
                     src += (sprite_w - 1) * sprite_h
@@ -328,7 +329,7 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
         }
     } else {
         sprite_clipped_w = pos_x + sprite_w
-        if (!(flags & 2)) {
+        if (!(flags & PGE_FLAG_FLIP_X)) {
             if (var16) {
                 src -= sprite_h * pos_x
                 pos_x = 0
@@ -372,7 +373,7 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
         return
     }
 
-    if (!var14 && (flags & 2)) {
+    if (!var14 && (flags & PGE_FLAG_FLIP_X)) {
         if (var16) {
             src += sprite_h * (sprite_w - 1)
         } else {
@@ -383,7 +384,7 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
     const dst_offset = GAMESCREEN_W * pos_y + pos_x
     const sprite_col_mask = ((flags & 0x60) === 0x60) ? 0x50 : 0x40
 
-    if (!(flags & 2)) {
+    if (!(flags & PGE_FLAG_FLIP_X)) {
         if (var16) {
             game._vid.drawSpriteSub5(new Uint8Array(dataPtr.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_h, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {

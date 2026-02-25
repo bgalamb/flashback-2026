@@ -34,7 +34,7 @@ function decodePGEData(p: Uint8Array, maxPges: number): { pgeNum: number, pgeIni
         pge.skill = p[index++]
         pge.mirror_x = p[index++]
         pge.flags = p[index++]
-        pge.unk1C = p[index++]
+        pge.number_of_collision_segments = p[index++]
         index++
         pge.text_num = READ_LE_UINT16(p, index)
         index += 2

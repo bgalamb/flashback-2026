@@ -47,9 +47,9 @@ class Resource {
     _sprm: Uint8Array = new Uint8Array(0x10000)
 
     // number of total PGEs in the file
-    _pgeNum: number
-    //the initial structre where PGEs are loaded from the file
-    _pgeInit: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
+    _pgeTotalNumInFile: number
+    //the initial structure to which all PGEs are loaded from the file
+    _pgeAllInitialStateFromFile: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
 
     _map: Uint8Array
     _lev: Uint8Array
@@ -99,7 +99,7 @@ class Resource {
         this._spr1 = null
         // this._sprData = null
         // this._sprm = null
-        this._pgeNum = 0
+        this._pgeTotalNumInFile = 0
         // this._pgeInit = null
         this._map = null
         this._lev = null
@@ -200,9 +200,9 @@ class Resource {
 
 
     decodePGE(p: Uint8Array) {
-        const parsed = decodePGEData(p, this._pgeInit.length)
-        this._pgeNum = parsed.pgeNum
-        this._pgeInit = parsed.pgeInit
+        const parsed = decodePGEData(p, this._pgeAllInitialStateFromFile.length)
+        this._pgeTotalNumInFile = parsed.pgeNum
+        this._pgeAllInitialStateFromFile = parsed.pgeInit
     }
 
 // +--------------------------------------------------------------------------------------------+
@@ -687,7 +687,7 @@ class Resource {
         }
     }
 
-    clearLevelRes() {
+    clearLevelAllResources() {
         this._tbn = null
         this._mbk = null
         this._pal = null

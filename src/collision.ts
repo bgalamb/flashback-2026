@@ -51,7 +51,7 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 			if (slot >= 0) {
 				let cs: CollisionSlot = game._col_slotsTable[slot]
 				while (cs) {
-					collision_score += callback1(cs.live_pge, pge, arg2, arg4, game)
+					collision_score += callback1(cs.pge, pge, arg2, arg4, game)
 					cs = cs.prev_slot
 				}
 			}
@@ -297,7 +297,7 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 			if (slot >= 0) {
 				let cs:CollisionSlot = game._col_slotsTable[slot]
 				while (cs) {
-					const r = callback1(cs.live_pge, pge, arg2, arg4, game)
+					const r = callback1(cs.pge, pge, arg2, arg4, game)
 					if (r !== 0) {
                         return r
                     }

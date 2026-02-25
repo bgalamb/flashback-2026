@@ -22,6 +22,7 @@ import {
 } from './staticres-monsters'
 import { File } from './file'
 import { _pge_opcodeTable } from './game_opcodes'
+import { UINT8_MAX } from './game_constants'
 import { gamePlaySound } from './game_audio'
 import {
     gameColClearState,
@@ -113,7 +114,7 @@ import {
 
 const kIngameSaveSlot = 0
 const kRewindSize = 120 // 10mins (~2MB)
-const kAutoSaveSlot = 255
+const kAutoSaveSlot = UINT8_MAX
 const kAutoSaveIntervalMs = 5 * 1000
 
 const CT_UP_ROOM    = 0x00
@@ -212,15 +213,15 @@ class Game {
     _pge_playAnimSound: boolean
 
     // This is the table where the PGEs are loaded from the PGE file
-    _pgeLive = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
+    _pgeLiveAll = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
     // This is a filtered table where PGEs are (re)arranged by roomLocation
     // the PGE that is found in the array will have a link to the next PGE in the room, and that PGe to the next
     // it's a linked list
-    _pge_liveTable1 = new Array<LivePGE>(PGE_NUM)
+    _pge_liveLinkedListTableByRoomAllRooms = new Array<LivePGE>(PGE_NUM)
 
 
     // This is a filtered table that contains PGEs at their original indexes only when they are in current room.
-    _pge_liveTable2 = new Array<LivePGE>(PGE_NUM)
+    _pge_liveFlatTableFilteredByRoomCurrentRoomOnly = new Array<LivePGE>(PGE_NUM)
     _pge_groups = new Array<GroupPGE>(PGE_NUM).fill(null).map(() => ({
         next_entry: null,
         index: 0,
@@ -238,13 +239,13 @@ class Game {
 	_pge_compareVar1: number
 	_pge_compareVar2: number
 
-    _col_curPos: number
+    _col_collisions_slots_counter: number
     _col_curSlot: CollisionSlot
     _col_slotsTable: CollisionSlot[] = new Array(PGE_NUM)
     _col_slots: CollisionSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
         ct_pos: 0,
         prev_slot: null,
-        live_pge: null,
+        pge: null,
         index: 0      
     }))
 	_col_slots2: CollisionSlot2[] = new Array(PGE_NUM).fill(null).map(() => ({
@@ -256,7 +257,10 @@ class Game {
 	_col_slots2Cur: CollisionSlot2
 	_col_slots2Next: CollisionSlot2
     _col_activeCollisionSlots: Uint8Array = new Uint8Array(0x30 * 3)
-	_col_currentLeftRoom: number
+
+
+
+    _col_currentLeftRoom: number
 	_col_currentRightRoom: number
 	_col_currentPiegeGridPosX: number
 	_col_currentPiegeGridPosY: number
@@ -418,17 +422,17 @@ class Game {
         return gameDrawStoryTexts(this)
     }
 
-    private async didFinishAllLevels() {
-        return gameDidFinishAllLevels(this)
-    }
-
-    private async didDie(){
-        return gameDidDie(this)
-    }
-
-    private pge_process(pge_liveTable2: LivePGE[], currentRoom: number){
-        return gamePgeProcessLoop(this, pge_liveTable2, currentRoom)
-    }
+    // private async didFinishAllLevels() {
+    //     return gameDidFinishAllLevels(this)
+    // }
+    //
+    // private async didDie(){
+    //     return gameDidDie(this)
+    // }
+    //
+    // private pge_process(pge_liveTable2: LivePGE[], currentRoom: number){
+    //     return gamePgeProcessLoop(this, pge_liveTable2, currentRoom)
+    // }
 
     async mainLoop() {
         return gameMainLoop(this)
@@ -464,41 +468,41 @@ class Game {
         return gamePrepareAnimationsInRooms(this, currentRoom)
     }
 
-    private async prepareCurrentRoomAnims(currentRoom:number) {
-        return gamePrepareCurrentRoomAnims(this, currentRoom)
-    }
-
-    private async prepareAdjacentRoomAnims(
-        roomOffset: number,
-        offsetX: number,
-        offsetY: number,
-        shouldPrepare: (pge: LivePGE) => boolean,
-        currentRoom:number
-    ) {
-        return gamePrepareAdjacentRoomAnims(this, roomOffset, offsetX, offsetY, (_game, pge) => shouldPrepare(pge), currentRoom)
-    }
-
-    private isAboveRoomPge(pge: LivePGE): boolean {
-        return gameIsAboveRoomPge(this, pge)
-    }
-
-    private isBelowRoomPge(pge: LivePGE): boolean {
-        return gameIsBelowRoomPge(this, pge)
-    }
-
-    private isLeftRoomPge(pge: LivePGE): boolean {
-        return gameIsLeftRoomPge(this, pge)
-    }
-
-    private isRightRoomPge(pge: LivePGE): boolean {
-        return gameIsRightRoomPge(this, pge)
-    }
-
-
-    // it seems this is the most important regarding animations
-    async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number, currentRoom:number) {
-        return gamePrepareAnimsHelper(this, pge, dx, dy, currentRoom)
-    }
+    // private async prepareCurrentRoomAnims(currentRoom:number) {
+    //     return gamePrepareCurrentRoomAnims(this, currentRoom)
+    // }
+    //
+    // private async prepareAdjacentRoomAnims(
+    //     roomOffset: number,
+    //     offsetX: number,
+    //     offsetY: number,
+    //     shouldPrepare: (pge: LivePGE) => boolean,
+    //     currentRoom:number
+    // ) {
+    //     return gamePrepareAdjacentRoomAnims(this, roomOffset, offsetX, offsetY, (_game, pge) => shouldPrepare(pge), currentRoom)
+    // }
+    //
+    // private isAboveRoomPge(pge: LivePGE): boolean {
+    //     return gameIsAboveRoomPge(this, pge)
+    // }
+    //
+    // private isBelowRoomPge(pge: LivePGE): boolean {
+    //     return gameIsBelowRoomPge(this, pge)
+    // }
+    //
+    // private isLeftRoomPge(pge: LivePGE): boolean {
+    //     return gameIsLeftRoomPge(this, pge)
+    // }
+    //
+    // private isRightRoomPge(pge: LivePGE): boolean {
+    //     return gameIsRightRoomPge(this, pge)
+    // }
+    //
+    //
+    // // it seems this is the most important regarding animations
+    // async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number, currentRoom:number) {
+    //     return gamePrepareAnimsHelper(this, pge, dx, dy, currentRoom)
+    // }
     
     async drawAnims() {
         return gameDrawAnims(this)
@@ -608,17 +612,17 @@ class Game {
         return gameLoadLevelMap(this, currentRoom)
     }
 
-    private clearLive_PGETables(){
-        return gameClearLivePGETables(this)
-    }
+    // private clearLive_PGETables(){
+    //     return gameClearLivePGETables(this)
+    // }
 
     async loadLevelData(): Promise<number> {
         return gameLoadLevelData(this)
     }
 
-    private create_pge_LiveTable1(){
-        return gameCreatePgeLiveTable1(this)
-    }
+    // private create_pge_LiveTable1(){
+    //     return gameCreatePgeLiveTable1(this)
+    // }
 
     pge_resetGroups() {
         return gamePgeResetGroups(this)

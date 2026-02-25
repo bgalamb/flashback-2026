@@ -2,6 +2,7 @@ import type { SoundFx, LivePGE } from './intern'
 import type { Game } from './game'
 import { MAX_VOLUME } from './mixer'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
+import { PGE_FLAG_ACTIVE } from './game_constants'
 
 export function gamePlaySound(game: Game, num: number, softVol: number) {
     if (num < game._res._numSfx) {
@@ -23,7 +24,7 @@ export function gamePlaySound(game: Game, num: number, softVol: number) {
 }
 
 export function gamePgePlayAnimSound(game: Game, pge: LivePGE, arg2: number) {
-    if ((pge.flags & 4) && game._pge_playAnimSound) {
+    if ((pge.flags & PGE_FLAG_ACTIVE) && game._pge_playAnimSound) {
         const sfxId = (arg2 & 0xFF) - 1
         if (game._currentRoom === pge.room_location) {
             game.playSound(sfxId, 0)

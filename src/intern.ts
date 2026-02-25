@@ -51,7 +51,7 @@ interface InitPGE {
     skill: number
     mirror_x: number
     flags: number
-    unk1C: number
+    number_of_collision_segments: number
     text_num: number
 }
 
@@ -72,7 +72,7 @@ const CreateInitPGE = () => ({
     skill: 0,
     mirror_x: 0,
     flags: 0,
-    unk1C: 0,
+    number_of_collision_segments: 0,
     text_num: 0
 })
 
@@ -220,7 +220,7 @@ class AnimBuffers {
 interface CollisionSlot {
     ct_pos: number
     prev_slot: CollisionSlot
-    live_pge: LivePGE
+    pge: LivePGE
     index: number
 }
 

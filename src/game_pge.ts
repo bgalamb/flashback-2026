@@ -10,6 +10,21 @@ import type { pge_OpcodeProc } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game as GameClass } from './game'
 import { GAMESCREEN_W } from './configs/config'
+import {
+    INIT_PGE_FLAG_HAS_COLLISION,
+    INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST,
+    INIT_PGE_INIT_FLAGS_HAS_FLAG_3,
+    INIT_PGE_FLAG_UNKNOWN_BIT_1,
+    OBJ_FLAG_DEC_LIFE,
+    OBJ_FLAG_INC_LIFE,
+    OBJ_FLAG_SET_DEAD,
+    OBJ_FLAG_TOGGLE_MIRROR,
+    PGE_FLAG_ACTIVE,
+    PGE_FLAG_FLIP_X,
+    PGE_FLAG_MIRRORED,
+    PGE_FLAG_SPECIAL_ANIM,
+    UINT8_MAX
+} from './game_constants'
 import { gamePgePlayAnimSound as gameAudioPgePlayAnimSound } from './game_audio'
 import {
     gamePgeAddToInventory as gameInventoryPgeAddToInventory,
@@ -21,54 +36,54 @@ import {
 } from './game_inventory'
 
 export function gamePgeLoadForCurrentLevel(game: Game, idx: number, currentRoom: number) {
-    const init_pge: InitPGE = game._res._pgeInit[idx]
-    const live_pge: LivePGE = game._pgeLive[idx]
+    const initial_pge_from_file: InitPGE = game._res._pgeAllInitialStateFromFile[idx]
+    const live_pge: LivePGE = game._pgeLiveAll[idx]
 
-    live_pge.init_PGE = init_pge
-    live_pge.obj_type = init_pge.type
-    live_pge.pos_x = init_pge.pos_x
-    live_pge.pos_y = init_pge.pos_y
+    live_pge.init_PGE = initial_pge_from_file
+    live_pge.obj_type = initial_pge_from_file.type
+    live_pge.pos_x = initial_pge_from_file.pos_x
+    live_pge.pos_y = initial_pge_from_file.pos_y
     live_pge.anim_seq = 0
-    live_pge.room_location = init_pge.init_room
+    live_pge.room_location = initial_pge_from_file.init_room
 
-    live_pge.life = init_pge.life
-    if (game._skillLevel >= 2 && init_pge.object_type === 10) {
+    live_pge.life = initial_pge_from_file.life
+    if (game._skillLevel >= 2 && initial_pge_from_file.object_type === 10) {
         live_pge.life *= 2
     }
     live_pge.counter_value = 0
-    live_pge.collision_slot = 0xFF
-    live_pge.next_inventory_PGE = 0xFF
-    live_pge.current_inventory_PGE = 0xFF
-    live_pge.unkF = 0xFF
+    live_pge.collision_slot = UINT8_MAX
+    live_pge.next_inventory_PGE = UINT8_MAX
+    live_pge.current_inventory_PGE = UINT8_MAX
+    live_pge.unkF = UINT8_MAX
     live_pge.anim_number = 0
     live_pge.index = idx
     live_pge.next_PGE_in_room = null
 
     let flags = 0
-    if (init_pge.skill > game._skillLevel) {
+    if (initial_pge_from_file.skill > game._skillLevel) {
         return
     }
 
-    if (init_pge.room_location !== 0 || ((init_pge.flags & 4) && (currentRoom === init_pge.init_room))) {
-        flags |= 4
-        game._pge_liveTable2[idx] = live_pge
+    if (initial_pge_from_file.room_location !== 0 || ((initial_pge_from_file.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST) && (currentRoom === initial_pge_from_file.init_room))) {
+        flags |= PGE_FLAG_ACTIVE
+        game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[idx] = live_pge
     }
-    if (init_pge.mirror_x !== 0) {
-        flags |= 1
+    if (initial_pge_from_file.mirror_x !== 0) {
+        flags |= PGE_FLAG_MIRRORED
     }
-    if (init_pge.init_flags & 8) {
+    if (initial_pge_from_file.init_flags & INIT_PGE_INIT_FLAGS_HAS_FLAG_3) {
         flags |= 0x10
     }
-    flags |= (init_pge.init_flags & 3) << 5
-    if (init_pge.flags & 2) {
+    flags |= (initial_pge_from_file.init_flags & 3) << 5
+    if (initial_pge_from_file.flags & INIT_PGE_FLAG_UNKNOWN_BIT_1) {
         flags |= 0x80
     }
 
     live_pge.flags = flags
-    if (init_pge.obj_node_number >= game._res._numObjectNodes) {
-        throw(`Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}}`)
+    if (initial_pge_from_file.obj_node_number >= game._res._numObjectNodes) {
+        throw(`Assertion failed: ${initial_pge_from_file.obj_node_number} < ${game._res._numObjectNodes}}`)
     }
-    const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
+    const on: ObjectNode = game._res._objectNodesMap[initial_pge_from_file.obj_node_number]
 
     let obj = 0
     let i = 0
@@ -91,16 +106,16 @@ export function gamePgeSetupDefaultAnim(game: Game, pge: LivePGE) {
     const anim_frame = anim_data.subarray(6 + pge.anim_seq * 4)
     if (game._res._readUint16(anim_frame) !== 0xFFFF) {
         let f = game._res._readUint16(anim_data)
-        if (pge.flags & 1) {
+        if (pge.flags & PGE_FLAG_MIRRORED) {
             f ^= 0x8000
         }
-        pge.flags &= ~2
+        pge.flags &= ~PGE_FLAG_FLIP_X
         if (f & 0x8000) {
-            pge.flags |= 2
+            pge.flags |= PGE_FLAG_FLIP_X
         }
-        pge.flags &= ~8
+        pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
         if (game._res._readUint16(anim_data, 4) & 0xFFFF) {
-            pge.flags |= 8
+            pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
 
         pge.anim_number = game._res._readUint16(anim_frame) & 0x7FFF
@@ -179,10 +194,10 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
     if (obj.flags & 0xF0) {
         game._score += GameClass._scoreTable[obj.flags >> 4]
     }
-    if (obj.flags & 1) {
-        live_pge.flags ^= 1
+    if (obj.flags & OBJ_FLAG_TOGGLE_MIRROR) {
+        live_pge.flags ^= PGE_FLAG_MIRRORED
     }
-    if (obj.flags & 2) {
+    if (obj.flags & OBJ_FLAG_DEC_LIFE) {
         --live_pge.life
         if (init_pge.object_type === 1) {
             game._pge_processOBJ = true
@@ -190,14 +205,14 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
             game._score += 100
         }
     }
-    if (obj.flags & 4) {
+    if (obj.flags & OBJ_FLAG_INC_LIFE) {
         ++live_pge.life
     }
-    if (obj.flags & 8) {
+    if (obj.flags & OBJ_FLAG_SET_DEAD) {
         live_pge.life = -1
     }
 
-    if (live_pge.flags & 1) {
+    if (live_pge.flags & PGE_FLAG_MIRRORED) {
         live_pge.pos_x -= obj.dx
     } else {
         live_pge.pos_x += obj.dx
@@ -243,17 +258,17 @@ export function gamePgeUpdateInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
 }
 
 export function gamePgeUpdateGroup(game: Game, idx: number, unk1: number, unk2: number) {
-    let pge: LivePGE = game._pgeLive[unk1]
-    if (!(pge.flags & 4)) {
-        if (!(pge.init_PGE.flags & 1)) {
+    let pge: LivePGE = game._pgeLiveAll[unk1]
+    if (!(pge.flags & PGE_FLAG_ACTIVE)) {
+        if (!(pge.init_PGE.flags & INIT_PGE_FLAG_HAS_COLLISION)) {
             return
         }
-        pge.flags |= 4
-        game._pge_liveTable2[unk1] = pge
+        pge.flags |= PGE_FLAG_ACTIVE
+        game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[unk1] = pge
     }
     if (unk2 <= 4) {
         const pge_room = pge.room_location
-        pge = game._pgeLive[idx]
+        pge = game._pgeLiveAll[idx]
         if (pge_room !== pge.room_location) {
             return
         }
@@ -274,7 +289,7 @@ export function gamePgeUpdateGroup(game: Game, idx: number, unk1: number, unk2: 
 
 export function gamePgeInnerProcess(game: Game, pge: LivePGE, currentRoom: number) {
     game._pge_playAnimSound = true
-    game._pge_currentPiegeFacingDir = (pge.flags & 1) !== 0
+    game._pge_currentPiegeFacingDir = (pge.flags & PGE_FLAG_MIRRORED) !== 0
     game._pge_currentPiegeRoom = pge.room_location
     const le: GroupPGE = game._pge_groupsTable[pge.index]
     game.renders > game.debugStartFrame && console.log(`_pge_currentPiegeFacingDir=${game._pge_currentPiegeFacingDir} _pge_currentPiegeRoom=${game._pge_currentPiegeRoom} le=${le}`)
@@ -305,7 +320,7 @@ export function gamePgeInnerProcess(game: Game, pge: LivePGE, currentRoom: numbe
 
             if (game._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
                 if (pge.index === 79 && _ax === 0xFFFF && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
-                    if (game.col_getGridPos(game._pgeLive[79], 0) === game.col_getGridPos(game._pgeLive[0], 0)) {
+                    if (game.col_getGridPos(game._pgeLiveAll[79], 0) === game.col_getGridPos(game._pgeLiveAll[0], 0)) {
                         game.pge_updateGroup(79, 0, 4)
                     }
                 }
@@ -342,20 +357,20 @@ export function gamePgeSetupAnim(game: Game, pge: LivePGE) {
 
     if (game._res._readUint16(anim_frame) !== 0xFFFF) {
         let fl = game._res._readUint16(anim_frame)
-        if (pge.flags & 1) {
+        if (pge.flags & PGE_FLAG_MIRRORED) {
             fl ^= 0x8000
             pge.pos_x = pge.pos_x - (anim_frame[2] << 24 >> 24)
         } else {
             pge.pos_x = pge.pos_x + (anim_frame[2] << 24 >> 24)
         }
         pge.pos_y = pge.pos_y + (anim_frame[3] << 24 >> 24)
-        pge.flags &= ~2
+        pge.flags &= ~PGE_FLAG_FLIP_X
         if (fl & 0x8000) {
-            pge.flags |= 2
+            pge.flags |= PGE_FLAG_FLIP_X
         }
-        pge.flags &= ~8
+        pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
         if (game._res._readUint16(anim_data, 4) & 0xFFFF) {
-            pge.flags |= 8
+            pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
         pge.anim_number = game._res._readUint16(anim_frame) & 0x7FFF
     }
@@ -387,32 +402,32 @@ export function gamePgeSetupOtherPieges(game: Game, pge: LivePGE, init_pge: Init
             game.col_prepareRoomState(game._currentRoom)
             game._loadMap = true
             if (!(game._currentRoom & 0x80) && game._currentRoom < 0x40) {
-                let pge_it: LivePGE = game._pge_liveTable1[game._currentRoom]
+                let pge_it: LivePGE = game._pge_liveLinkedListTableByRoomAllRooms[game._currentRoom]
                 while (pge_it) {
-                    if (pge_it.init_PGE.flags & 4) {
-                        game._pge_liveTable2[pge_it.index] = pge_it
-                        pge_it.flags |= 4
+                    if (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST) {
+                        game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge_it.index] = pge_it
+                        pge_it.flags |= PGE_FLAG_ACTIVE
                     }
                     pge_it = pge_it.next_PGE_in_room
                 }
                 room = game._res._ctData[CT_UP_ROOM + game._currentRoom]
                 if (room >= 0 && room < 0x40) {
-                    pge_it = game._pge_liveTable1[room]
+                    pge_it = game._pge_liveLinkedListTableByRoomAllRooms[room]
                     while (pge_it) {
-                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 48 && (pge_it.init_PGE.flags & 4)) {
-                            game._pge_liveTable2[pge_it.index] = pge_it
-                            pge_it.flags |= 4
+                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 48 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
+                            game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge_it.index] = pge_it
+                            pge_it.flags |= PGE_FLAG_ACTIVE
                         }
                         pge_it = pge_it.next_PGE_in_room
                     }
                 }
                 room = game._res._ctData[CT_DOWN_ROOM + game._currentRoom]
                 if (room >= 0 && room < 0x40) {
-                    pge_it = game._pge_liveTable1[room]
+                    pge_it = game._pge_liveLinkedListTableByRoomAllRooms[room]
                     while (pge_it) {
-                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 176 && (pge_it.init_PGE.flags & 4)) {
-                            game._pge_liveTable2[pge_it.index] = pge_it
-                            pge_it.flags |= 4
+                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 176 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
+                            game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge_it.index] = pge_it
+                            pge_it.flags |= PGE_FLAG_ACTIVE
                         }
                         pge_it = pge_it.next_PGE_in_room
                     }
@@ -425,7 +440,7 @@ export function gamePgeSetupOtherPieges(game: Game, pge: LivePGE, init_pge: Init
 
 export function gamePgeAddToCurrentRoomList(game: Game, pge: LivePGE, room: number) {
     if (room !== pge.room_location) {
-        let cur_pge: LivePGE = game._pge_liveTable1[room]
+        let cur_pge: LivePGE = game._pge_liveLinkedListTableByRoomAllRooms[room]
         let prev_pge: LivePGE = null
 
         while (cur_pge && cur_pge !== pge) {
@@ -435,14 +450,14 @@ export function gamePgeAddToCurrentRoomList(game: Game, pge: LivePGE, room: numb
 
         if (cur_pge) {
             if (!prev_pge) {
-                game._pge_liveTable1[room] = pge.next_PGE_in_room
+                game._pge_liveLinkedListTableByRoomAllRooms[room] = pge.next_PGE_in_room
             } else {
                 prev_pge.next_PGE_in_room = cur_pge.next_PGE_in_room
             }
 
-            const temp: LivePGE = game._pge_liveTable1[pge.room_location]
+            const temp: LivePGE = game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location]
             pge.next_PGE_in_room = temp
-            game._pge_liveTable1[pge.room_location] = pge
+            game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location] = pge
         }
     }
 }
@@ -552,21 +567,23 @@ export function gamePgeSetCurrentInventoryObject(game: Game, pge: LivePGE) {
 }
 
 export function gamePgePrepare(game: Game, currentRoom: number) {
+    // clear the collisions arrays
     game.col_clearState()
     if (currentRoom & 0x80) return
 
-    let pge = game._pge_liveTable1[currentRoom]
+    let pge = game._pge_liveLinkedListTableByRoomAllRooms[currentRoom]
     while (pge) {
+        // this is going to prepare the collisions table for all the PGEs in current roon
         game.col_preparePiegeState(pge)
-        if (!(pge.flags & 4) && (pge.init_PGE.flags & 4)) {
-            game._pge_liveTable2[pge.index] = pge
-            pge.flags |= 4
+        if (!(pge.flags & PGE_FLAG_ACTIVE) && (pge.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
+            game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[pge.index] = pge
+            pge.flags |= PGE_FLAG_ACTIVE
         }
         pge = pge.next_PGE_in_room
     }
 
-    for (let i = 0; i < game._res._pgeNum; ++i) {
-        const pge2 = game._pge_liveTable2[i]
+    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
+        const pge2 = game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly[i]
         if (pge2 && currentRoom !== pge2.room_location) {
             game.col_preparePiegeState(pge2)
         }
@@ -601,7 +618,7 @@ export function gamePgeResetGroups(game: Game) {
     let index = 0
     let le = game._pge_groups[index]
     game._pge_nextFreeGroup = le
-    let n = 0xFF
+    let n = UINT8_MAX
     while (n--) {
         le.next_entry = game._pge_groups[index + 1]
         le.index = 0

@@ -5,6 +5,7 @@ import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { Mixer } from './mixer'
 import { ObjectType } from './resource'
 import { GAMESCREEN_H, GAMESCREEN_W } from './configs/config'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } from './game_constants'
 import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
 
@@ -33,14 +34,14 @@ export async function gameInpUpdate(game: Game) {
 
 export function gameResetGameState(game: Game) {
     game._animBuffers._states[0] = game._animBuffer0State
-    game._animBuffers._curPos[0] = 0xFF
+    game._animBuffers._curPos[0] = UINT8_MAX
     game._animBuffers._states[1] = game._animBuffer1State
-    game._animBuffers._curPos[1] = 0xFF
+    game._animBuffers._curPos[1] = UINT8_MAX
     game._animBuffers._states[2] = game._animBuffer2State
-    game._animBuffers._curPos[2] = 0xFF
+    game._animBuffers._curPos[2] = UINT8_MAX
     game._animBuffers._states[3] = game._animBuffer3State
-    game._animBuffers._curPos[3] = 0xFF
-    game._currentRoom = game._res._pgeInit[0].init_room
+    game._animBuffers._curPos[3] = UINT8_MAX
+    game._currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
     game._cut.setDeathCutSceneId(0xFFFF)
     game._pge_opTempVar2 = 0xFFFF
     game._deathCutsceneCounter = 0
@@ -87,28 +88,28 @@ export function gameHasLevelMap(game: Game, room: number) {
 }
 
 export async function gameLoadLevelMap(game: Game, currentRoom: number) {
-    game._currentIcon = 0xFF
+    game._currentIcon = UINT8_MAX
     game._vid.PC_decodeMap(game._currentLevel, currentRoom)
 }
 
 export function gameClearLivePGETables(game: Game) {
-    game._pge_liveTable1.fill(null).map(() => CreatePGE())
-    game._pge_liveTable2.fill(null).map(() => CreatePGE())
+    game._pge_liveLinkedListTableByRoomAllRooms.fill(null).map(() => CreatePGE())
+    game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly.fill(null).map(() => CreatePGE())
 }
 
 export function gameCreatePgeLiveTable1(game: Game) {
-    for (let i = 0; i < game._res._pgeNum; ++i) {
-        if (game._res._pgeInit[i].skill <= game._skillLevel) {
+    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
+        if (game._res._pgeAllInitialStateFromFile[i].skill <= game._skillLevel) {
             game.renders > game.debugStartFrame && console.log(`i=${i} => skill!`)
-            const pge = game._pgeLive[i]
-            pge.next_PGE_in_room = game._pge_liveTable1[pge.room_location]
-            game._pge_liveTable1[pge.room_location] = pge
+            const pge = game._pgeLiveAll[i]
+            pge.next_PGE_in_room = game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location]
+            game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location] = pge
         }
     }
 }
 
 export async function gameLoadLevelData(game: Game): Promise<number> {
-    game._res.clearLevelRes()
+    game._res.clearLevelAllResources()
     const lvl = _gameLevels[game._currentLevel]
 
     await game._res.load(lvl.name, ObjectType.OT_MBK)
@@ -126,7 +127,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     await game._res.load(lvl.name2, ObjectType.OT_TBN)
 
     game._cut.setId(lvl.cutscene_id)
-    game._curMonsterNum = 255
+    game._curMonsterNum = UINT8_MAX
     game._curMonsterFrame = 0
     game._res.clearBankData()
     game._printLevelCodeCounter = 150
@@ -134,14 +135,15 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game._col_slots2Next = null
 
     gameClearLivePGETables(game)
-    const currentRoom = game._res._pgeInit[0].init_room
+    const currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
     game._currentRoom = currentRoom
 
-    let n = game._res._pgeNum
+    let n = game._res._pgeTotalNumInFile
     while (n--) {
         game.pge_loadForCurrentLevel(n, currentRoom)
     }
     gameCreatePgeLiveTable1(game)
+
     game.pge_resetGroups()
     game._validSaveState = false
     game._mix.playMusic(Mixer.MUSIC_TRACK + lvl.track)
@@ -182,7 +184,7 @@ export function gameIsRightRoomPge(_game: Game, pge: LivePGE): boolean {
 }
 
 export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: number, dy: number, currentRoom: number) {
-    if (!(pge.flags & 8)) {
+    if (!(pge.flags & PGE_FLAG_SPECIAL_ANIM)) {
         if (pge.index !== 0 && await game.loadMonsterSprites(pge, currentRoom) === 0) {
             return
         }
@@ -205,7 +207,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 
         let ypos = dy + pge.pos_y - dh + 2
         let xpos = dx + pge.pos_x - dw
-        if (pge.flags & 2) {
+        if (pge.flags & PGE_FLAG_FLIP_X) {
             xpos = dx + pge.pos_x + dw
             let _cl = w
             if (_cl & 0x40) {
@@ -219,7 +221,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
             return
         }
         xpos += 8
-        if (pge === game._pgeLive[0]) {
+        if (pge === game._pgeLiveAll[0]) {
             game._animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h)
         } else if (pge.flags & 0x10) {
             game._animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h)
@@ -244,7 +246,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 }
 
 export async function gamePrepareCurrentRoomAnims(game: Game, currentRoom: number) {
-    let pge = game._pge_liveTable1[currentRoom]
+    let pge = game._pge_liveLinkedListTableByRoomAllRooms[currentRoom]
     while (pge) {
         await gamePrepareAnimsHelper(game, pge, 0, 0, currentRoom)
         pge = pge.next_PGE_in_room
@@ -261,7 +263,7 @@ export async function gamePrepareAdjacentRoomAnims(
 ) {
     const pge_room = game._res._ctData[roomOffset + currentRoom]
     if (pge_room >= 0 && pge_room < 0x40) {
-        let pge = game._pge_liveTable1[pge_room]
+        let pge = game._pge_liveLinkedListTableByRoomAllRooms[pge_room]
         while (pge) {
             if (shouldPrepare(game, pge)) {
                 await gamePrepareAnimsHelper(game, pge, offsetX, offsetY, currentRoom)
