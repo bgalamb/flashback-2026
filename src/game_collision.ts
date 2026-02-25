@@ -1,8 +1,8 @@
 import type { CollisionSlot, LivePGE } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
-import { GAMESCREEN_W } from './configs/config'
-import { UINT8_MAX } from './game_constants'
+import { GAMESCREEN_W } from './game_constants'
+import { UINT16_MAX, UINT8_MAX } from './game_constants'
 
 export function gameColFindPiege(game: Game, pge: LivePGE, arg2: number) {
     if (pge.collision_slot !== UINT8_MAX) {
@@ -11,7 +11,7 @@ export function gameColFindPiege(game: Game, pge: LivePGE, arg2: number) {
             if (slot.pge === pge) {
                 slot = slot.prev_slot
             } else {
-                if (arg2 === 0xFFFF || arg2 === slot.pge.init_PGE.object_type) {
+                if (arg2 === UINT16_MAX || arg2 === slot.pge.init_PGE.object_type) {
                     return slot.pge
                 } else {
                     slot = slot.prev_slot
@@ -140,7 +140,7 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
 
     // TODO what's room location?
     let collision_point_within_room = pge.room_location
-    if (collision_point_within_room < 0) return 0xFFFF
+    if (collision_point_within_room < 0) return UINT16_MAX
 
     // each room has "64" collision points and they are in _ctData
     // 0->64 up room, 64->128 down room, 128->192 left room, 192->256 right room
@@ -148,19 +148,19 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
     // this is used to check in which room's which coordinate is now the collision
     if (x < 0) {
         collision_point_within_room = game._res._ctData[CT_LEFT_ROOM + collision_point_within_room]
-        if (collision_point_within_room < 0) return 0xFFFF
+        if (collision_point_within_room < 0) return UINT16_MAX
         x += GAMESCREEN_W
     } else if (x >= GAMESCREEN_W) {
         collision_point_within_room = game._res._ctData[CT_RIGHT_ROOM + collision_point_within_room]
-        if (collision_point_within_room < 0) return 0xFFFF
+        if (collision_point_within_room < 0) return UINT16_MAX
         x -= GAMESCREEN_W
     } else if (y < 0) {
         collision_point_within_room = game._res._ctData[CT_UP_ROOM + collision_point_within_room]
-        if (collision_point_within_room < 0) return 0xFFFF
+        if (collision_point_within_room < 0) return UINT16_MAX
         y += 216
     } else if (y >= 216) {
         collision_point_within_room = game._res._ctData[CT_DOWN_ROOM + collision_point_within_room]
-        if (collision_point_within_room < 0) return 0xFFFF
+        if (collision_point_within_room < 0) return UINT16_MAX
         y -= 216
     }
 
@@ -170,7 +170,7 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
     game.renders > game.debugStartFrame && console.log(`getGridPos x=${x} y=${y}`)
 
     if (x < 0 || x > 15 || y < 0 || y > 2) {
-        return 0xFFFF
+        return UINT16_MAX
     } else {
         // this constructing a number, where X bits represent x and Y represent y coordinate?
         return y * 16 + x + collision_point_within_room * 64
@@ -182,9 +182,9 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
 // 1.
 // Early exit if no collision slots are needed
 // ◦
-// If pge.init_PGE.number_of_collision_segments === 0, it sets pge.collision_slot = 0xFF and returns.
+// If pge.init_PGE.number_of_collision_segments === 0, it sets pge.collision_slot = UINT8_MAX and returns.
 // ◦
-// 0xFF is used as “no slot”.
+// UINT8_MAX is used as “no slot”.
 // 2.
 // Iterate number_of_collision_segments times
 // ◦
@@ -208,9 +208,9 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
 // ◦
 // If pos < 0, the function either:
 // ▪
-// Sets pge.collision_slot = 0xFF if this was the first slot, or
+// Sets pge.collision_slot = UINT8_MAX if this was the first slot, or
 // ▪
-// Marks the previous slot’s index = 0xFFFF.
+// Marks the previous slot’s index = UINT16_MAX.
 // ◦
 // Then it returns.
 // 6.
@@ -220,7 +220,7 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
 // ◦
 // ct_slot2.live_pge = pge
 // ◦
-// ct_slot2.index = 0xFFFF (default placeholder)
+// ct_slot2.index = UINT16_MAX (default placeholder)
 // Find or create a slot list entry
 // ◦
 // _ax = game.col_findSlot(pos)
@@ -275,14 +275,14 @@ export function gameColPreparePiegeState(game: Game, pge: LivePGE) {
             if (ct_previous_collision_slot === null) {
                 pge.collision_slot = UINT8_MAX
             } else {
-                ct_previous_collision_slot.index = 0xFFFF
+                ct_previous_collision_slot.index = UINT16_MAX
             }
             return
         }
         //populate the slot
         ct_current_collision_slot.ct_pos = pos // this is actually an x,y coordinate within the room.
         ct_current_collision_slot.pge = pge    // this is the PGE
-        ct_current_collision_slot.index = 0xFFFF
+        ct_current_collision_slot.index = UINT16_MAX
 
         // TODO find something?
         // search in _col_slotsTable and find the index of the table where it collides with something

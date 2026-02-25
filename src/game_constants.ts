@@ -1,5 +1,11 @@
 const UINT8_MAX = 0xFF
 const UINT16_MAX = 0xFFFF
+const SCREENBLOCK_W = 8
+const SCREENBLOCK_H = 8
+const GAMESCREEN_W = 256
+const GAMESCREEN_H = 224
+const CHAR_W = 8
+const CHAR_H = 8
 const kIngameSaveSlot = 0
 const kRewindSize = 120 // 10mins (~2MB)
 const kAutoSaveSlot = UINT8_MAX
@@ -30,6 +36,12 @@ const OBJ_FLAG_SET_DEAD = 0x08
 export {
   UINT8_MAX,
   UINT16_MAX,
+  SCREENBLOCK_W,
+  SCREENBLOCK_H,
+  GAMESCREEN_W,
+  GAMESCREEN_H,
+  CHAR_W,
+  CHAR_H,
   kIngameSaveSlot,
   kRewindSize,
   kAutoSaveSlot,

@@ -1,4 +1,5 @@
 import { Game } from "./game"
+import { UINT8_MAX } from './game_constants'
 
 const Skill = {
     kSkillEasy: 0,
@@ -205,7 +206,7 @@ class AnimBuffers {
             throw(`Assertion failed: ${stateNum} < 4`)
         }
         const curPos = this._curPos[stateNum]
-        const index = curPos === 0xFF ? 0 : curPos + 1
+        const index = curPos === UINT8_MAX ? 0 : curPos + 1
         const state: AnimBufferState = this._states[stateNum][index]
         state.x = x
         state.y = y

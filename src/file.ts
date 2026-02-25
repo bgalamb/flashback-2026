@@ -1,4 +1,5 @@
 import { FileSystem } from "./fs"
+import { UINT16_MAX, UINT8_MAX } from './game_constants'
 
 enum SEEK {
     END,
@@ -328,23 +329,23 @@ export class File {
     }
 
     writeUint16LE(n: number) {
-        this.writeByte(n & 0xFF)
+        this.writeByte(n & UINT8_MAX)
         this.writeByte(n >> 8)
     }
 
     writeUint32LE(n: number) {
-        this.writeByte(n & 0xFFFF)
+        this.writeByte(n & UINT16_MAX)
         this.writeByte(n >> 16)
     }
 
     writeUint16BE(n: number) {
         this.writeByte(n >> 8)
-        this.writeByte(n & 0xFF)
+        this.writeByte(n & UINT8_MAX)
     }
 
     writeUint32BE(n: number) {
         this.writeByte(n >> 16)
-        this.writeByte(n & 0xFFFF)
+        this.writeByte(n & UINT16_MAX)
     }
 
     dumpFile(filename: string, p: ArrayBuffer, size: number) {

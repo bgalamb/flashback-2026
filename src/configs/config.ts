@@ -10,13 +10,4 @@ const DEFAULT_CONFIG = {
     autosave: false,
 }
 
-//size related constants
-const SCREENBLOCK_W = 8
-const SCREENBLOCK_H = 8
-const GAMESCREEN_W = 256
-const GAMESCREEN_H = 224
-
-const CHAR_W = 8
-const CHAR_H = 8
-
-export { DEFAULT_CONFIG, SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_W, CHAR_H }
+export { DEFAULT_CONFIG }

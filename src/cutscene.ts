@@ -5,7 +5,7 @@ import { SystemStub, DF_FASTMODE, DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } from '
 import { Video } from './video'
 import { _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataDOS, _enTextsTable, _musicTable, _namesTableDOS,  _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
 import {global_game_options} from "./configs/global_game_options";
-import {SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_W, CHAR_H} from "./configs/config";
+import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_W, CHAR_H, UINT16_MAX, UINT8_MAX } from './game_constants'
 
 
 
@@ -271,7 +271,7 @@ class Cutscene {
 
     async play() {
 
-        if (this._id == 0xFFFF) {
+        if (this._id == UINT16_MAX) {
             return
         }
 
@@ -284,7 +284,7 @@ class Cutscene {
         let cutName = offsets[this._id * 2 + 0]
         let cutOff = offsets[this._id * 2 + 1]
         console.log(`cutName=${cutName}, cutOff=${cutOff}`)
-        if (cutName !== 0xFFFF) {
+        if (cutName !== UINT16_MAX) {
             switch(this._id) {
                 case 3: // keys
                     if (global_game_options.play_carte_cutscene) {
@@ -328,7 +328,7 @@ class Cutscene {
                     break
                 }
             }
-        } else if (cutName !== 0xFFFF) {
+        } else if (cutName !== UINT16_MAX) {
             if (await this.load(cutName)) {
                 await this.mainLoop(cutOff)
                 this.unload()
@@ -338,7 +338,7 @@ class Cutscene {
         }
         this._vid.fullRefresh()
         if (this._id !== 0x3D) {
-            this._id = 0xFFFF
+            this._id = UINT16_MAX
         }
     }
 
@@ -461,10 +461,10 @@ class Cutscene {
     }
 
     async load(cutName: number): Promise<boolean> {
-        if (cutName === 0xFFFF) {
-            throw(`Assertion failed: ${cutName} !== 0xFFFF`)
+        if (cutName === UINT16_MAX) {
+            throw(`Assertion failed: ${cutName} !== UINT16_MAX`)
         }
-        let name = Cutscene._namesTableDOS[cutName & 0xFF]
+        let name = Cutscene._namesTableDOS[cutName & UINT8_MAX]
         const _res = this._res
 
         await _res.load(name, ObjectType.OT_CMD)
@@ -517,7 +517,7 @@ class Cutscene {
         let cut_idx = 0
         while (!this._stub._pi.quit && !this._interrupted) {
             const cut_id = cut_seq[cut_idx++]
-            if (cut_id === 0xFFFF) {
+            if (cut_id === UINT16_MAX) {
                 break
             }
             this.prepare()
@@ -540,7 +540,7 @@ class Cutscene {
         this.copyPalette(p, palNum^1)
         if (this._creditsSequence) {
             this._palBuf[0x20] = 0x0F
-            this._palBuf[0x21] = 0xFF
+            this._palBuf[0x21] = UINT8_MAX
         }
     }
 
@@ -836,7 +836,7 @@ class Cutscene {
         this._frameDelay = 5
         await this.setPalette()
         this.swapLayers()
-        this._creditsSlowText = 0xFF
+        this._creditsSlowText = UINT8_MAX
         this.op_handleKeys()
     }
 
@@ -996,7 +996,7 @@ class Cutscene {
         const strId = this.fetchNextCmdWord()
         if (!this._creditsSequence) {
             // 'espions' - ignore last call, allows caption to be displayed longer on the screen
-            if (this._id === 0x39 && strId === 0xFFFF) {
+            if (this._id === 0x39 && strId === UINT16_MAX) {
                 if (((this._cmdPtr.byteOffset - this._cmdPtrBak.byteOffset) === 0x10)) {
                     this._frameDelay = 100
                     this.setPalette()
@@ -1010,7 +1010,7 @@ class Cutscene {
             this._pageC.fill(0xC0, y * this._vid._w, y * this._vid._w + h * this._vid._w)
             this._page1.fill(0xC0, y * this._vid._w, y * this._vid._w + h * this._vid._w)
             this._page0.fill(0xC0, y * this._vid._w, y * this._vid._w + h * this._vid._w)
-            if (strId !== 0xFFFF) {
+            if (strId !== UINT16_MAX) {
                 const str = this._res.getCineString(strId)
                 if (str) {
                     this.drawText(0, 129, str, 0xEF, this._page1, kTextJustifyAlign)
@@ -1154,7 +1154,7 @@ class Cutscene {
     }
 
     op_drawCreditsText() {
-        this._creditsSlowText = 0xFF
+        this._creditsSlowText = UINT8_MAX
         if (this._textCurBuf && this._textCurBufOffset === 0) {
             throw("TODO: _textCurBuf")
             ++this._creditsTextCounter
@@ -1169,7 +1169,7 @@ class Cutscene {
     op_handleKeys() {
         while(1) {
             const key_mask = this.fetchNextCmdByte()
-            if (key_mask === 0xFF) {
+            if (key_mask === UINT8_MAX) {
                 return
             }
             let b = true

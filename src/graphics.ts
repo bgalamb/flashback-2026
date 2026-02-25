@@ -1,4 +1,5 @@
 import { Point } from "./intern"
+import { UINT16_MAX } from './game_constants'
 
 class Graphics {
     static AREA_POINTS_SIZE = 256 * 2
@@ -138,7 +139,7 @@ class Graphics {
                 let rysq4 = ry * ry * 4
     
                 let dx = 0
-                let b = rx * ((rysq2 & 0xFFFF) + (rysq2 >> 16))
+                let b = rx * ((rysq2 & UINT16_MAX) + (rysq2 >> 16))
                 let a = 2 * b
     
                 let ny1, ny2, nx1, nx2

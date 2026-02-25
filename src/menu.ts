@@ -1,9 +1,9 @@
 import {  Skill } from "./intern"
 import { LocaleData, Resource } from "./resource"
 import { DIR_DOWN, DIR_UP, SystemStub } from "./systemstub_web"
-import { Video } from "./video"
+import {GAMESCREEN_H, GAMESCREEN_W, Video} from "./video"
 import { _levelNames } from './staticres'
-import { CHAR_W, CHAR_H} from "./configs/config";
+import { CHAR_W, CHAR_H, UINT8_MAX } from './game_constants'
 
 
 const SCREEN_TITLE = 0
@@ -156,7 +156,7 @@ class Menu {
     }
 
     async handleInfoScreen() {
-        this._vid.fadeOut()
+        await this._vid.fadeOut()
         await this.loadPicture("instru_e")
 
         this._vid.fullRefresh()
@@ -193,22 +193,22 @@ class Menu {
             break;
         case 2:
             this._vid._charFrontColor = this._charVar3
-            this._vid._charTransparentColor = 0xFF
+            this._vid._charTransparentColor = UINT8_MAX
             this._vid._charShadowColor = this._charVar1
             break;
         case 3:
             this._vid._charFrontColor = this._charVar4
-            this._vid._charTransparentColor = 0xFF
+            this._vid._charTransparentColor = UINT8_MAX
             this._vid._charShadowColor = this._charVar1
             break;
         case 4:
             this._vid._charFrontColor = this._charVar2
-            this._vid._charTransparentColor = 0xFF
+            this._vid._charTransparentColor = UINT8_MAX
             this._vid._charShadowColor = this._charVar1
             break;
         case 5:
             this._vid._charFrontColor = this._charVar2
-            this._vid._charTransparentColor = 0xFF
+            this._vid._charTransparentColor = UINT8_MAX
             this._vid._charShadowColor = this._charVar5
             break;
         }
@@ -233,8 +233,8 @@ class Menu {
     }
 
     async loadPicture(prefix: string) {
-        const kPictureW = 256
-        const kPictureH = 224
+        const kPictureW = GAMESCREEN_W
+        const kPictureH = GAMESCREEN_H
         await this._res.load_MAP_menu(prefix, this._res._scratchBuffer)
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {

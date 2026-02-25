@@ -7,7 +7,7 @@ import { Video } from './video'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP, SystemStub } from './systemstub_web'
 import { FileSystem } from './fs'
 import { Menu } from './menu'
-import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W} from "./configs/config";
+import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from './game_constants'
 
 import {
     scoreTable,

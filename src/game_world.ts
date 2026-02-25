@@ -4,8 +4,8 @@ import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { Mixer } from './mixer'
 import { ObjectType } from './resource'
-import { GAMESCREEN_H, GAMESCREEN_W } from './configs/config'
-import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } from './game_constants'
+import { GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
 import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
 
@@ -15,7 +15,7 @@ export function gameGetRandomNumber(game: Game) {
         n ^= 0x1D872B41
     }
     game._randSeed = n
-    return n & 0xFFFF
+    return n & UINT16_MAX
 }
 
 export async function gameChangeLevel(game: Game) {
@@ -42,8 +42,8 @@ export function gameResetGameState(game: Game) {
     game._animBuffers._states[3] = game._animBuffer3State
     game._animBuffers._curPos[3] = UINT8_MAX
     game._currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
-    game._cut.setDeathCutSceneId(0xFFFF)
-    game._pge_opTempVar2 = 0xFFFF
+    game._cut.setDeathCutSceneId(UINT16_MAX)
+    game._pge_opTempVar2 = UINT16_MAX
     game._deathCutsceneCounter = 0
     game._saveStateCompleted = false
     game._loadMap = true
@@ -51,16 +51,16 @@ export function gameResetGameState(game: Game) {
     game._blinkingConradCounter = 0
     game._pge_processOBJ = false
     game._pge_opTempVar1 = 0
-    game._textToDisplay = 0xFFFF
+    game._textToDisplay = UINT16_MAX
 }
 
 export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRoom: number) {
     const initPge: InitPGE = pge.init_PGE
     if (initPge.obj_node_number !== 0x49 && initPge.object_type !== 10) {
-        return 0xFFFF
+        return UINT16_MAX
     }
     if (initPge.obj_node_number === game._curMonsterFrame) {
-        return 0xFFFF
+        return UINT16_MAX
     }
     if (pge.room_location !== currentRoom) {
         return 0
@@ -75,7 +75,7 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
         await game._res.load_SPRITE_OFFSETS(currentMonster.name, game._res._sprm)
         game._vid.setPaletteSlotLE(5, currentMonster.palette)
     }
-    return 0xFFFF
+    return UINT16_MAX
 }
 
 export function gameHasLevelMap(game: Game, room: number) {

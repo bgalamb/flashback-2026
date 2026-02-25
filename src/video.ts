@@ -5,7 +5,7 @@ import { Resource } from "./resource"
 import { _conradPal1, _conradPal2, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
-import {SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W} from "./configs/config";
+import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX } from './game_constants'
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -88,7 +88,7 @@ class Video {
                     } else {
                         dst[0 + index] = this._charShadowColor
                     }
-                } else if (this._charTransparentColor !== 0xFF) {
+                } else if (this._charTransparentColor !== UINT8_MAX) {
                     dst[0 + index] = this._charTransparentColor
                 }
 
@@ -100,7 +100,7 @@ class Video {
                     } else {
                         dst[0 + index] = this._charShadowColor
                     }
-                } else if (this._charTransparentColor !== 0xFF) {
+                } else if (this._charTransparentColor !== UINT8_MAX) {
                     dst[0 + index] = this._charTransparentColor
                 }
                 index++
@@ -207,7 +207,7 @@ class Video {
             const d1 = READ_BE_UINT16(src, index) << 16 >> 16
             index += 2
 
-            if (d2 != 0xFFFF) {
+            if (d2 != UINT16_MAX) {
                 d2 &= ~(1 << 15)
                 const offset = READ_BE_UINT32(data, d2 * 4) << 32 >> 32
                 if (offset < 0) {
@@ -571,7 +571,7 @@ pitch = 16
     // | 0x0E    | 2     | read_start_offset (16-bit BE value), where the real data starts within this file   |
     // +---------+-------+------------------------------------------+
 
-    // Repeat: VAR=read_start_offset. Note thi is reading from bank and not from this file.
+    // Repeat: VAR=read_start_offset. Note this is reading from bank and not from this file.
     // +---------+-------+------------------------------------------+
     // | VAR     | 2     | d0_data (16-bit BE value)               |
     // |         |       | - Bit 15 (0x8000): End marker if set    |
@@ -603,25 +603,26 @@ pitch = 16
 
 
     AMIGA_decodeLev(level: number, room: number) {
-        const tmp = this._res._scratchBuffer
+        const leveldatascratch = this._res._scratchBuffer
         //the first bytes represent the offsets in _lev file offset by room number
         const offset = READ_BE_UINT32(this._res._lev, room * 4)
-        if (!bytekiller_unpack(tmp, tmp.length, this._res._lev, offset)) {
+        if (!bytekiller_unpack(leveldatascratch, leveldatascratch.length, this._res._lev, offset)) {
             console.warn(`Bad CRC for level ${level} room ${room}`)
             return
         }
 
-        let offset10 = READ_BE_UINT16(tmp, 10)
-        const offset12 = READ_BE_UINT16(tmp, 12)
-        const offset14 = READ_BE_UINT16(tmp, 14)
+        let offset10 = READ_BE_UINT16(leveldatascratch, 10)
+        const offset12 = READ_BE_UINT16(leveldatascratch, 12)
+        const offset14 = READ_BE_UINT16(leveldatascratch, 14)
 
+        //create a new buffer
         const kTempMbkSize = 1024
-        const buf = new Uint8Array(kTempMbkSize * 32)
+        const tiledata_buffer = new Uint8Array(kTempMbkSize * 32)
 
         //empty the firs 32 bytes
         let sz = 0
         for (let i = 0; i < 32; ++i) {
-            buf[i] = 0
+            tiledata_buffer[i] = 0
         }
 
         //this is a counter, which sums how much we read from bank data to buf altogether
@@ -630,7 +631,7 @@ pitch = 16
 
         // endless loop ends only when the end criteria is found
         for (let loop = true; loop;) {
-            let d0 = READ_BE_UINT16(tmp, a1)
+            let d0 = READ_BE_UINT16(leveldatascratch, a1)
             a1 += 2
             if (d0 & 0x8000) {
                 d0 &= ~0x8000
@@ -641,7 +642,7 @@ pitch = 16
             if (!a6) {
                 a6 = this._res.loadBankData(d0)
             }
-            const d3 = tmp[a1++]
+            const d3 = leveldatascratch[a1++]
             //read a next value that would indicate how much data to load
             // 255 means all, other number means N * (a newly read size) * 32 bytes
 
@@ -649,42 +650,42 @@ pitch = 16
                 if (sz + d1 > kTempMbkSize * 32) {
                     throw(`Assertion failed: ${sz + d1} <= ${kTempMbkSize * 32}`)
                 }
-                buf.set(a6.subarray(0, d1), sz)
+                tiledata_buffer.set(a6.subarray(0, d1), sz)
                 sz += d1                
             } else {
                 for (let i = 0; i < d3 + 1; ++i) {
-                    const d4 = tmp[a1++]
+                    const d4 = leveldatascratch[a1++]
                     if (sz + 32 > kTempMbkSize * 32) {
                         throw(`Assertion failed: ${sz + 32} <= ${kTempMbkSize * 32}`)
                     }
-                    buf.set(a6.subarray(d4 * 32, (d4 * 32) + 32), sz)
+                    tiledata_buffer.set(a6.subarray(d4 * 32, (d4 * 32) + 32), sz)
                     sz += 32
                 }
             }
         }
 
         this._frontLayer.fill(0)
-        if (tmp[1] !== 0) {
+        if (leveldatascratch[1] !== 0) {
             if (!this._res._sgd) {
                 throw(`Assertion error: ${this._res._sgd}`)
             }
-            Video.decodeSgd(this._frontLayer, new Uint8Array(tmp.buffer, tmp.byteOffset + offset10), this._res._sgd)
+            Video.decodeSgd(this._frontLayer, new Uint8Array(leveldatascratch.buffer, leveldatascratch.byteOffset + offset10), this._res._sgd)
             offset10 = 0
         }
 
         Video.decodeLevHelper(
             this._frontLayer, //dst
-            tmp, //src
+            leveldatascratch, //src
             offset10,
             offset12,
-            buf, //buffer with tile data
-            tmp[1] !== 0, //sgd buffer
+            tiledata_buffer, //buffer with tile data
+            leveldatascratch[1] !== 0, //sgd buffer
             true) //always true
         this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
-        this._mapPalSlot1 = READ_BE_UINT16(tmp, 2)
-        this._mapPalSlot2 = READ_BE_UINT16(tmp, 4)
-        this._mapPalSlot3 = READ_BE_UINT16(tmp, 6)
-        this._mapPalSlot4 = READ_BE_UINT16(tmp, 8)
+        this._mapPalSlot1 = READ_BE_UINT16(leveldatascratch, 2)
+        this._mapPalSlot2 = READ_BE_UINT16(leveldatascratch, 4)
+        this._mapPalSlot3 = READ_BE_UINT16(leveldatascratch, 6)
+        this._mapPalSlot4 = READ_BE_UINT16(leveldatascratch, 8)
 
         this.PC_setLevelPalettes()
         if (level === 0) { // tiles with color slot 0x9

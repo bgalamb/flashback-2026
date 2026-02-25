@@ -9,7 +9,7 @@ import type {
 import type { pge_OpcodeProc } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game as GameClass } from './game'
-import { GAMESCREEN_W } from './configs/config'
+import { GAMESCREEN_W } from './game_constants'
 import {
     INIT_PGE_FLAG_HAS_COLLISION,
     INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST,

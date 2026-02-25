@@ -1,6 +1,7 @@
 import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from './game'
 import { CollisionSlot, InitPGE, LivePGE, Obj, ObjectNode } from './intern'
 import type { col_Callback1, col_Callback2 } from './game'
+import { UINT16_MAX } from './game_constants'
 
 
 const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
@@ -83,34 +84,34 @@ const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) =
 		if (obj.opcode2 === 0x6B) { // pge_op_isInGroupSlice
 			if (obj.opcode_arg2 === 0) {
 				if (groupId === 1 || groupId === 2) {
-                    return 0xFFFF
+                    return UINT16_MAX
                 }
 			}
 			if (obj.opcode_arg2 === 1) {
 				if (groupId === 3 || groupId === 4) {
-                    return 0xFFFF
+                    return UINT16_MAX
                 }
 			}
 		} else if (obj.opcode2 === 0x22) { // pge_op_isInGroup
 			if (obj.opcode_arg2 === groupId) {
-                return 0xFFFF
+                return UINT16_MAX
             }
 		}
 
 		if (obj.opcode1 === 0x6B) { // pge_op_isInGroupSlice
 			if (obj.opcode_arg1 === 0) {
 				if (groupId === 1 || groupId === 2) {
-                    return 0xFFFF
+                    return UINT16_MAX
                 }
 			}
 			if (obj.opcode_arg1 === 1) {
 				if (groupId === 3 || groupId === 4) {
-                    return 0xFFFF
+                    return UINT16_MAX
                 }
 			}
 		} else if (obj.opcode1 === 0x22) { // pge_op_isInGroup
 			if (obj.opcode_arg1 === groupId) {
-                return 0xFFFF
+                return UINT16_MAX
             }
 		}
 		// ++obj;

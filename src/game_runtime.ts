@@ -4,7 +4,7 @@ import { Cutscene } from './cutscene'
 import { Menu } from './menu'
 import { ObjectType, LocaleData } from './resource'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP } from './systemstub_web'
-import { CHAR_W, GAMESCREEN_W } from './configs/config'
+import { CHAR_W, GAMESCREEN_W } from './game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { UINT8_MAX } from './game_constants'
 
@@ -273,7 +273,7 @@ export async function gameMainLoop(game: Game) {
     }
 
     if (game._loadMap) {
-        if (game._currentRoom === 0xFF || !game.hasLevelMap(game._pgeLiveAll[0].room_location)) {
+        if (game._currentRoom === UINT8_MAX || !game.hasLevelMap(game._pgeLiveAll[0].room_location)) {
             game._cut.setId(6)
             game._deathCutsceneCounter = 1
         } else {

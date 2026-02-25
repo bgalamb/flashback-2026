@@ -1,8 +1,8 @@
 import type { AnimBufferState, LivePGE } from './intern'
 import type { Game } from './game'
 import { MAX_VOLUME } from './mixer'
-import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './configs/config'
-import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } from './game_constants'
+import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
 
 const PGE_NUM = 256
 
@@ -35,15 +35,15 @@ export function gameDrawCurrentInventoryItem(game: Game) {
 
 export function gameDrawLevelTexts(game: Game) {
     const pge: LivePGE = game._pgeLiveAll[0]
-    let { obj, pge_out } = game.col_findCurrentCollidingObject(pge, 3, 0xFF, 0xFF)
+    let { obj, pge_out } = game.col_findCurrentCollidingObject(pge, 3, UINT8_MAX, UINT8_MAX)
     if (obj === 0) {
-        const res = game.col_findCurrentCollidingObject(pge_out, 0xFF, 5, 9)
+        const res = game.col_findCurrentCollidingObject(pge_out, UINT8_MAX, 5, 9)
         obj = res.obj
         pge_out = res.pge_out
     }
     if (obj > 0) {
         game._printLevelCodeCounter = 0
-        if (game._textToDisplay === 0xFFFF) {
+        if (game._textToDisplay === UINT16_MAX) {
             const icon_num = obj - 1
             game.drawIcon(icon_num, 80, 8, 0xA)
             const txt_num = pge_out.init_PGE.text_num % PGE_NUM
@@ -61,7 +61,7 @@ export function gameDrawLevelTexts(game: Game) {
 }
 
 export async function gameDrawStoryTexts(game: Game) {
-    if (game._textToDisplay !== 0xFFFF) {
+    if (game._textToDisplay !== UINT16_MAX) {
         let textColor = 0xE8
         let str = game._res.getGameString(game._textToDisplay)
         let index = 0
@@ -118,7 +118,7 @@ export async function gameDrawStoryTexts(game: Game) {
 
             game._vid._frontLayer.set(game._vid._tempLayer.subarray(0, game._vid._layerSize))
         }
-        game._textToDisplay = 0xFFFF
+        game._textToDisplay = UINT16_MAX
     }
 }
 

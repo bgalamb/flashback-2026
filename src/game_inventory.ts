@@ -2,8 +2,8 @@ import type { InventoryItem, LivePGE } from './intern'
 import type { Game } from './game'
 import { LocaleData } from './resource'
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from './systemstub_web'
-import { CHAR_W, GAMESCREEN_W } from './configs/config'
-import { UINT8_MAX } from './game_constants'
+import { CHAR_W, GAMESCREEN_W } from './game_constants'
+import { UINT16_MAX, UINT8_MAX } from './game_constants'
 
 export function gamePgeReorderInventory(game: Game, pge: LivePGE) {
     if (pge.unkF !== UINT8_MAX) {
@@ -38,7 +38,7 @@ export async function gameHandleConfigPanel(game: Game) {
 
     game._vid._charShadowColor = 0xE2
     game._vid._charFrontColor = 0xEE
-    game._vid._charTransparentColor = 0xFF
+    game._vid._charTransparentColor = UINT8_MAX
 
     // the panel background is drawn using special characters from FB_TXT.FNT
     // top-left rounded corner
@@ -55,7 +55,7 @@ export async function gameHandleConfigPanel(game: Game) {
         game._vid.PC_drawChar(0x88, y + h, x + i)
     }
     for (let j = 1; j < h; ++j) {
-        game._vid._charTransparentColor = 0xFF
+        game._vid._charTransparentColor = UINT8_MAX
         // left vertical line
         game._vid.PC_drawChar(0x86, y + j, x)
         // right vertical line
@@ -315,5 +315,5 @@ export function gamePgeSetCurrentInventoryObject(game: Game, pge: LivePGE) {
     }
     game.pge_removeFromInventory(_bx, pge, game._pgeLiveAll[0])
     game.pge_addToInventory(game._pgeLiveAll[0], pge, game._pgeLiveAll[0])
-    return 0xFFFF
+    return UINT16_MAX
 }

@@ -1,11 +1,12 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
 import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
-import {  _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
+import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
 import { bytekiller_unpack } from './unpack'
 import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './resource/constants'
 import { createObjectTypeMapping } from './resource/loaders'
 import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './resource/parsers'
+import {GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from './game_constants'
 
 
 class Resource {
@@ -108,7 +109,7 @@ class Resource {
         this._bnq = null
         this._readUint16 = READ_LE_UINT16
         this._readUint32 = READ_LE_UINT32
-        this._scratchBuffer = new Uint8Array(320 * 224 + 1024)
+        this._scratchBuffer = new Uint8Array(320 * GAMESCREEN_H + 1024)
 
         const kBankDataSize = 0x7000
         this._bankData = new Uint8Array(kBankDataSize)
@@ -401,7 +402,7 @@ class Resource {
 
         // first byte of the data buffer corresponds
         // to the total count of entries
-        dataOffset &= 0xFFFF
+        dataOffset &= UINT16_MAX
 
         const size = this.getBankDataSize(num)
         const avail = this._bankDataTail - this._bankDataHead.byteOffset
@@ -451,7 +452,7 @@ class Resource {
             bufSize: 0
         }
         let offset = _voicesOffsetsTable[num]
-        if (offset !== 0xFFFF) {
+        if (offset !== UINT16_MAX) {
             const p = _voicesOffsetsTable.subarray(offset / 2)
             let pIndex = 0
             offset = p[pIndex++] * 2048
@@ -475,7 +476,7 @@ class Resource {
                                         if (v & 0x80) {
                                             v = -(v & 0x7F)
                                         }
-                                        voiceBuf[dst++] = (v & 0xFF) >>> 0
+                                        voiceBuf[dst++] = (v & UINT8_MAX) >>> 0
                                     }
                                 }
                                 offset += 0x2000 + 2048
@@ -496,7 +497,7 @@ class Resource {
 
 
     //LOAD SPRITE
-    private readonly SPRITE_TERMINATOR = 0xFFFF;
+    private readonly SPRITE_TERMINATOR = UINT16_MAX;
     private readonly INVALID_OFFSET = 0xFFFFFFFF;
     private readonly ENTRY_SIZE = 6; // 2 bytes for pos + 4 bytes for offset
 
