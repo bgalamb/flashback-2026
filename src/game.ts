@@ -51,14 +51,11 @@ import {
     gameHandleInventory,
 } from './game_inventory'
 import {
-    gameDidDie,
-    gameDidFinishAllLevels,
     gameHandleContinueAbort,
     gameInpHandleSpecialKeys,
     gameLoadGameState,
     gameLoadStateRewind,
     gameMainLoop,
-    gamePgeProcessLoop,
     gamePlayCutscene,
     gameRun,
     gameRunLoop,
@@ -68,24 +65,15 @@ import {
 } from './game_runtime'
 import {
     gameChangeLevel,
-    gameClearLivePGETables,
     gameClearStateRewind,
-    gameCreatePgeLiveTable1,
     gameGetRandomNumber,
     gameHasLevelMap,
     gameInpUpdate,
-    gameIsAboveRoomPge,
-    gameIsBelowRoomPge,
-    gameIsLeftRoomPge,
-    gameIsRightRoomPge,
     gameLoadLevelData,
     gameLoadLevelMap,
     gameLoadMonsterSprites,
     gameLoadState,
-    gamePrepareAdjacentRoomAnims,
     gamePrepareAnimationsInRooms,
-    gamePrepareAnimsHelper,
-    gamePrepareCurrentRoomAnims,
     gameResetGameState
 } from './game_world'
 import {
@@ -422,18 +410,6 @@ class Game {
         return gameDrawStoryTexts(this)
     }
 
-    // private async didFinishAllLevels() {
-    //     return gameDidFinishAllLevels(this)
-    // }
-    //
-    // private async didDie(){
-    //     return gameDidDie(this)
-    // }
-    //
-    // private pge_process(pge_liveTable2: LivePGE[], currentRoom: number){
-    //     return gamePgeProcessLoop(this, pge_liveTable2, currentRoom)
-    // }
-
     async mainLoop() {
         return gameMainLoop(this)
     }
@@ -454,56 +430,10 @@ class Game {
         return gameDrawString(this, p, x, y, color, hcenter)
     }
 
-    // Loads PGE's for rooms which are around
-    //             ┌───────────┐
-    //             │  ROOM UP  │
-    //             └───────────┘
-    // ┌───────────┬───────────┬───────────┐
-    // │ ROOM LEFT │   ROOM    │ROOM RIGHT │
-    // └───────────┴───────────┴───────────┘
-    //             ┌───────────┐
-    //             │ROOM DOWN  │
-    //             └───────────┘
     async prepareAnimationsInRooms(currentRoom:number) {
         return gamePrepareAnimationsInRooms(this, currentRoom)
     }
 
-    // private async prepareCurrentRoomAnims(currentRoom:number) {
-    //     return gamePrepareCurrentRoomAnims(this, currentRoom)
-    // }
-    //
-    // private async prepareAdjacentRoomAnims(
-    //     roomOffset: number,
-    //     offsetX: number,
-    //     offsetY: number,
-    //     shouldPrepare: (pge: LivePGE) => boolean,
-    //     currentRoom:number
-    // ) {
-    //     return gamePrepareAdjacentRoomAnims(this, roomOffset, offsetX, offsetY, (_game, pge) => shouldPrepare(pge), currentRoom)
-    // }
-    //
-    // private isAboveRoomPge(pge: LivePGE): boolean {
-    //     return gameIsAboveRoomPge(this, pge)
-    // }
-    //
-    // private isBelowRoomPge(pge: LivePGE): boolean {
-    //     return gameIsBelowRoomPge(this, pge)
-    // }
-    //
-    // private isLeftRoomPge(pge: LivePGE): boolean {
-    //     return gameIsLeftRoomPge(this, pge)
-    // }
-    //
-    // private isRightRoomPge(pge: LivePGE): boolean {
-    //     return gameIsRightRoomPge(this, pge)
-    // }
-    //
-    //
-    // // it seems this is the most important regarding animations
-    // async prepareAnimsHelper(pge: LivePGE, dx: number, dy: number, currentRoom:number) {
-    //     return gamePrepareAnimsHelper(this, pge, dx, dy, currentRoom)
-    // }
-    
     async drawAnims() {
         return gameDrawAnims(this)
     }
@@ -612,17 +542,9 @@ class Game {
         return gameLoadLevelMap(this, currentRoom)
     }
 
-    // private clearLive_PGETables(){
-    //     return gameClearLivePGETables(this)
-    // }
-
     async loadLevelData(): Promise<number> {
         return gameLoadLevelData(this)
     }
-
-    // private create_pge_LiveTable1(){
-    //     return gameCreatePgeLiveTable1(this)
-    // }
 
     pge_resetGroups() {
         return gamePgeResetGroups(this)
