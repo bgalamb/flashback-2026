@@ -300,6 +300,10 @@ export async function gameMainLoop(game: Game) {
         await game.handleInventory()
     }
     if (game._stub._pi.escape) {
+        if (await game.handleConfigPanel()) {
+            game._endLoop = true
+            return
+        }
         game._stub._pi.escape = false
     }
     game.inp_handleSpecialKeys()

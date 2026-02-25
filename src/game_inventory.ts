@@ -30,6 +30,116 @@ export function gamePgeUpdateInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
     game.pge_addToInventory(_ax, pge2, pge1)
 }
 
+export async function gameHandleConfigPanel(game: Game) {
+    const x = 7
+    const y = 10
+    const w = 17
+    const h = 12
+
+    game._vid._charShadowColor = 0xE2
+    game._vid._charFrontColor = 0xEE
+    game._vid._charTransparentColor = 0xFF
+
+    // the panel background is drawn using special characters from FB_TXT.FNT
+    // top-left rounded corner
+    game._vid.PC_drawChar(0x81, y, x)
+    // top-right rounded corner
+    game._vid.PC_drawChar(0x82, y, x + w)
+    // bottom-left rounded corner
+    game._vid.PC_drawChar(0x83, y + h, x)
+    // bottom-right rounded corner
+    game._vid.PC_drawChar(0x84, y + h, x + w)
+    // horizontal lines
+    for (let i = 1; i < w; ++i) {
+        game._vid.PC_drawChar(0x85, y, x + i)
+        game._vid.PC_drawChar(0x88, y + h, x + i)
+    }
+    for (let j = 1; j < h; ++j) {
+        game._vid._charTransparentColor = 0xFF
+        // left vertical line
+        game._vid.PC_drawChar(0x86, y + j, x)
+        // right vertical line
+        game._vid.PC_drawChar(0x87, y + j, x + w)
+        game._vid._charTransparentColor = 0xE2
+        for (let i = 1; i < w; ++i) {
+            game._vid.PC_drawChar(0x20, y + j, x + i)
+        }
+    }
+
+    game._menu._charVar3 = 0xE4
+    game._menu._charVar4 = 0xE5
+    game._menu._charVar1 = 0xE2
+    game._menu._charVar2 = 0xEE
+
+    game._vid.fullRefresh()
+    const MENU_ITEM_ABORT = 1
+    const MENU_ITEM_LOAD = 2
+    const MENU_ITEM_SAVE = 3
+    const colors = [ 2, 3, 3, 3 ]
+    let current = 0
+    while (!game._stub._pi.quit) {
+        game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_18_RESUME_GAME), y + 2, 9, colors[0])
+        game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_19_ABORT_GAME), y + 4, 9, colors[1])
+        game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_20_LOAD_GAME), y + 6, 9, colors[2])
+        game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_21_SAVE_GAME), y + 8, 9, colors[3])
+        game._vid.fillRect(CHAR_W * (x + 1), CHAR_W * (y + 10), CHAR_W * (w - 2), CHAR_W, 0xE2)
+        const buf = game._res.getMenuString(LocaleData.Id.LI_22_SAVE_SLOT) + " < " + game._stateSlot.toString().padStart(2, "0") + " >"
+        game._menu.drawString(buf, y + 10, 9, 1)
+
+        game._vid.updateScreen()
+        await game._stub.sleep(80)
+        await game.inp_update()
+
+        let prev = current
+        if (game._stub._pi.dirMask & DIR_UP) {
+            game._stub._pi.dirMask &= ~DIR_UP
+            current = (current + 3) % 4
+        }
+        if (game._stub._pi.dirMask & DIR_DOWN) {
+            game._stub._pi.dirMask &= ~DIR_DOWN
+            current = (current + 1) % 4
+        }
+        if (game._stub._pi.dirMask & DIR_LEFT) {
+            game._stub._pi.dirMask &= ~DIR_LEFT
+            --game._stateSlot
+            if (game._stateSlot < 1) {
+                game._stateSlot = 1
+            }
+        }
+        if (game._stub._pi.dirMask & DIR_RIGHT) {
+            game._stub._pi.dirMask &= ~DIR_RIGHT
+            ++game._stateSlot
+            if (game._stateSlot > 99) {
+                game._stateSlot = 99
+            }
+        }
+        if (prev !== current) {
+            const tmp = colors[prev]
+            colors[prev] = colors[current]
+            colors[current] = tmp
+        }
+        if (game._stub._pi.enter) {
+            game._stub._pi.enter = false
+            switch (current) {
+                case MENU_ITEM_LOAD:
+                    game._stub._pi.load = true
+                    break
+                case MENU_ITEM_SAVE:
+                    game._stub._pi.save = true
+                    break
+            }
+            break
+        }
+        if (game._stub._pi.escape) {
+            game._stub._pi.escape = false
+            break
+        }
+    }
+    game._vid.fullRefresh()
+    return (current === MENU_ITEM_ABORT)
+}
+
+
 export async function gameHandleInventory(game: Game) {
     let selected_pge: LivePGE = null
     const pge: LivePGE = game._pgeLiveAll[0]

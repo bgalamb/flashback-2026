@@ -48,6 +48,7 @@ import {
     gameDrawString
 } from './game_draw'
 import {
+    gameHandleConfigPanel,
     gameHandleInventory,
 } from './game_inventory'
 import {
@@ -461,6 +462,10 @@ class Game {
 
     async handleInventory() {
         return gameHandleInventory(this)
+    }
+
+    async handleConfigPanel() {
+        return gameHandleConfigPanel(this)
     }
 
     pge_getInventoryItemBefore(pge: LivePGE, last_pge: LivePGE) {
