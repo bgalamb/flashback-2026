@@ -6,6 +6,7 @@ import { Video } from './video'
 import { _caillouSetData, _cosTable, _creditsCutSeq, _creditsDataDOS, _enTextsTable, _musicTable, _namesTableDOS,  _offsetsTableDOS, _protectionShapeData, _sinTable, _ssiOffsetsTable } from './staticres'
 import {global_game_options} from "./configs/global_game_options";
 import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_W, CHAR_H, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { assert } from "./assert"
 
 
 
@@ -461,9 +462,7 @@ class Cutscene {
     }
 
     async load(cutName: number): Promise<boolean> {
-        if (cutName === UINT16_MAX) {
-            throw(`Assertion failed: ${cutName} !== UINT16_MAX`)
-        }
+        assert(!(cutName === UINT16_MAX), `Assertion failed: ${cutName} !== UINT16_MAX`)
         let name = Cutscene._namesTableDOS[cutName & UINT8_MAX]
         const _res = this._res
 
@@ -1300,9 +1299,7 @@ class Cutscene {
         }))
         const bgCount = READ_BE_UINT16(p, offset)
         offset += 2
-        if (bgCount > Cutscene.kMaxShapesCount) {
-            throw(`Assertion failed: ${bgCount} > ${Cutscene.kMaxShapesCount}`)
-        }
+        assert(!(bgCount > Cutscene.kMaxShapesCount), `Assertion failed: ${bgCount} > ${Cutscene.kMaxShapesCount}`)
 
         for (let i = 0; i < bgCount; ++i) {
             let nextOffset = Cutscene.readSetShapeOffset(p, offset)
@@ -1317,9 +1314,7 @@ class Cutscene {
         const fgCount = READ_BE_UINT16(p, offset)
         offset += 2
 
-        if (fgCount > Cutscene.kMaxShapesCount) {
-            throw(`Assertion failed: ${fgCount} > ${Cutscene.kMaxShapesCount}`)
-        }
+        assert(!(fgCount > Cutscene.kMaxShapesCount), `Assertion failed: ${fgCount} > ${Cutscene.kMaxShapesCount}`)
 
         for (let i = 0; i < fgCount; ++i) {
             const nextOffset = Cutscene.readSetShapeOffset(p, offset)
@@ -1377,9 +1372,7 @@ class Cutscene {
                         }
                     }
                     if (!found) {
-                        if (paletteLutSize >= Cutscene.kMaxPaletteSize) {
-                            throw(`Assertion failed: ${paletteLutSize} < ${Cutscene.kMaxPaletteSize}`)
-                        }
+                        assert(!(paletteLutSize >= Cutscene.kMaxPaletteSize), `Assertion failed: ${paletteLutSize} < ${Cutscene.kMaxPaletteSize}`)
                         paletteLut[k] = 0xC0 + paletteLutSize
                         paletteBuffer[paletteLutSize++] = tempPalette[k]
                     }

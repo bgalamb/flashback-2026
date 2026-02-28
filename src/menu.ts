@@ -2,7 +2,6 @@ import {  Skill } from "./intern"
 import { LocaleData, Resource } from "./resource"
 import { DIR_DOWN, DIR_UP, SystemStub } from "./systemstub_web"
 import {GAMESCREEN_H, GAMESCREEN_W, Video} from "./video"
-import { _levelNames } from './staticres'
 import { CHAR_W, CHAR_H, UINT8_MAX } from './game_constants'
 
 
@@ -22,8 +21,6 @@ class Menu {
     static MENU_OPTION_ITEM_LEVEL = 3
     static MENU_OPTION_ITEM_INFO = 4
     static MENU_OPTION_ITEM_QUIT = 6
-
-    static _levelNames: string[] = _levelNames
 
     _res: Resource
     _stub: SystemStub

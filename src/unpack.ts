@@ -1,4 +1,5 @@
 import { READ_BE_UINT32 } from "./intern"
+import { assert } from "./assert"
 
 interface UnpackCtx {
     size: number
@@ -109,9 +110,7 @@ const bytekiller_unpack = (dst: Uint8Array, dstSize: number, src: Uint8Array, sr
             }
         }
     } while(uc.size > 0)
-    if (uc.size !== 0) {
-        throw(`Assertion failed: ${uc.size} === 0`)
-    }
+    assert(!(uc.size !== 0), `Assertion failed: ${uc.size} === 0`)
     return uc.crc === 0
 }
 

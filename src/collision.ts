@@ -2,6 +2,7 @@ import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from './game'
 import { CollisionSlot, InitPGE, LivePGE, Obj, ObjectNode } from './intern'
 import type { col_Callback1, col_Callback2 } from './game'
 import { UINT16_MAX } from './game_constants'
+import { assert } from "./assert"
 
 
 const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
@@ -73,9 +74,7 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 
 const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) => {
 	const init_pge:InitPGE = pge.init_PGE
-    if (init_pge.obj_node_number >= game._res._numObjectNodes) {
-        throw(`Assertion error: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-    }
+    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
 	// assert(init_pge->obj_node_number < _res._numObjectNodes);
 	const on:ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
 	let obj:Obj = on.objects[pge.first_obj_number]

@@ -1,5 +1,6 @@
 import { Point } from "./intern"
 import { UINT16_MAX } from './game_constants'
+import { assert } from "./assert"
 
 class Graphics {
     static AREA_POINTS_SIZE = 256 * 2
@@ -12,9 +13,7 @@ class Graphics {
     private _crh: number
 
     static calcPolyStep1(dx: number, dy: number) {
-        if (dy === 0) {
-            throw(`Assertion failed: ${dy} !== 0`)
-        }
+        assert(!(dy === 0), `Assertion failed: ${dy} !== 0`)
         let a = dx * 256
         if ((a >> 16) < dy) {
             a = ((a / dy) >> 0) * 256
@@ -25,9 +24,7 @@ class Graphics {
     }
 
     static calcPolyStep2(dx: number, dy: number) {
-        if (dy === 0) {
-            throw(`Assertion failed: ${dy} !== 0`)
-        }
+        assert(!(dy === 0), `Assertion failed: ${dy} !== 0`)
         let a = dx * 256
         if ((a >> 16) < dy) {
             a = ((a / dy) >> 0) * 256
@@ -352,9 +349,7 @@ class Graphics {
     }
 
     drawPolygon(color: number, hasAlpha: boolean, pts: Point[], numPts: number) {
-        if (numPts * 4 >= 0x100) {
-            throw(`Assertion failed: ${numPts * 4} < 0x100`)
-        }
+        assert(!(numPts * 4 >= 0x100), `Assertion failed: ${numPts * 4} < 0x100`)
 
         const points = this._areaPoints
         let apts1 = Graphics.AREA_POINTS_SIZE
@@ -727,9 +722,7 @@ class Graphics {
             dx = x0 - x
             xstep1 = (dy << 16) | dx
 
-            if (dy === 0) {
-                throw(`Assertion failed: ${dy} !== 0`)
-            }
+            assert(!(dy === 0), `Assertion failed: ${dy} !== 0`)
             a = (y * dx / dy) >> 0
             b = (x - a) << 16
             d = xstep1 = Graphics.calcPolyStep1(dx, dy)
@@ -752,9 +745,7 @@ class Graphics {
             dx = points[spts] - x0
             xstep2 = (dy << 16) | dx
 
-            if (dy === 0) {
-                throw(`Assertion failed: ${dy} !== 0`)
-            }
+            assert(!(dy === 0), `Assertion failed: ${dy} !== 0`)
             a = (y0 * dx / dy) >> 0
             f = (x0 - a) << 16
             d = xstep2 = Graphics.calcPolyStep2(dx, dy)

@@ -8,6 +8,7 @@ import { GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
 import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
 import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
+import { assert } from "./assert"
 
 export function gameGetRandomNumber(game: Game) {
     let n = game._randSeed * 2
@@ -192,9 +193,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         let dw = 0
         let dh = 0
 
-        if (pge.anim_number >= 1287) {
-            throw(`Assertion failed: ${pge.anim_number} < 1287`)
-        }
+        assert(!(pge.anim_number >= 1287), `Assertion failed: ${pge.anim_number} < 1287`)
         dataPtr = game._res._sprData[pge.anim_number]
         if (dataPtr === null) {
             return
@@ -229,9 +228,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
             game._animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h)
         }
     } else {
-        if (pge.anim_number >= game._res._numSpc) {
-            throw(`Assertion failed: ${pge.anim_number} < ${game._res._numSpc}`)
-        }
+        assert(!(pge.anim_number >= game._res._numSpc), `Assertion failed: ${pge.anim_number} < ${game._res._numSpc}`)
         const dataPtr = game._res._spc.subarray(READ_BE_UINT16(game._res._spc, pge.anim_number * 2))
         const xpos = dx + pge.pos_x + 8
         const ypos = dy + pge.pos_y + 2

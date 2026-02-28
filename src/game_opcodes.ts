@@ -2,6 +2,7 @@ import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game } from "./g
 import { CollisionSlot, CollisionSlot2, GroupPGE, LivePGE, ObjectOpcodeArgs, pge_ZOrderCallback } from "./intern"
 import { col_detectHit, col_detectHitCallback3, col_detectHitCallback1, col_detectHitCallback2, col_detectGunHitCallback2, col_detectGunHitCallback1, col_detectGunHit, col_detectGunHitCallback3, col_detectHitCallback4, col_detectHitCallback5 } from './collision'
 import {UINT8_MAX,UINT16_MAX,CT_ROOM_SIZE} from "./game_constants"
+import { assert } from "./assert"
 
 const pge_op_isInpUp = (args: ObjectOpcodeArgs, game: Game) => {
 	if (1 === game._pge_inpKeysMask) {
@@ -45,9 +46,7 @@ const pge_op_isInpForward = (args: ObjectOpcodeArgs, game: Game) => {
 
 const pge_op_isInpBackwardMod = (args: ObjectOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	let mask = Game._pge_modKeysTable[args.a]
 	if (game._pge_currentPiegeFacingDir) {
 		mask |= 4
@@ -62,9 +61,7 @@ const pge_op_isInpBackwardMod = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_isInpDownMod = (args: ObjectOpcodeArgs, game: Game) => {
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	//assert(args->a < 3);
 	const mask = Game._pge_modKeysTable[args.a] | 2
 	if (mask === game._pge_inpKeysMask) {
@@ -75,9 +72,7 @@ const pge_op_isInpDownMod = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_isInpForwardMod = (args: ObjectOpcodeArgs, game: Game) => {
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	//assert(args->a < 3);
 	let mask = Game._pge_modKeysTable[args.a]
 	if (game._pge_currentPiegeFacingDir) {
@@ -94,9 +89,7 @@ const pge_op_isInpForwardMod = (args: ObjectOpcodeArgs, game: Game) => {
 
 const pge_op_isInpUpMod = (args: ObjectOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._pge_modKeysTable[args.a] | 1
 	if (mask === game._pge_inpKeysMask) {
 		return UINT16_MAX
@@ -143,9 +136,7 @@ const pge_op_doesNotCollide20 = (args: ObjectOpcodeArgs, game: Game) => {
 
 const pge_op_isInpNoMod = (args: ObjectOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._pge_modKeysTable[args.a]
 	if (((game._pge_inpKeysMask & 0xF) | mask) === game._pge_inpKeysMask) {
 		return UINT16_MAX
@@ -369,9 +360,7 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
 		while (slot1) {
 			if (slot1.unk2.buffer === grid_data.buffer && slot1.unk2.byteOffset === (grid_data.byteOffset + dataIndex)) {
 				slot1.data_size = pge_collision_segments - 1
-                if (pge_collision_segments >= 0x70) {
-                    throw(`Assertion failed: ${pge_collision_segments} < 0x70`)
-                }
+                assert(!(pge_collision_segments >= 0x70), `Assertion failed: ${pge_collision_segments} < 0x70`)
                 grid_data.subarray(dataIndex).fill(var8, 0, pge_collision_segments)
 				dataIndex += pge_collision_segments
 				return 1
@@ -394,9 +383,7 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
             let srcIndex = 0
             let dstIndex = 0
 			let n = pge_collision_segments
-            if (n >= 0x10) {
-                throw(`Assertion failed: ${n} < 0x10`)
-            }
+            assert(!(n >= 0x10), `Assertion failed: ${n} < 0x10`)
 			while (n--) {
                 // int8 -> uint8
 				dst[dstIndex++] = src[srcIndex] & UINT8_MAX
@@ -997,9 +984,7 @@ const pge_op_incLife = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_setPiegeDefaultAnim = (args: ObjectOpcodeArgs, game: Game) => {
-	if (args.a < 0 || args.a >= 4) {
-		throw(`Assertion failed: ${args.a} >= 0 && ${args.a} < 4`)
-	}
+	assert(!(args.a < 0 || args.a >= 4), `Assertion failed: ${args.a} >= 0 && ${args.a} < 4`)
 
 	const r = args.pge.init_PGE.counter_values[args.a]
 	args.pge.room_location = r
@@ -1024,9 +1009,7 @@ const pge_o_unk0x34 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_isInpMod = (args: ObjectOpcodeArgs, game: Game) => {
-    if (args.a >= 3) {
-        throw(`Assertion failed: ${args.a} < 3`)
-    }
+    assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._pge_modKeysTable[args.a]
 	if (mask === game._pge_inpKeysMask) {
 		return UINT16_MAX
@@ -1044,9 +1027,7 @@ const pge_op_setCollisionState0 = (args: ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_isInGroup = (pge_dst: LivePGE, group_id: number, counter: number, game: Game) => {
-	if (counter < 1 || counter > 4) {
-		throw(`Assertion failed: ${counter} >= 1 1 && ${counter} <= 4`)
-	}
+	assert(!(counter < 1 || counter > 4), `Assertion failed: ${counter} >= 1 1 && ${counter} <= 4`)
 
 	const c = pge_dst.init_PGE.counter_values[counter - 1]
 	let le:GroupPGE = game._pge_groupsTable[pge_dst.index]
@@ -1506,9 +1487,7 @@ const pge_o_unk0x86 = (args:ObjectOpcodeArgs, game: Game) => {
 }
 
 const pge_op_playSoundGroup = (args: ObjectOpcodeArgs, game: Game) => {
-    if (args.a >= 4) {
-        throw(`Assertion failed: ${args.a} < 4`)
-    }
+    assert(!(args.a >= 4), `Assertion failed: ${args.a} < 4`)
 	const c = args.pge.init_PGE.counter_values[args.a] & UINT16_MAX
 	const sfxId = c & UINT8_MAX
 	const softVol = c >> 8

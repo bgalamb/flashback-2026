@@ -125,9 +125,8 @@ class Game {
     static _protectionWordData: Uint8Array = _protectionWordData
     static _protectionPal: Uint8Array = _protectionPal
 
-    renderPromise
-    renderDone
-
+    renderPromise: Promise<unknown>
+    renderDone: { (): void; (value: unknown): void }
 
     _cut: Cutscene
     _menu: Menu

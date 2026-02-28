@@ -6,6 +6,7 @@ import type {
     ObjectNode,
     ObjectOpcodeArgs
 } from './intern'
+import { assert } from "./assert"
 import type { pge_OpcodeProc } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game as GameClass } from './game'
@@ -83,9 +84,7 @@ export function gamePgeLoadForCurrentLevel(game: Game, idx: number, currentRoom:
     }
 
     live_pge.flags = flags
-    if (initial_pge_from_file.obj_node_number >= game._res._numObjectNodes) {
-        throw(`Assertion failed: ${initial_pge_from_file.obj_node_number} < ${game._res._numObjectNodes}}`)
-    }
+    assert(!(initial_pge_from_file.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${initial_pge_from_file.obj_node_number} < ${game._res._numObjectNodes}}`)
     const on: ObjectNode = game._res._objectNodesMap[initial_pge_from_file.obj_node_number]
 
     let obj = 0
@@ -94,9 +93,7 @@ export function gamePgeLoadForCurrentLevel(game: Game, idx: number, currentRoom:
         ++i
         ++obj
     }
-    if (i >= on.num_objects) {
-        throw(`Assertion failed: ${i} < ${on.num_objects}`)
-    }
+    assert(!(i >= on.num_objects), `Assertion failed: ${i} < ${on.num_objects}`)
     live_pge.first_obj_number = i
     game.pge_setupDefaultAnim(live_pge)
 }
@@ -233,9 +230,7 @@ export function gamePgeExecute(game: Game, live_pge: LivePGE, init_pge: InitPGE,
 
 export function gamePgeProcessOBJ(game: Game, pge: LivePGE) {
     const init_pge: InitPGE = pge.init_PGE
-    if (init_pge.obj_node_number >= game._res._numObjectNodes) {
-        throw(`Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-    }
+    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
     const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
     let objIndex = pge.first_obj_number
     let obj: Obj = on.objects[objIndex]
@@ -304,9 +299,7 @@ export function gamePgeInnerProcess(game: Game, pge: LivePGE, currentRoom: numbe
     if (game._res._readUint16(anim_data) <= pge.anim_seq) {
         game.renders > game.debugStartFrame && console.log('if')
         const init_pge: InitPGE = pge.init_PGE
-        if (init_pge.obj_node_number >= game._res._numObjectNodes) {
-            throw(`Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-        }
+        assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
 
         const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
         let objIndex = pge.first_obj_number
@@ -471,9 +464,7 @@ export function gamePgePlayAnimSound(game: Game, pge: LivePGE, arg2: number) {
 
 export function gamePgeSetupNextAnimFrame(game: Game, pge: LivePGE, le: GroupPGE) {
     const init_pge: InitPGE = pge.init_PGE
-    if (init_pge.obj_node_number >= game._res._numObjectNodes) {
-        throw(`Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-    }
+    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
 
     const set_anim = () => {
         const anim_data = game._res.getAniData(pge.obj_type)

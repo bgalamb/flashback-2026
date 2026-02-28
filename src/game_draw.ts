@@ -3,6 +3,7 @@ import type { Game } from './game'
 import { MAX_VOLUME } from './mixer'
 import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
 import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { assert } from "./assert"
 
 const PGE_NUM = 256
 
@@ -144,9 +145,7 @@ export async function gameDrawAnims(game: Game) {
 }
 
 export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: AnimBufferState[]) {
-    if (stateNum >= 4) {
-        throw(`Assertion failed: ${stateNum} < 4`)
-    }
+    assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
     game._animBuffers._states[stateNum] = state
     const lastPos = game._animBuffers._curPos[stateNum]
 
@@ -183,9 +182,7 @@ export function gameDrawPiege(game: Game, state: AnimBufferState) {
 }
 
 export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number) {
-    if (dataPtr[0] >= 0x4A) {
-        throw(`Assertion failed: ${dataPtr[0]} < 0x4A`)
-    }
+    assert(!(dataPtr[0] >= 0x4A), `Assertion failed: ${dataPtr[0]} < 0x4A`)
     const slot = game._res._rp[dataPtr[0]]
     let data = game._res.findBankData(slot)
     if (data === null) {

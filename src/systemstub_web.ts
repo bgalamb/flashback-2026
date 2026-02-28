@@ -1,6 +1,7 @@
 import { CLIP, Color } from './intern'
 import {WidescreenMode} from './enums/common_enums'
 import { Scaler, ScalerType, _internalScaler } from './scaler'
+import { assert } from "./assert"
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void
 
@@ -417,9 +418,7 @@ class SystemStub {
 	}
 
 	setPalette(pal: Uint8Array,  n: number) {
-		if (n > 256) {
-			throw(`Assertion failed: ${n} < 256`)
-		}
+		assert(!(n > 256), `Assertion failed: ${n} < 256`)
 		let index = 0
 		for (let i = 0; i < n; ++i) {
 			this.setPaletteColor(i, pal[index], pal[index + 1], pal[index + 2])
@@ -508,9 +507,7 @@ class SystemStub {
 	}
 
 	copyRectRgb24(x: number, y: number, w: number, h: number, rgb: Uint8Array) {
-		if (x < 0 || x + w > this._screenW || y < 0 || y + h > this._screenH) {
-			throw(`Assertion failed: ${x} >= 0 && ${x + w} <= ${this._screenW} && ${y} >= 0 && ${y + h} <= ${this._screenH}`)
-		}
+		assert(!(x < 0 || x + w > this._screenW || y < 0 || y + h > this._screenH), `Assertion failed: ${x} >= 0 && ${x + w} <= ${this._screenW} && ${y} >= 0 && ${y + h} <= ${this._screenH}`)
 		const p = this._screenBuffer
 		let offset = (y * this._screenW + x) * 4
 		let pOffset = 0
@@ -630,9 +627,7 @@ class SystemStub {
 		const y1 = y
 		const x2 = x + w - 1
 		const y2 = y + h - 1
-		if (x1 < 0 && x2 >= this._screenW && y1 < 0 && y2 >= this._screenH) {
-			throw(`Assertion failed: ${x1} < 0 && ${x2} >= ${this._screenW} && ${y1} < 0 && ${y2} >= ${this._screenH}`)
-		}
+		assert(!(x1 < 0 && x2 >= this._screenW && y1 < 0 && y2 >= this._screenH), `Assertion failed: ${x1} < 0 && ${x2} >= ${this._screenW} && ${y1} < 0 && ${y2} >= ${this._screenH}`)
 		for (let i = x1; i <= x2; ++i) {
 			this._screenBuffer[(y1 * this._screenW + i) * 4] = this._screenBuffer[(y2 * this._screenW + i) * 4] = this._rgbPalette[color * 4]
 			this._screenBuffer[((y1 * this._screenW + i) * 4) + 1] = this._screenBuffer[((y2 * this._screenW + i) * 4) + 1] = this._rgbPalette[(color * 4) + 1]

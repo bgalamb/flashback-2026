@@ -1,5 +1,6 @@
 import { Game } from "./game"
 import { UINT8_MAX } from './game_constants'
+import { assert } from "./assert"
 
 const Skill = {
     kSkillEasy: 0,
@@ -202,9 +203,7 @@ class AnimBuffers {
     _curPos: number[] = [0, 0, 0, 0]
 
     addState(stateNum: number, x: number, y: number, dataPtr: Uint8Array, pge: LivePGE, w: number = 0, h: number = 0) {
-        if (stateNum >= 4) {
-            throw(`Assertion failed: ${stateNum} < 4`)
-        }
+        assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
         const curPos = this._curPos[stateNum]
         const index = curPos === UINT8_MAX ? 0 : curPos + 1
         const state: AnimBufferState = this._states[stateNum][index]

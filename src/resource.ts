@@ -7,6 +7,7 @@ import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES
 import { createObjectTypeMapping } from './resource/loaders'
 import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './resource/parsers'
 import {GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from './game_constants'
+import { assert } from "./assert"
 
 
 class Resource {
@@ -240,7 +241,7 @@ class Resource {
 
         this._numObjectNodes = READ_LE_UINT16(dat)
         if (this._numObjectNodes !== 230 ){
-            throw(`assertion failed ${this._numObjectNodes}`)
+            throw(`Assertion failed: ${this._numObjectNodes}`)
         }
         this.decodeOBJ(dat.subarray(2,len -2), len -2)
     }
@@ -270,9 +271,7 @@ class Resource {
                 throw("Bad CRC for SPM data")
             }
         } else {
-            if (size > this._sprm.byteLength) {
-                throw(`Assertion error: ${size} <= ${this._sprm.byteLength}`)
-            }
+            assert(!(size > this._sprm.byteLength), `Assertion failed: ${size} <= ${this._sprm.byteLength}`)
             // assert(size <= sizeof(_sprm));
             // sprm = sprite monster?
             if (!bytekiller_unpack(this._sprm, this._sprm.byteLength, tmp, len)) {
@@ -410,24 +409,16 @@ class Resource {
         if (avail < size) {
             this.clearBankData()
         }
-        if ((this._bankDataHead.byteOffset + size) > this._bankDataTail) {
-            throw(`Assertion failed: ${this._bankDataHead.byteOffset + size} <= ${this._bankDataTail}`)
-        }
-        if (this._bankBuffersCount >= this._bankBuffers.length) {
-            throw(`Assersion failed: ${this._bankBuffersCount} < ${this._bankBuffers.length}`)
-        }
+        assert(!((this._bankDataHead.byteOffset + size) > this._bankDataTail), `Assertion failed: ${this._bankDataHead.byteOffset + size} <= ${this._bankDataTail}`)
+        assert(!(this._bankBuffersCount >= this._bankBuffers.length), `Assertion failed: ${this._bankBuffersCount} < ${this._bankBuffers.length}`)
         this._bankBuffers[this._bankBuffersCount].entryNum = num
         this._bankBuffers[this._bankBuffersCount].ptr = this._bankDataHead
         const data = this._mbk.subarray(dataOffset)
         if (READ_BE_UINT16(ptr, 4) & 0x8000) {
             this._bankDataHead.set(data.subarray(0, size))
         } else {
-            if (dataOffset <= 4) {
-                throw(`Assertion failed: ${dataOffset} > 4`)
-            }
-            if (size !== (READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)) {
-                throw(`Assertion failed: ${size} === ${(READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)}`)
-            }
+            assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
+            assert(!(size !== (READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)), `Assertion failed: ${size} === ${(READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)}`)
 
             if (!bytekiller_unpack(this._bankDataHead, this._bankDataTail, data, 0)) {
                 console.error(`Bad CRC for bank data ${num}`)

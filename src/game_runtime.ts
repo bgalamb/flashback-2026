@@ -92,8 +92,8 @@ export async function gameRun(game: Game) {
         game._saveTimestamp = game._frameTimestamp
         game.renders = 0
         game.debugStartFrame = 10650
-        game.renderPromise = new Promise((resolve) => {
-            game.renderDone = resolve
+        game.renderPromise = new Promise<void>((resolve) => {
+            game.renderDone = () => resolve()
         })
         new Promise(() => requestAnimationFrame(() => game.runLoop()))
         await game.renderPromise

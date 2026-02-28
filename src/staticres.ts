@@ -1798,17 +1798,6 @@ const _protectionPal = Uint8Array.from([
 
 const _gameSavedSoundLen = 8005
 
-const _levelNames = [
-	"Titan / The Jungle",
-	"Titan / New Washington",
-	"Titan / Death Tower Show",
-	"Earth / Surface",
-	"Earth / Paradise Club",
-	"Planet Morphs / Surface",
-	"Planet Morphs / Inner Core"
-]
-
-
 const _conradPal1 = Uint8Array.from([
 	0x00, 0x00, 0xCC, 0x0C, 0x8F, 0x08, 0x7E, 0x07, 0x6C, 0x06, 0x5B, 0x05, 0x4A, 0x04, 0x63, 0x09,
 	0x52, 0x07, 0x41, 0x06, 0x30, 0x06, 0x76, 0x0C, 0x14, 0x09, 0x25, 0x0B, 0x88, 0x08, UINT8_MAX, 0x0F
@@ -1881,35 +1870,6 @@ const _periodTable = Uint16Array.from([
 	431, 407, 384, 363, 342, 323, 305, 288, 272, 256, 242, 228, // C-2 to B-2 Finetune -1
 	216, 203, 192, 181, 171, 161, 152, 144, 136, 128, 121, 114  // C-3 to B-3 Finetune -1
 ])
-
-const _modulesFiles = [
-	[ "intro",       "mod.flashback-introb"    ], // introl3
-	[ "options",     "mod.flashback-options2"  ], // option3
-	[ "journal",     "mod.flashback-options1"  ], // journal3
-	[ "ceinture",    "mod.flashback-ceinturea" ], // chute3
-	[ "desinteg",    "mod.flashback-desintegr" ], // desinte3
-	[ "reunion",     "mod.flashback-reunion"   ], // capture3
-	[ "voyage",      "mod.flashback-voyage"    ], // voyage3
-	[ "level4",      "mod.flashback-teleporta" ], // telepor3
-	[ "planetexplo", "mod.flashback-teleport2" ], // planexp3
-	[ "fin",         "mod.flashback-fin"       ], // end31
-	[ "ascenseur",   "mod.flashback-ascenseur" ], // lift3
-	[ "logo",        "mod.flashback-logo"      ], // present3
-	[ "game_over",   "mod.flashback-game_over" ], // gameove3
-	[ "holocube",    "mod.flashback-holocube"  ], // holo3
-	[ "memoire",     "mod.flashback-memoire"   ], // memory3
-	[ "chute",       "mod.flashback-chute"     ], // chutevi3
-	[ "debut",       "mod.flashback-jungle"    ], // reveil3
-	[ "missions",    "mod.flashback-missionca" ], // misvali3
-	[ "taxi",        "mod.flashback-taxi"      ], // taxi3
-	[ "donneobj",    "mod.flashback-donneobjt" ], // donner3
-	[ "missions2",   "mod.flashback-fin2"      ]  // mission3
-//	[ null,          null,                     ], // objet3
-//	[ null,          null,                     ], // recharg3
-//	[ null,          null,                     ], // generat3
-//	[ null,          null,                     ], // pont3
-//	[ null,          null,                     ]  // rechage3
-]
 
 const _namesTable = [
 	/* 0x00 */
@@ -3688,4 +3648,4 @@ const _flagEn16x12 = Uint8Array.from([
 ])
 
 
-export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _levelNames, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _modulesFiles, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }
+export { _namesTableDOS, _offsetsTableDOS, _ssiOffsetsTable, _cosTable, _sinTable, _creditsDataDOS, _creditsCutSeq, _musicTable, _protectionShapeData, _enTextsTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable, _caillouSetData, _flagEn16x12 }

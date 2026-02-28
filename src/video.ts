@@ -6,12 +6,14 @@ import { _conradPal1, _conradPal2, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
 import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { writeUnpackedLevelData } from "./debugger-helpers/level-data-dump"
+import { assert } from "./assert"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
 class Video {
-    static _conradPal1: Uint8Array = _conradPal1
-    static _conradPal2: Uint8Array = _conradPal2
+    static _conrad_palette1: Uint8Array = _conradPal1
+    static _conrad_palette2: Uint8Array = _conradPal2
     static _textPal: Uint8Array = _textPal
     static _palSlot0xF: Uint8Array = _palSlot0xF
 
@@ -27,16 +29,18 @@ class Video {
     _backLayer: Uint8Array
     _tempLayer: Uint8Array
     _tempLayer2: Uint8Array
+
     _unkPalSlot1: number
-    _unkPalSlot2: number    
-    _mapPalSlot1: number
-    _mapPalSlot2: number        
-    _mapPalSlot3: number    
-    _mapPalSlot4: number
+    _unkPalSlot2: number
+    _map_palette_offset_slot1: number
+    _map_palette_offset_slot2: number
+    _map_palette_offset_slot3: number
+    _map_palette_offset_slot4: number
+
     _charFrontColor: number
     _charTransparentColor: number
     _charShadowColor: number
-    _screenBlocks: Uint8Array         
+    _screenBlocks: Uint8Array
     _fullRefresh: boolean
     _shakeOffset: number
     _drawChar: drawCharFunc
@@ -61,7 +65,6 @@ class Video {
       this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.PC_drawStringChar(dst, pitch, x, y, src, color, chr)
 
     }
-
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
         const fnt = this._res._fnt
         for (let i = 0; i < len; ++i) {
@@ -166,9 +169,7 @@ class Video {
     }
 
     static PC_drawTileMask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
-        if (size !== (w * 2 * h)) {
-            throw(`Assertion failed: ${size} === ${(w * 2 * h)}`)
-        }
+        assert(!(size !== (w * 2 * h)), `Assertion failed: ${size} === ${(w * 2 * h)}`)
         let mIndex = 0
         let pIndex = 0
         for (let y = 0; y < h; ++y) {
@@ -357,10 +358,10 @@ pitch = 16
         }
     }
 
-    static decodeLevHelper(dst: Uint8Array, src: Uint8Array, offset10: number, offset12: number, a5: Uint8Array, sgdBuf: boolean, isPC: boolean) {
-        if (offset10 !== 0) {
+    static decodeLevHelper(dst: Uint8Array, src: Uint8Array, sgd_offset: number, offset12: number, tile_data_buffer: Uint8Array, sgdBuf: boolean, isPC: boolean) {
+        if (sgd_offset !== 0) {
             // Initialize the source offset
-            let a0 = offset10
+            let a0 = sgd_offset
             for (let y = 0; y < GAMESCREEN_H; y += 8) {
                 for (let x = 0; x < GAMESCREEN_W; x += 8) {
                     const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
@@ -370,7 +371,7 @@ pitch = 16
                     // Process non-zero tile indices
                     if (d0 !== 0) {
                         // Get the tile data from a5 buffer
-                        const a2 = a5.subarray(d0 * 32)
+                        const tiledata = tile_data_buffer.subarray(d0 * 32)
                         // Check for vertical and horizontal flipping
                         const yflip = (d3 & (1 << 12)) !== 0
                         const xflip = (d3 & (1 << 11)) !== 0
@@ -386,7 +387,7 @@ pitch = 16
                         // ...
                         // y=8, x=0
                         // pass the dst part where this 8*8 piece needs to go
-                        Video.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), a2, mask, xflip, yflip, -1)
+                        Video.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), tiledata, mask, xflip, yflip, -1)
                     }
                 }
             }
@@ -407,7 +408,7 @@ pitch = 16
                     }
                     if (d0 !== 0) {
                         // Get the tile data from a5 buffer
-                        const a2 = a5.subarray(d0 * 32)
+                        const a2 = tile_data_buffer.subarray(d0 * 32)
                         // Check for vertical and horizontal flipping
                         const yflip = (d3 & (1 << 12)) !== 0
                         const xflip = (d3 & (1 << 11)) !== 0
@@ -457,90 +458,91 @@ pitch = 16
         const tmp = this._res._mbk
         this._res._mbk = this._res._bnq
         this._res.clearBankData()
+
         this.AMIGA_decodeLev(level, room)
+
         this._res._mbk = tmp
         this._res.clearBankData()
     }
 
     PC_decodeMap(level: number, room: number) {
         if (!this._res._map) {
-            if (!this._res._lev) {
-                throw(`Assertion failed: ${this._res._lev}`)
-            }
+            assert(this._res._lev, `Assertion failed: ${this._res._lev}`)
             this.PC_decodeLev(level, room)
             return
         }
 
-        if (room >= 0x40) {
-            throw(`Assertion failed: ${room} < 0x40`)
-        }
-        let off = READ_LE_UINT32(this._res._map, room * 6) << 32 >> 32
-        if (off === 0) {
-            throw(`Invalid room ${room}`)
-        }
-        let packed = true
-        if (off < 0) {
-            off = -off
-            packed = false
-        }
-        const map = this._res._map
-        let p = off
-        this._mapPalSlot1 = map[p++]
-        this._mapPalSlot2 = map[p++]
-        this._mapPalSlot3 = map[p++]
-        this._mapPalSlot4 = map[p++]
-        if (level === 4 && room === 60) {
-            // workaround for wrong palette colors (fire)
-            this._mapPalSlot4 = 5
-        }
-        const kPlaneSize = (GAMESCREEN_W * GAMESCREEN_H / 4) >> 0
-        if (packed) {
-            for (let i = 0; i < 4; ++i) {
-                const sz = READ_LE_UINT16(map, p)
-                p += 2
-                Video.PC_decodeMapPlane(sz, map.subarray(p), this._res._scratchBuffer)
-                p += sz
-                this._frontLayer.set(this._res._scratchBuffer.subarray(0, kPlaneSize), i * kPlaneSize)
-            }
-        } else {
-            for (let i = 0; i < 4; ++i) {
-                for (let y = 0; y < GAMESCREEN_H; ++y) {
-                    for (let x = 0; x < 64; ++x) {
-                        this._frontLayer[i + x * 4 + GAMESCREEN_W * y] = map[p + kPlaneSize * i + x + 64 * y]
-                    }
-                }
-            }
-        }
-        this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
-        this.PC_setLevelPalettes()
+        // TODO I think this part is not needed, we have the _map file always.
+        // if (room >= 0x40) {
+        //     throw(`Assertion failed: ${room} < 0x40`)
+        // }
+        // let off = READ_LE_UINT32(this._res._map, room * 6) << 32 >> 32
+        // if (off === 0) {
+        //     throw(`Invalid room ${room}`)
+        // }
+        // let packed = true
+        // if (off < 0) {
+        //     off = -off
+        //     packed = false
+        // }
+        // const map = this._res._map
+        // let p = off
+        // this._mapPalSlot1 = map[p++]
+        // this._mapPalSlot2 = map[p++]
+        // this._mapPalSlot3 = map[p++]
+        // this._mapPalSlot4 = map[p++]
+        // if (level === 4 && room === 60) {
+        //     // workaround for wrong palette colors (fire)
+        //     this._mapPalSlot4 = 5
+        // }
+        // const kPlaneSize = (GAMESCREEN_W * GAMESCREEN_H / 4) >> 0
+        // if (packed) {
+        //     for (let i = 0; i < 4; ++i) {
+        //         const sz = READ_LE_UINT16(map, p)
+        //         p += 2
+        //         Video.PC_decodeMapPlane(sz, map.subarray(p), this._res._scratchBuffer)
+        //         p += sz
+        //         this._frontLayer.set(this._res._scratchBuffer.subarray(0, kPlaneSize), i * kPlaneSize)
+        //     }
+        // } else {
+        //     for (let i = 0; i < 4; ++i) {
+        //         for (let y = 0; y < GAMESCREEN_H; ++y) {
+        //             for (let x = 0; x < 64; ++x) {
+        //                 this._frontLayer[i + x * 4 + GAMESCREEN_W * y] = map[p + kPlaneSize * i + x + 64 * y]
+        //             }
+        //         }
+        //     }
+        // }
+        // this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
+        // this.PC_setLevelPalettes()
     }
 
     PC_setLevelPalettes() {
         if (this._unkPalSlot2 === 0) {
-            this._unkPalSlot2 = this._mapPalSlot3
+            this._unkPalSlot2 = this._map_palette_offset_slot3
         }
         if (this._unkPalSlot1 === 0) {
-            this._unkPalSlot1 = this._mapPalSlot3
+            this._unkPalSlot1 = this._map_palette_offset_slot3
         }
         // background
-        this.setPaletteSlotBE(0x0, this._mapPalSlot1)
+        this.setPaletteSlotBE(0x0, this._map_palette_offset_slot1)
         // objects
-        this.setPaletteSlotBE(0x1, this._mapPalSlot2)
-        this.setPaletteSlotBE(0x2, this._mapPalSlot3)
-        this.setPaletteSlotBE(0x3, this._mapPalSlot4)
+        this.setPaletteSlotBE(0x1, this._map_palette_offset_slot2)
+        this.setPaletteSlotBE(0x2, this._map_palette_offset_slot3)
+        this.setPaletteSlotBE(0x3, this._map_palette_offset_slot4)
         // conrad
-        if (this._unkPalSlot1 === this._mapPalSlot3) {
-            this.setPaletteSlotLE(4, Video._conradPal1)
+        if (this._unkPalSlot1 === this._map_palette_offset_slot3) {
+            this.setPaletteSlotLE(4, Video._conrad_palette1)
         } else {
-            this.setPaletteSlotLE(4, Video._conradPal2)
+            this.setPaletteSlotLE(4, Video._conrad_palette2)
         }
         // slot 5 is monster palette
         // foreground
-        this.setPaletteSlotBE(0x8, this._mapPalSlot1)
-        this.setPaletteSlotBE(0x9, this._mapPalSlot2)
+        this.setPaletteSlotBE(0x8, this._map_palette_offset_slot1)
+        this.setPaletteSlotBE(0x9, this._map_palette_offset_slot2)
         // inventory
         this.setPaletteSlotBE(0xA, this._unkPalSlot2)
-        this.setPaletteSlotBE(0xB, this._mapPalSlot4)
+        this.setPaletteSlotBE(0xB, this._map_palette_offset_slot4)
         // slots 0xC and 0xD are cutscene palettes
         this.setTextPalette()
     }
@@ -599,104 +601,107 @@ pitch = 16
     // | 0x20    | d4 * d3 * 32 | some bank_data content            |
     // +---------+-------+------------------------------------------+
     // REPEAT THE ABOVE BLOCKS UNTIL END OF FILE
-
-
-
     AMIGA_decodeLev(level: number, room: number) {
-        const leveldatascratch = this._res._scratchBuffer
+        const leveldata_scratch = this._res._scratchBuffer
         //the first bytes represent the offsets in _lev file offset by room number
         const offset = READ_BE_UINT32(this._res._lev, room * 4)
-        if (!bytekiller_unpack(leveldatascratch, leveldatascratch.length, this._res._lev, offset)) {
+        if (!bytekiller_unpack(leveldata_scratch, leveldata_scratch.length, this._res._lev, offset)) {
             console.warn(`Bad CRC for level ${level} room ${room}`)
             return
         }
+        writeUnpackedLevelData(level, room, leveldata_scratch)
 
-        let offset10 = READ_BE_UINT16(leveldatascratch, 10)
-        const offset12 = READ_BE_UINT16(leveldatascratch, 12)
-        const offset14 = READ_BE_UINT16(leveldatascratch, 14)
+        // set palette slots
+        this._map_palette_offset_slot1 = READ_BE_UINT16(leveldata_scratch, 2)
+        this._map_palette_offset_slot2 = READ_BE_UINT16(leveldata_scratch, 4)
+        this._map_palette_offset_slot3 = READ_BE_UINT16(leveldata_scratch, 6)
+        this._map_palette_offset_slot4 = READ_BE_UINT16(leveldata_scratch, 8)
+
+        // data pointers
+        let sgd_offset = READ_BE_UINT16(leveldata_scratch, 10)
+        const offset12 = READ_BE_UINT16(leveldata_scratch, 12)
+        let bank_datachunk_offset = READ_BE_UINT16(leveldata_scratch, 14)
 
         //create a new buffer
         const kTempMbkSize = 1024
         const tiledata_buffer = new Uint8Array(kTempMbkSize * 32)
 
         //empty the firs 32 bytes
-        let sz = 0
+        let offset_sz = 0
         for (let i = 0; i < 32; ++i) {
             tiledata_buffer[i] = 0
         }
 
-        //this is a counter, which sums how much we read from bank data to buf altogether
-        sz += 32
-        let a1 = offset14
+        //this is a counter, which sums how much we read from bank data to tiledata_buffer altogether
+        offset_sz += 32
 
         // endless loop ends only when the end criteria is found
         for (let loop = true; loop;) {
-            let d0 = READ_BE_UINT16(leveldatascratch, a1)
-            a1 += 2
-            if (d0 & 0x8000) {
-                d0 &= ~0x8000
+
+            //this reads from scratchbuffer
+            let bank_data_id = READ_BE_UINT16(leveldata_scratch, bank_datachunk_offset)
+            bank_datachunk_offset += 2
+            if (bank_data_id & 0x8000) {
+                bank_data_id &= ~0x8000
                 loop = false
             }
-            const d1 = this._res.getBankDataSize(d0)
-            let a6 = this._res.findBankData(d0)
-            if (!a6) {
-                a6 = this._res.loadBankData(d0)
+
+            //these read from bank data
+            const d1 = this._res.getBankDataSize(bank_data_id)
+            let current_bank_data = this._res.findBankData(bank_data_id)
+            if (!current_bank_data) {
+                current_bank_data = this._res.loadBankData(bank_data_id)
             }
-            const d3 = leveldatascratch[a1++]
+            const chunk_number = leveldata_scratch[bank_datachunk_offset++]
             //read a next value that would indicate how much data to load
             // 255 means all, other number means N * (a newly read size) * 32 bytes
 
-            if (d3 === 255) {
-                if (sz + d1 > kTempMbkSize * 32) {
-                    throw(`Assertion failed: ${sz + d1} <= ${kTempMbkSize * 32}`)
-                }
-                tiledata_buffer.set(a6.subarray(0, d1), sz)
-                sz += d1                
+            if (chunk_number === UINT8_MAX) {
+                assert(!(offset_sz + d1 > kTempMbkSize * 32), `Assertion failed: ${offset_sz + d1} <= ${kTempMbkSize * 32}`)
+                tiledata_buffer.set(current_bank_data.subarray(0, d1), offset_sz)
+                offset_sz += d1
             } else {
-                for (let i = 0; i < d3 + 1; ++i) {
-                    const d4 = leveldatascratch[a1++]
-                    if (sz + 32 > kTempMbkSize * 32) {
-                        throw(`Assertion failed: ${sz + 32} <= ${kTempMbkSize * 32}`)
-                    }
-                    tiledata_buffer.set(a6.subarray(d4 * 32, (d4 * 32) + 32), sz)
-                    sz += 32
+                for (let i = 0; i < chunk_number + 1; ++i) {
+                    const chunk_size = leveldata_scratch[bank_datachunk_offset++]
+                    assert(!(offset_sz + 32 > kTempMbkSize * 32), `Assertion failed: ${offset_sz + 32} <= ${kTempMbkSize * 32}`)
+                    tiledata_buffer.set(current_bank_data.subarray(chunk_size * 32, (chunk_size * 32) + 32), offset_sz)
+                    offset_sz += 32
                 }
             }
         }
 
         this._frontLayer.fill(0)
-        if (leveldatascratch[1] !== 0) {
-            if (!this._res._sgd) {
-                throw(`Assertion error: ${this._res._sgd}`)
-            }
-            Video.decodeSgd(this._frontLayer, new Uint8Array(leveldatascratch.buffer, leveldatascratch.byteOffset + offset10), this._res._sgd)
-            offset10 = 0
+        if (leveldata_scratch[1] !== 0) {
+            assert(!(!this._res._sgd), `Assertion failed: ${this._res._sgd}`)
+            Video.decodeSgd(this._frontLayer, new Uint8Array(leveldata_scratch.buffer, leveldata_scratch.byteOffset + sgd_offset), this._res._sgd)
+            sgd_offset = 0
         }
 
         Video.decodeLevHelper(
             this._frontLayer, //dst
-            leveldatascratch, //src
-            offset10,
+            leveldata_scratch, //src
+            sgd_offset,
             offset12,
             tiledata_buffer, //buffer with tile data
-            leveldatascratch[1] !== 0, //sgd buffer
+            leveldata_scratch[1] !== 0, //sgd buffer
             true) //always true
-        this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
-        this._mapPalSlot1 = READ_BE_UINT16(leveldatascratch, 2)
-        this._mapPalSlot2 = READ_BE_UINT16(leveldatascratch, 4)
-        this._mapPalSlot3 = READ_BE_UINT16(leveldatascratch, 6)
-        this._mapPalSlot4 = READ_BE_UINT16(leveldatascratch, 8)
 
+        //move front to back layer
+        this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
+
+        //set palettes for the drawing
         this.PC_setLevelPalettes()
+
+
         if (level === 0) { // tiles with color slot 0x9
-            this.setPaletteSlotBE(0x9, this._mapPalSlot1)
+            this.setPaletteSlotBE(0x9, this._map_palette_offset_slot1)
         }
     }
 
     PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
         let dst_offset = y * pitch + x
         if (chr < 32) {
-            throw (`assert failed: ${chr} < 32`)
+            throw (`Assertion failed: ${chr} < 32`)
         }
         let src_offset = (chr - 32) * 8 * 4
         for (let y = 0; y < 8; ++y) {
@@ -760,20 +765,20 @@ pitch = 16
 
         if (palSlot === 4 && global_game_options.use_white_tshirt) {
             const color12: Color = Video.AMIGA_convertColor(0x888)
-            const color13: Color = Video.AMIGA_convertColor((palData === Video._conradPal2) ? 0x888 : 0xCCC)
+            const color13: Color = Video.AMIGA_convertColor((palData === Video._conrad_palette2) ? 0x888 : 0xCCC)
             this._stub.setPaletteEntry(palSlot * 16 + 12, color12)
             this._stub.setPaletteEntry(palSlot * 16 + 13, color13)
         }
     }
 
-    setPaletteSlotBE(palSlot: number, palNum: number) {
-        let p = palNum * 32
+    setPaletteSlotBE(palette_color_slot: number, pal_offset: number) {
+        let p = pal_offset * 32
         const pal = this._res._pal
         for (let i = 0; i < 16; ++i) {
             const color = READ_BE_UINT16(pal, p)
             p += 2
             const c: Color = this.AMIGA_convertColor(color, true)
-            this._stub.setPaletteEntry(palSlot * 16 + i, c)
+            this._stub.setPaletteEntry(palette_color_slot * 16 + i, c)
         }
     }
 
