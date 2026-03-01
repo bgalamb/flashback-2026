@@ -7,6 +7,7 @@ import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
 import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX } from './game_constants'
 import { writeUnpackedLevelData } from "./debugger-helpers/level-data-dump"
+import { writeFrontLayerImage } from "./debugger-helpers/front-layer-image"
 import { assert } from "./assert"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
@@ -16,6 +17,7 @@ class Video {
     static _conrad_palette2: Uint8Array = _conradPal2
     static _textPal: Uint8Array = _textPal
     static _palSlot0xF: Uint8Array = _palSlot0xF
+    static _tempMbkSize = 1024
 
 
     _res: Resource
@@ -169,12 +171,12 @@ class Video {
     }
 
     static PC_drawTileMask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
-        assert(!(size !== (w * 2 * h)), `Assertion failed: ${size} === ${(w * 2 * h)}`)
+        assert(!(size !== (w * 2 * h)), `Assertion failed: ${size} === ${w * 2 * h}`)
         let mIndex = 0
         let pIndex = 0
         for (let y = 0; y < h; ++y) {
             for (let x = 0; x < w; ++x) {
-                const bits = READ_BE_UINT16(m, mIndex);
+                const bits = READ_BE_UINT16(m, mIndex)
                 mIndex += 2
                 for (let bit = 0; bit < 8; ++bit) {
                     const j = y0 + y
@@ -185,7 +187,7 @@ class Video {
                             dst[j * GAMESCREEN_W + i] = color >> 4
                         }
                         if (bits & (1 << (15 - (bit * 2 + 1)))) {
-                            dst[j * GAMESCREEN_W + i + 1] = color & 15;
+                            dst[j * GAMESCREEN_W + i + 1] = color & 15
                         }
                     }
                     ++pIndex
@@ -196,7 +198,7 @@ class Video {
 
     static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array) {
         let num = -1
-        let index = 0        
+        let index = 0
         const buf = new Uint8Array(GAMESCREEN_W * 32)
         let count = READ_BE_UINT16(src) - 1
         index += 2
@@ -427,6 +429,60 @@ pitch = 16
         }
     }
 
+    static buildTileDataBuffer(leveldata_scratch: Uint8Array, getBankData: (bankDataId: number) => Uint8Array): Uint8Array {
+        const tiledata_buffer = new Uint8Array(Video._tempMbkSize * 32)
+        tiledata_buffer.fill(0, 0, 32)
+
+        let offset_sz = 32
+        let bank_datachunk_offset = READ_BE_UINT16(leveldata_scratch, 14)
+        for (let loop = true; loop;) {
+            let bank_data_id = READ_BE_UINT16(leveldata_scratch, bank_datachunk_offset)
+            bank_datachunk_offset += 2
+            if (bank_data_id & 0x8000) {
+                bank_data_id &= ~0x8000
+                loop = false
+            }
+
+            const current_bank_data = getBankData(bank_data_id)
+            const chunk_number = leveldata_scratch[bank_datachunk_offset++]
+            if (chunk_number === UINT8_MAX) {
+                assert(!(offset_sz + current_bank_data.length > Video._tempMbkSize * 32), `Assertion failed: ${offset_sz + current_bank_data.length} <= ${Video._tempMbkSize * 32}`)
+                tiledata_buffer.set(current_bank_data, offset_sz)
+                offset_sz += current_bank_data.length
+            } else {
+                for (let i = 0; i < chunk_number + 1; ++i) {
+                    const chunk_size = leveldata_scratch[bank_datachunk_offset++]
+                    assert(!(offset_sz + 32 > Video._tempMbkSize * 32), `Assertion failed: ${offset_sz + 32} <= ${Video._tempMbkSize * 32}`)
+                    tiledata_buffer.set(current_bank_data.subarray(chunk_size * 32, chunk_size * 32 + 32), offset_sz)
+                    offset_sz += 32
+                }
+            }
+        }
+        return tiledata_buffer
+    }
+
+    static decodeRoomGraphics(dst: Uint8Array, leveldata_scratch: Uint8Array, sgdData: Uint8Array, getBankData: (bankDataId: number) => Uint8Array) {
+        let sgd_offset = READ_BE_UINT16(leveldata_scratch, 10)
+        const offset12 = READ_BE_UINT16(leveldata_scratch, 12)
+        const tiledata_buffer = Video.buildTileDataBuffer(leveldata_scratch, getBankData)
+
+        dst.fill(0)
+        if (leveldata_scratch[1] !== 0) {
+            assert(!!sgdData, `Assertion failed: ${sgdData}`)
+            Video.decodeSgd(dst, new Uint8Array(leveldata_scratch.buffer, leveldata_scratch.byteOffset + sgd_offset), sgdData)
+            sgd_offset = 0
+        }
+
+        Video.decodeLevHelper(dst, leveldata_scratch, sgd_offset, offset12, tiledata_buffer, leveldata_scratch[1] !== 0, true)
+
+        return {
+            mapPaletteOffsetSlot1: READ_BE_UINT16(leveldata_scratch, 2),
+            mapPaletteOffsetSlot2: READ_BE_UINT16(leveldata_scratch, 4),
+            mapPaletteOffsetSlot3: READ_BE_UINT16(leveldata_scratch, 6),
+            mapPaletteOffsetSlot4: READ_BE_UINT16(leveldata_scratch, 8)
+        }
+    }
+
     fillRect(x: number, y: number, w: number, h: number, color: number) {
         const p = this._frontLayer
         let index = y * this._w + x;
@@ -456,6 +512,7 @@ pitch = 16
 
     PC_decodeLev(level: number, room: number) {
         const tmp = this._res._mbk
+        // TODO why do we heed this?
         this._res._mbk = this._res._bnq
         this._res.clearBankData()
 
@@ -696,6 +753,7 @@ pitch = 16
         if (level === 0) { // tiles with color slot 0x9
             this.setPaletteSlotBE(0x9, this._map_palette_offset_slot1)
         }
+        writeFrontLayerImage(level, room, this._frontLayer, this._w, this._h, this._stub._rgbPalette)
     }
 
     PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
