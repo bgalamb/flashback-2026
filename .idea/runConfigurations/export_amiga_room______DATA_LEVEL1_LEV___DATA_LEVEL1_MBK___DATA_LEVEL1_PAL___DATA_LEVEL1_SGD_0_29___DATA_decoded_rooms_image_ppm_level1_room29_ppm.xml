@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm" type="js.build_tools.npm" nameIsGenerated="true">
+    <package-json value="$PROJECT_DIR$/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="export:amiga-room" />
+    </scripts>
+    <arguments value="-- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm " />
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

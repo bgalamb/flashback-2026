@@ -1,7 +1,6 @@
 dist/
 node_modules/
 .cache/
-data/
 *.d
 *.o
 rs

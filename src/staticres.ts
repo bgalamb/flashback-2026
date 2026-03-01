@@ -646,13 +646,13 @@ const _enTextsTable = [
 ]
 
 const _gameLevels = [
-	{ name: "level1", name2: "level1", nameAmiga: "level1", cutscene_id: 0x00, sound: 1, track: 3 },
-	{ name: "level2", name2: "level2", nameAmiga: "level2", cutscene_id: 0x2F, sound: 1, track: 4 },
-	{ name: "level3", name2: "level3", nameAmiga: "dt", cutscene_id: UINT16_MAX, sound: 3, track: 5 },
-	{ name: "level4", name2: "level4_1", nameAmiga: "level3_1", cutscene_id: 0x34, sound: 3, track: 6 },
-	{ name: "level4", name2: "level4_2", nameAmiga: "level3_2", cutscene_id: 0x39, sound: 3, track: 6 },
-	{ name: "level5", name2: "level5_1", nameAmiga: "level4_1", cutscene_id: 0x35, sound: 4, track: 7 },
-	{ name: "level5", name2: "level5_2", nameAmiga: "level4_2", cutscene_id: UINT16_MAX, sound: 4, track: 7 }
+	{ name: "level1", name2: "level1", cutscene_id: 0x00, sound: 1, track: 3 },
+	{ name: "level2", name2: "level2", cutscene_id: 0x2F, sound: 1, track: 4 },
+	{ name: "level3", name2: "level3", cutscene_id: UINT16_MAX, sound: 3, track: 5 },
+	{ name: "level4", name2: "level4_1", cutscene_id: 0x34, sound: 3, track: 6 },
+	{ name: "level4", name2: "level4_2", cutscene_id: 0x39, sound: 3, track: 6 },
+	{ name: "level5", name2: "level5_1", cutscene_id: 0x35, sound: 4, track: 7 },
+	{ name: "level5", name2: "level5_2", cutscene_id: UINT16_MAX, sound: 4, track: 7 }
 ]
 
 const scoreTable = Uint16Array.from([

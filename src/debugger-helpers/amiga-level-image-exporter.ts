@@ -3,6 +3,7 @@ import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from "../intern"
 import { GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../game_constants"
 import { bytekiller_unpack } from "../unpack"
 import { Video } from "../video"
+import { _gameLevels } from "../staticres"
 
 // Loads a room from LEV/MBK-or-BNQ/PAL/SGD assets, decodes the Amiga front layer,
 // applies the room palettes, and writes the rendered RGB result as a PPM image file.
@@ -21,7 +22,7 @@ class AmigaLevelImageExporter {
         this._usesBnqFormat = usesBnqFormat
     }
 
-    static exportRoomImage(levPath: string, mbkPath: string, palPath: string, sgdPath: string, level: number, room: number, outputPath: string): Uint8Array {
+    static exportRoomImage(levPath: string, mbkPath: string, palPath: string, sgdPath: string, level: number, room: number, outputPath: string, prevFrontLayer? :Uint8Array): Uint8Array {
         const fs = require('fs')
         const path = require('path')
         const lev = new Uint8Array(fs.readFileSync(levPath))
@@ -43,12 +44,51 @@ class AmigaLevelImageExporter {
             usesBnqFormat = true
         }
         const pal = new Uint8Array(fs.readFileSync(palPath))
-        const sgd = new Uint8Array(fs.readFileSync(sgdPath))
+        const sgd = fs.existsSync(sgdPath) ? new Uint8Array(fs.readFileSync(sgdPath)) : new Uint8Array(0)
 
         const exporter = new AmigaLevelImageExporter(mbk, pal, sgd, usesBnqFormat)
         const frontLayer = exporter.decodeRoom(lev, level, room)
-        exporter.writePpm(outputPath, frontLayer)
+        if (frontLayer != prevFrontLayer) {
+            exporter.writePpm(outputPath, frontLayer)
+        }
         return frontLayer
+    }
+
+    static exportAllGameLevelRooms(dataDir: string, outputDir: string, roomFrom: number = 1, roomTo: number = 100) {
+        const fs = require('fs')
+        const path = require('path')
+
+        fs.mkdirSync(outputDir, { recursive: true })
+
+        for (let levelIndex = 0; levelIndex < _gameLevels.length; ++levelIndex) {
+            const level = _gameLevels[levelIndex]
+            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name)
+
+            if (!resolved) {
+                continue
+            }
+
+            const levelOutputDir = path.join(outputDir, `${level.name2}`)
+            fs.mkdirSync(levelOutputDir, { recursive: true })
+
+            for (let room = roomFrom; room <= roomTo; ++room) {
+                const outputPath = path.join(levelOutputDir, `${resolved.baseName}-room${room}.ppm`)
+                try {AmigaLevelImageExporter.exportRoomImage(
+                        resolved.levPath,
+                        resolved.mbkPath,
+                        resolved.palPath,
+                        resolved.sgdPath || "",
+                        levelIndex,
+                        room,
+                        outputPath
+                    )
+                    console.log(`Wrote ${outputPath}`)
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error)
+                    console.warn(`Skipping level ${levelIndex} room ${room}: ${message}`)
+                }
+            }
+        }
     }
 
     private static isPlaceholderMbk(data: Uint8Array): boolean {
@@ -68,6 +108,41 @@ class AmigaLevelImageExporter {
             }
         }
         return true
+    }
+
+    private static resolveDataFile(dataDir: string, baseName: string, ext: string): string | null {
+        const fs = require('fs')
+        const path = require('path')
+        const candidates = [
+            path.join(dataDir, `${baseName}.${ext.toLowerCase()}`),
+            path.join(dataDir, `${baseName}.${ext.toUpperCase()}`)
+        ]
+        for (const candidate of candidates) {
+            if (fs.existsSync(candidate)) {
+                return candidate
+            }
+        }
+        return null
+    }
+
+    private static resolveOptionalDataFile(dataDir: string, baseName: string, ext: string): string | null {
+        return AmigaLevelImageExporter.resolveDataFile(dataDir, baseName, ext)
+    }
+
+    private static resolveLevelAssetPaths(dataDir: string, baseName: string) {
+        const levPath = AmigaLevelImageExporter.resolveDataFile(dataDir, baseName, "lev")
+        const mbkPath = AmigaLevelImageExporter.resolveDataFile(dataDir, baseName, "mbk")
+        const palPath = AmigaLevelImageExporter.resolveDataFile(dataDir, baseName, "pal")
+        if (levPath && mbkPath && palPath) {
+            return {
+                baseName,
+                levPath,
+                mbkPath,
+                palPath,
+                sgdPath: AmigaLevelImageExporter.resolveOptionalDataFile(dataDir, baseName, "sgd")
+            }
+        }
+        return null
     }
 
     decodeRoom(lev: Uint8Array, level: number, room: number): Uint8Array {
