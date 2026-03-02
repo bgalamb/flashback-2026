@@ -13,6 +13,9 @@
     "dev": "ts-node fuse.ts",
     "build": "rm -Rf dist && ts-node fuse-prod.ts && mkdir -p dist/js && cp src/audio-processors/processors.js dist/js/",
     "check": "tsc -p tsconfig.json --noEmit",
+    "export:cutscene": "ts-node --transpile-only ./src/debugger-helpers/export-cutscene-video.ts",
+    "export:cutscene:id": "ts-node --transpile-only ./src/debugger-helpers/export-cutscene-video-by-id.ts",
+    "export:cutscene:name": "ts-node --transpile-only ./src/debugger-helpers/export-cutscene-video-by-name.ts",
     "export:amiga-room": "ts-node --transpile-only ./src/debugger-helpers/export-amiga-level-image.ts",
     "export:all-amiga-rooms": "ts-node --transpile-only ./src/debugger-helpers/export-all-amiga-level-images.ts"
   },
