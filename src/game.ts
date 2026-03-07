@@ -1,6 +1,7 @@
 import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE } from './intern'
 import type { pge_OpcodeProc } from './intern'
-import { Cutscene } from './cutscene'
+import { Cutscene } from './cutscene-players/cutscene'
+import { Mp4CutscenePlayer } from './cutscene-players/mp4-cutscene-player'
 import { Mixer } from './mixer'
 import { Resource, ObjectType, LocaleData } from './resource'
 import { Video } from './video'
@@ -48,56 +49,34 @@ import {
 } from './game_collision'
 import {
     gameDrawAnimBuffer,
-    gameDrawAnims,
     gameDrawCharacter,
-    gameDrawCurrentInventoryItem,
     gameDrawIcon,
-    gameDrawLevelTexts,
     gameDrawObject,
     gameDrawObjectFrame,
     gameDrawPiege,
-    gameDrawStoryTexts,
     gameDrawString
 } from './game_draw'
 import {
-    gameHandleConfigPanel,
-    gameHandleInventory,
-} from './game_inventory'
-import {
-    gameHandleContinueAbort,
-    gameInpHandleSpecialKeys,
     gameLoadGameState,
-    gameLoadStateRewind,
-    gameMainLoop,
-    gamePlayCutscene,
     gameRun,
-    gameRunLoop,
     gameSaveGameState,
-    gameShowFinalScore,
-    gameUpdateTiming
 } from './game_runtime'
 import {
-    gameChangeLevel,
     gameClearStateRewind,
     gameGetRandomNumber,
-    gameHasLevelMap,
     gameInpUpdate,
     gameLoadLevelData,
     gameLoadLevelMap,
     gameLoadMonsterSprites,
     gameLoadState,
-    gamePrepareAnimationsInRooms,
     gameResetGameState
 } from './game_world'
 import {
     gamePgeAddToCurrentRoomList,
     gamePgeExecute,
     gamePgeGetInventoryItemBefore,
-    gamePgeGetUserLeftRightUpDownKeyInput,
-    gamePgeInnerProcess,
     gamePgeLoadForCurrentLevel,
     gamePgePlayAnimSound,
-    gamePgePrepare,
     gamePgeProcessOBJ,
     gamePgeRemoveFromGroup,
     gamePgeRemoveFromInventory,
@@ -283,21 +262,14 @@ class Game {
         return gamePgeSetupDefaultAnim(this, pge)
     }
 
-    async playCutscene(id: number = -1) {
-        return gamePlayCutscene(this, id)
+    async playMpegCutscene(path: string) {
+        const player = new Mp4CutscenePlayer(this._stub, this._fs)
+        return player.play(path)
     }
 
-    async runLoop() {
-        return gameRunLoop(this)
-    }
-
-    // run -> runLoop -> mainloop
+    // run -> gameRunLoop -> gameMainLoop
     async run() {
         return gameRun(this)
-    }
-
-    async showFinalScore() {
-        return gameShowFinalScore(this)
     }
 
     pge_removeFromGroup(idx: number) {
@@ -322,10 +294,6 @@ class Game {
 
     pge_updateGroup(idx: number, unk1: number, unk2: number) {
         return gamePgeUpdateGroup(this, idx, unk1, unk2)
-    }
-
-    pge_inner_process(pge: LivePGE, currentRoom:number) {
-        return gamePgeInnerProcess(this, pge, currentRoom)
     }
 
     pge_setupAnim(pge: LivePGE) {
@@ -357,10 +325,6 @@ class Game {
         return gameDrawIcon(this, iconNum, x, y, colMask)
     }
 
-    drawCurrentInventoryItem() {
-        return gameDrawCurrentInventoryItem(this)
-    }
-
     col_findPiege(pge: LivePGE, arg2: number) {
         return gameColFindPiege(this, pge, arg2)
     }
@@ -376,24 +340,12 @@ class Game {
         }
     }
 
-    drawLevelTexts() {
-        return gameDrawLevelTexts(this)
-    }
-
-    async updateTiming() {
-        return gameUpdateTiming(this)
-    }
-
     saveGameState(slot: number) {
         return gameSaveGameState(this, slot)
     }
 
     loadGameState(slot: number) {
         return gameLoadGameState(this, slot)
-    }
-
-    async handleContinueAbort() {
-        return gameHandleContinueAbort(this)
     }
 
     static getLineLength(str: Uint8Array) {
@@ -406,22 +358,6 @@ class Game {
         return len
     }
 
-    async drawStoryTexts() {
-        return gameDrawStoryTexts(this)
-    }
-
-    async mainLoop() {
-        return gameMainLoop(this)
-    }
-
-    inp_handleSpecialKeys() {
-        return gameInpHandleSpecialKeys(this)
-    }
-
-    loadStateRewind() {
-        return gameLoadStateRewind(this)
-    }
-
     loadState(f: File) {
         return gameLoadState(this, f)
     }
@@ -430,14 +366,6 @@ class Game {
         return gameDrawString(this, p, x, y, color, hcenter)
     }
 
-    async prepareAnimationsInRooms(currentRoom:number) {
-        return gamePrepareAnimationsInRooms(this, currentRoom)
-    }
-
-    async drawAnims() {
-        return gameDrawAnims(this)
-    }
-    
     async drawAnimBuffer(stateNum: number, state: AnimBufferState[]) {
         return gameDrawAnimBuffer(this, stateNum, state)
     }
@@ -459,14 +387,6 @@ class Game {
         return gameDrawCharacter(this, dataPtr, pos_x, pos_y, a, b, flags)
     }
 
-    async handleInventory() {
-        return gameHandleInventory(this)
-    }
-
-    async handleConfigPanel() {
-        return gameHandleConfigPanel(this)
-    }
-
     pge_getInventoryItemBefore(pge: LivePGE, last_pge: LivePGE) {
         return gamePgeGetInventoryItemBefore(this, pge, last_pge)
     }
@@ -485,10 +405,6 @@ class Game {
 
     getRandomNumber() {
         return gameGetRandomNumber(this)
-    }
-
-    async changeLevel() {
-        return gameChangeLevel(this)
     }
 
     async inp_update() {
@@ -520,15 +436,6 @@ class Game {
     }
 
 
-    pge_prepare(currentRoom:number) {
-        return gamePgePrepare(this, currentRoom)
-    }
-
-
-    async pge_getUserLeftRightUpDownKeyInput() {
-        return gamePgeGetUserLeftRightUpDownKeyInput(this)
-    }
-
     resetGameState() {
         return gameResetGameState(this)
     }
@@ -537,10 +444,6 @@ class Game {
         return gameLoadMonsterSprites(this, pge, currentRoom)
     }
 
-
-    hasLevelMap( room: number) {
-        return gameHasLevelMap(this, room)
-    }
 
     async loadLevelMap(currentRoom:number) {
         return gameLoadLevelMap(this, currentRoom)

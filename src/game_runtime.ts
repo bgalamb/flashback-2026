@@ -1,12 +1,16 @@
 import type { Color, LivePGE } from './intern'
 import type { Game } from './game'
-import { Cutscene } from './cutscene'
+import { Cutscene } from './cutscene-players/cutscene'
 import { Menu } from './menu'
 import { ObjectType, LocaleData } from './resource'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP } from './systemstub_web'
 import { CHAR_W, GAMESCREEN_W } from './game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { UINT8_MAX } from './game_constants'
+import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
+import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
+import { gamePgeGetUserLeftRightUpDownKeyInput, gamePgeInnerProcess, gamePgePrepare } from './game_pge'
+import { gameChangeLevel, gameHasLevelMap, gameLoadLevelMap, gamePrepareAnimationsInRooms } from './game_world'
 
 export async function gamePlayCutscene(game: Game, id: number = -1) {
     if (id !== -1) {
@@ -24,16 +28,13 @@ export async function gamePlayCutscene(game: Game, id: number = -1) {
         game._cut.setId(0x4A)
         await game._cut.play()
     }
-    if (id === 0x3D) {
-        await game._cut.playCredits()
-    }
     game._mix.stopMusic()
 }
 
 export async function gameRunLoop(game: Game) {
-    await game.mainLoop()
+    await gameMainLoop(game)
     if (!game._stub._pi.quit && !game._endLoop) {
-        requestAnimationFrame(() => game.runLoop())
+        requestAnimationFrame(() => gameRunLoop(game))
     } else {
         // @ts-ignore
         game.renderDone()
@@ -46,8 +47,8 @@ export async function gameRun(game: Game) {
     await game._res.load('FB_TXT', ObjectType.OT_FNT)
     game._mix.init()
 
-    await game.playCutscene(0x40)
-    await game.playCutscene(0x0D)
+    await gamePlayCutscene(game, 0x40)
+    await gamePlayCutscene(game, 0x0D)
 
     await game._res.load('GLOBAL', ObjectType.OT_ICN)
     await game._res.load('GLOBAL', ObjectType.OT_SPC)
@@ -74,7 +75,7 @@ export async function gameRun(game: Game) {
         if (game._currentLevel === 7) {
             await game._vid.fadeOut()
             game._vid.setTextPalette()
-            await game.playCutscene(0x3D)
+            await gamePlayCutscene(game, 0x3D)
             continue
         }
         game._vid.setTextPalette()
@@ -95,7 +96,7 @@ export async function gameRun(game: Game) {
         game.renderPromise = new Promise<void>((resolve) => {
             game.renderDone = () => resolve()
         })
-        new Promise(() => requestAnimationFrame(() => game.runLoop()))
+        new Promise(() => requestAnimationFrame(() => gameRunLoop(game)))
         await game.renderPromise
 
         game._stub._pi.dirMask = 0
@@ -106,7 +107,7 @@ export async function gameRun(game: Game) {
 }
 
 export async function gameShowFinalScore(game: Game) {
-    await game.playCutscene(0x49)
+    await gamePlayCutscene(game, 0x49)
 
     const buf = game._score.toString().padStart(8, '0')
     game._vid.drawString(buf, (GAMESCREEN_W - buf.length * CHAR_W) / 2, 40, 0xE5)
@@ -142,7 +143,6 @@ export function gameLoadGameState(_game: Game, _slot: number) {
 }
 
 export async function gameHandleContinueAbort(game: Game) {
-    await game.playCutscene(0x48)
     let timeout = 100
     let current_color = 0
     const colors = [0xE4, 0xE5]
@@ -212,7 +212,7 @@ export async function gameHandleContinueAbort(game: Game) {
 
 export async function gameDidFinishAllLevels(game: Game) {
     if (game._cut.getId() === 0x3D) {
-        await game.showFinalScore()
+        await gameShowFinalScore(game)
         game._endLoop = true
         return true
     }
@@ -223,9 +223,9 @@ export async function gameDidDie(game: Game) {
     if (game._deathCutsceneCounter) {
         --game._deathCutsceneCounter
         if (game._deathCutsceneCounter === 0) {
-            await game.playCutscene(game._cut.getDeathCutSceneId())
-            if (!await game.handleContinueAbort()) {
-                await game.playCutscene(0x41)
+            await gamePlayCutscene(game, game._cut.getDeathCutSceneId())
+            if (!await gameHandleContinueAbort(game)) {
+                await gamePlayCutscene(game, 0x41)
                 game._endLoop = true
             } else {
                 if (game._autoSave && game._rewindLen !== 0 && game.loadGameState(kAutoSaveSlot)) {
@@ -248,65 +248,65 @@ export function gamePgeProcessLoop(game: Game, pge_liveTable2: LivePGE[], curren
         if (pge) {
             game._col_currentPiegeGridPosY = ((pge.pos_y / 36) >> 0) & ~1
             game._col_currentPiegeGridPosX = (pge.pos_x + 8) >> 4
-            game.pge_inner_process(pge, currentRoom)
+            gamePgeInnerProcess(game, pge, currentRoom)
         }
     }
 }
 
 export async function gameMainLoop(game: Game) {
-    await game.playCutscene()
+    await gamePlayCutscene(game)
     if (await gameDidFinishAllLevels(game)) return
     if (await gameDidDie(game)) return
 
     game._vid._frontLayer.set(game._vid._backLayer.subarray(0, game._vid._layerSize))
-    await game.pge_getUserLeftRightUpDownKeyInput()
-    game.pge_prepare(game._currentRoom)
+    await gamePgeGetUserLeftRightUpDownKeyInput(game)
+    gamePgePrepare(game, game._currentRoom)
     game.col_prepareRoomState(game._currentRoom)
 
     const oldLevel = game._currentLevel
     gamePgeProcessLoop(game, game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly, game._currentRoom)
 
     if (oldLevel !== game._currentLevel) {
-        await game.changeLevel()
+        await gameChangeLevel(game)
         game._pge_opTempVar1 = 0
         return
     }
 
     if (game._loadMap) {
-        if (game._currentRoom === UINT8_MAX || !game.hasLevelMap(game._pgeLiveAll[0].room_location)) {
+        if (game._currentRoom === UINT8_MAX || !gameHasLevelMap(game, game._pgeLiveAll[0].room_location)) {
             game._cut.setId(6)
             game._deathCutsceneCounter = 1
         } else {
             game._currentRoom = game._pgeLiveAll[0].room_location
-            await game.loadLevelMap(game._currentRoom)
+            await gameLoadLevelMap(game, game._currentRoom)
             game._loadMap = false
             game._vid.fullRefresh()
         }
     }
-    await game.prepareAnimationsInRooms(game._currentRoom)
-    await game.drawAnims()
+    await gamePrepareAnimationsInRooms(game, game._currentRoom)
+    await gameDrawAnims(game)
     game.renders++
-    game.drawCurrentInventoryItem()
-    game.drawLevelTexts()
+    gameDrawCurrentInventoryItem(game)
+    gameDrawLevelTexts(game)
 
     if (game._blinkingConradCounter !== 0) {
         --game._blinkingConradCounter
     }
     await game._vid.updateScreen()
-    await game.updateTiming()
-    await game.drawStoryTexts()
+    await gameUpdateTiming(game)
+    await gameDrawStoryTexts(game)
     if (game._stub._pi.backspace) {
         game._stub._pi.backspace = false
-        await game.handleInventory()
+        await gameHandleInventory(game)
     }
     if (game._stub._pi.escape) {
-        if (await game.handleConfigPanel()) {
+        if (await gameHandleConfigPanel(game)) {
             game._endLoop = true
             return
         }
         game._stub._pi.escape = false
     }
-    game.inp_handleSpecialKeys()
+    gameInpHandleSpecialKeys(game)
     if (game._autoSave && game._stub.getTimeStamp() - game._saveTimestamp >= kAutoSaveIntervalMs) {
         if (game._pgeLiveAll[0].life > 0 && game._deathCutsceneCounter === 0) {
             game.saveGameState(kAutoSaveSlot)
@@ -337,7 +337,7 @@ export function gameInpHandleSpecialKeys(game: Game) {
     }
     if (game._stub._pi.rewind) {
         if (game._rewindLen !== 0) {
-            game.loadStateRewind()
+            gameLoadStateRewind(game)
         } else {
             console.log('Rewind buffer is empty')
         }

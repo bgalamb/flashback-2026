@@ -30,7 +30,6 @@ interface Demo {
 interface Level {
     name: string
     name2: string
-    nameAmiga: string
     cutscene_id: number
     sound: number
     track: number

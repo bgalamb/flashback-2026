@@ -10,9 +10,6 @@ const g_caption = "REminiscence"
 //By default the structure has everything false, so here we change some values
 const initOptions = async () => {
     global_game_options.fade_out_palette = false
-    global_game_options.use_text_cutscenes = false
-    global_game_options.use_seq_cutscenes = true
-    global_game_options.use_words_protection = false
     global_game_options.use_white_tshirt = false
     global_game_options.play_asc_cutscene = true
     global_game_options.play_caillou_cutscene = true

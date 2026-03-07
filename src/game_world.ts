@@ -80,9 +80,7 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
 }
 
 export function gameHasLevelMap(game: Game, room: number) {
-    if (game._res._map) {
-        return READ_LE_UINT32(game._res._map, room * 6) !== 0
-    } else if (game._res._lev) {
+    if (game._res._lev) {
         return READ_BE_UINT32(game._res._lev, room * 4) !== 0
     }
     return false

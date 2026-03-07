@@ -523,55 +523,10 @@ pitch = 16
     }
 
     PC_decodeMap(level: number, room: number) {
-        if (!this._res._map) {
-            assert(this._res._lev, `Assertion failed: ${this._res._lev}`)
+        assert(this._res._lev, `Assertion failed: ${this._res._lev}`)
             this.PC_decodeLev(level, room)
             return
-        }
 
-        // TODO I think this part is not needed, we have the _map file always.
-        // if (room >= 0x40) {
-        //     throw(`Assertion failed: ${room} < 0x40`)
-        // }
-        // let off = READ_LE_UINT32(this._res._map, room * 6) << 32 >> 32
-        // if (off === 0) {
-        //     throw(`Invalid room ${room}`)
-        // }
-        // let packed = true
-        // if (off < 0) {
-        //     off = -off
-        //     packed = false
-        // }
-        // const map = this._res._map
-        // let p = off
-        // this._mapPalSlot1 = map[p++]
-        // this._mapPalSlot2 = map[p++]
-        // this._mapPalSlot3 = map[p++]
-        // this._mapPalSlot4 = map[p++]
-        // if (level === 4 && room === 60) {
-        //     // workaround for wrong palette colors (fire)
-        //     this._mapPalSlot4 = 5
-        // }
-        // const kPlaneSize = (GAMESCREEN_W * GAMESCREEN_H / 4) >> 0
-        // if (packed) {
-        //     for (let i = 0; i < 4; ++i) {
-        //         const sz = READ_LE_UINT16(map, p)
-        //         p += 2
-        //         Video.PC_decodeMapPlane(sz, map.subarray(p), this._res._scratchBuffer)
-        //         p += sz
-        //         this._frontLayer.set(this._res._scratchBuffer.subarray(0, kPlaneSize), i * kPlaneSize)
-        //     }
-        // } else {
-        //     for (let i = 0; i < 4; ++i) {
-        //         for (let y = 0; y < GAMESCREEN_H; ++y) {
-        //             for (let x = 0; x < 64; ++x) {
-        //                 this._frontLayer[i + x * 4 + GAMESCREEN_W * y] = map[p + kPlaneSize * i + x + 64 * y]
-        //             }
-        //         }
-        //     }
-        // }
-        // this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
-        // this.PC_setLevelPalettes()
     }
 
     PC_setLevelPalettes() {

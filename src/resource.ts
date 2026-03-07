@@ -53,7 +53,6 @@ class Resource {
     //the initial structure to which all PGEs are loaded from the file
     _pgeAllInitialStateFromFile: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
 
-    _map: Uint8Array
     _lev: Uint8Array
     _levNum: number
     _sgd: Uint8Array
@@ -103,7 +102,6 @@ class Resource {
         // this._sprm = null
         this._pgeTotalNumInFile = 0
         // this._pgeInit = null
-        this._map = null
         this._lev = null
         this._levNum = 0
         this._sgd = null
@@ -683,7 +681,6 @@ class Resource {
         this._tbn = null
         this._mbk = null
         this._pal = null
-        this._map = null
         this._lev = null
         this._levNum = -1
         this._sgd = null
