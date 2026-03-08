@@ -1,6 +1,7 @@
 export const global_game_options = {
-    fade_out_palette: false,
     dump_front_layer_image: false,
+    dump_front_layer_pixel_data: false,
+    load_front_layer_pixel_data: false,
     dump_unpacked_level_data: false,
     use_tile_data: false,
     use_white_tshirt: false,

@@ -19,7 +19,6 @@ function createObjectTypeMapping(resource: any): Record<number, { extension: str
         [ObjectType.OT_ICN]: { extension: 'ICN', loader: resource.load_ICN },
         [ObjectType.OT_SPC]: { extension: 'SPC', loader: resource.load_SPC },
         [ObjectType.OT_SPR]: { extension: 'SPR', loader: resource.load_SPRITE },
-        [ObjectType.OT_SGD]: { extension: 'SGD', loader: resource.load_SGD },
         [ObjectType.OT_LEV]: { extension: 'LEV', loader: resource.load_LEV },
         [ObjectType.OT_OBJ]: { extension: 'OBJ', loader: resource.load_OBJ },
         [ObjectType.OT_MAP]: {

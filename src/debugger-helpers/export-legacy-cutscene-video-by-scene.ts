@@ -52,18 +52,15 @@ async function main() {
         throw new Error(`Invalid DOS cutName index 0x${cutNameIndex.toString(16)} for scene '${sceneNameArg}' (id 0x${sceneId.toString(16)})`)
     }
 
-    const result = await CutsceneVideoExporter.exportVideo({
+    await CutsceneVideoExporter.exportVideo({
         dataDir,
         cutName,
         outputPath,
-        entryOffset,
-        requireCineText: true,
-        maxDurationMs: 20000
+        entryOffset
     })
 
     console.log(`Wrote ${outputPath}`)
     console.log(`Scene '${sceneNameArg}' (id 0x${sceneId.toString(16)}) -> '${cutName}.CMD/.POL' offset ${entryOffset}`)
-    console.log(`Caption opcode calls: ${result.captionOps}`)
 }
 
 main().catch((error) => {

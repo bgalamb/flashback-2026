@@ -2,13 +2,13 @@ import { global_game_options } from "./configs/global_game_options"
 import { Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
 import { WidescreenMode } from "./enums/common_enums";
 import { Resource } from "./resource"
-import { _conradPal1, _conradPal2, _palSlot0xF, _textPal } from "./staticres"
+import { _conradPal1, _conradPal2, _gameLevels, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
 import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX } from './game_constants'
-import { writeUnpackedLevelData } from "./debugger-helpers/level-data-dump"
-import { writeFrontLayerImage } from "./debugger-helpers/front-layer-image"
+import { writeLayerImages, writeLayerPixelData } from "./debugger-helpers/front-layer-image"
 import { assert } from "./assert"
+import { File } from "./file"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -38,6 +38,8 @@ class Video {
     _map_palette_offset_slot2: number
     _map_palette_offset_slot3: number
     _map_palette_offset_slot4: number
+    _paletteHeaderOffsetsCache: Array<[number, number, number, number] | null | undefined>
+    _paletteHeaderColorsCache: Array<{ slot1: Color[], slot2: Color[], slot3: Color[], slot4: Color[] } | null | undefined>
 
     _charFrontColor: number
     _charTransparentColor: number
@@ -64,6 +66,8 @@ class Video {
       this._charFrontColor = 0
       this._charTransparentColor = 0
       this._charShadowColor = 0
+      this._paletteHeaderOffsetsCache = []
+      this._paletteHeaderColorsCache = []
       this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.PC_drawStringChar(dst, pitch, x, y, src, color, chr)
 
     }
@@ -330,8 +334,7 @@ pitch = 16
 
 
 */
-
- static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
+    static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
         let pitch = GAMESCREEN_W
         let dstIndex = 0
         let srcIndex = 0
@@ -429,60 +432,6 @@ pitch = 16
         }
     }
 
-    static buildTileDataBuffer(leveldata_scratch: Uint8Array, getBankData: (bankDataId: number) => Uint8Array): Uint8Array {
-        const tiledata_buffer = new Uint8Array(Video._tempMbkSize * 32)
-        tiledata_buffer.fill(0, 0, 32)
-
-        let offset_sz = 32
-        let bank_datachunk_offset = READ_BE_UINT16(leveldata_scratch, 14)
-        for (let loop = true; loop;) {
-            let bank_data_id = READ_BE_UINT16(leveldata_scratch, bank_datachunk_offset)
-            bank_datachunk_offset += 2
-            if (bank_data_id & 0x8000) {
-                bank_data_id &= ~0x8000
-                loop = false
-            }
-
-            const current_bank_data = getBankData(bank_data_id)
-            const chunk_number = leveldata_scratch[bank_datachunk_offset++]
-            if (chunk_number === UINT8_MAX) {
-                assert(!(offset_sz + current_bank_data.length > Video._tempMbkSize * 32), `Assertion failed: ${offset_sz + current_bank_data.length} <= ${Video._tempMbkSize * 32}`)
-                tiledata_buffer.set(current_bank_data, offset_sz)
-                offset_sz += current_bank_data.length
-            } else {
-                for (let i = 0; i < chunk_number + 1; ++i) {
-                    const chunk_size = leveldata_scratch[bank_datachunk_offset++]
-                    assert(!(offset_sz + 32 > Video._tempMbkSize * 32), `Assertion failed: ${offset_sz + 32} <= ${Video._tempMbkSize * 32}`)
-                    tiledata_buffer.set(current_bank_data.subarray(chunk_size * 32, chunk_size * 32 + 32), offset_sz)
-                    offset_sz += 32
-                }
-            }
-        }
-        return tiledata_buffer
-    }
-
-    static decodeRoomGraphics(dst: Uint8Array, leveldata_scratch: Uint8Array, sgdData: Uint8Array, getBankData: (bankDataId: number) => Uint8Array) {
-        let sgd_offset = READ_BE_UINT16(leveldata_scratch, 10)
-        const offset12 = READ_BE_UINT16(leveldata_scratch, 12)
-        const tiledata_buffer = Video.buildTileDataBuffer(leveldata_scratch, getBankData)
-
-        dst.fill(0)
-        if (leveldata_scratch[1] !== 0) {
-            assert(!!sgdData, `Assertion failed: ${sgdData}`)
-            Video.decodeSgd(dst, new Uint8Array(leveldata_scratch.buffer, leveldata_scratch.byteOffset + sgd_offset), sgdData)
-            sgd_offset = 0
-        }
-
-        Video.decodeLevHelper(dst, leveldata_scratch, sgd_offset, offset12, tiledata_buffer, leveldata_scratch[1] !== 0, true)
-
-        return {
-            mapPaletteOffsetSlot1: READ_BE_UINT16(leveldata_scratch, 2),
-            mapPaletteOffsetSlot2: READ_BE_UINT16(leveldata_scratch, 4),
-            mapPaletteOffsetSlot3: READ_BE_UINT16(leveldata_scratch, 6),
-            mapPaletteOffsetSlot4: READ_BE_UINT16(leveldata_scratch, 8)
-        }
-    }
-
     fillRect(x: number, y: number, w: number, h: number, color: number) {
         const p = this._frontLayer
         let index = y * this._w + x;
@@ -510,32 +459,254 @@ pitch = 16
         return str
     }
 
-    PC_decodeLev(level: number, room: number) {
-        const tmp = this._res._mbk
-        // TODO why do we heed this?
-        this._res._mbk = this._res._bnq
-        this._res.clearBankData()
+    async PC_decodeMap(level: number, room: number) {
+        await this.readRoomPaletteOffsets(level, room)
 
-        this.AMIGA_decodeLev(level, room)
-
-        this._res._mbk = tmp
-        this._res.clearBankData()
+        if (!(await this.AMIGA_tryLoadFrontLayerFromFile(level, room))) {
+            console.warn(`PC_decodeMap level=${level} room=${room}: missing front layer pixeldata file, filling with zeros`)
+            this._frontLayer.fill(0)
+        }
+        this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
+        this.PC_setLevelPalettes(level)
+        writeLayerImages(level, room, this._frontLayer, this._w, this._h, this._stub._rgbPalette)
+        writeLayerPixelData(level, room, this._frontLayer)
     }
 
-    PC_decodeMap(level: number, room: number) {
-        assert(this._res._lev, `Assertion failed: ${this._res._lev}`)
-            this.PC_decodeLev(level, room)
+    private async tryLoadRoomPaletteOffsetsFromJson(level: number, room: number): Promise<boolean> {
+        const cached = this._paletteHeaderOffsetsCache[level]
+        if (cached === null) {
+            return false
+        }
+        if (cached) {
+            this._map_palette_offset_slot1 = cached[0]
+            this._map_palette_offset_slot2 = cached[1]
+            this._map_palette_offset_slot3 = cached[2]
+            this._map_palette_offset_slot4 = cached[3]
+            console.log(`Palette offsets source: json-cache level=${level} room=${room} slots=[${cached[0]},${cached[1]},${cached[2]},${cached[3]}]`)
+            return true
+        }
+        const levelData = _gameLevels[level]
+        if (!levelData) {
+            this._paletteHeaderOffsetsCache[level] = null
+            return false
+        }
+        const candidates = [
+            `levels/${levelData.name2}/${levelData.name}.paletteheader.json`,
+            `levels/${levelData.name2}/${levelData.name}-room${room}.paletteheader.json`,
+            `${levelData.name}.paletteheader.json`,
+            `${levelData.name}-room${room}.paletteheader.json`
+        ]
+        for (const filename of candidates) {
+            const file = new File()
+            try {
+                const opened = await file.open(filename, "rb", this._res._fs)
+                if (!opened) {
+                    continue
+                }
+                const size = file.size()
+                if (size <= 0) {
+                    file.close()
+                    continue
+                }
+                const raw = new Uint8Array(size)
+                file.read(raw.buffer, size)
+                if (file.ioErr()) {
+                    file.close()
+                    continue
+                }
+                file.close()
+                const text = new TextDecoder("utf-8").decode(raw)
+                const parsed: unknown = JSON.parse(text)
+                const slots = (parsed as {
+                    slots?: {
+                        slot1?: { dec?: number, colors?: unknown[] } | number
+                        slot2?: { dec?: number, colors?: unknown[] } | number
+                        slot3?: { dec?: number, colors?: unknown[] } | number
+                        slot4?: { dec?: number, colors?: unknown[] } | number
+                    }
+                }).slots
+                const slot1Value = (typeof slots?.slot1 === "number") ? slots.slot1 : slots?.slot1?.dec
+                const slot2Value = (typeof slots?.slot2 === "number") ? slots.slot2 : slots?.slot2?.dec
+                const slot3Value = (typeof slots?.slot3 === "number") ? slots.slot3 : slots?.slot3?.dec
+                const slot4Value = (typeof slots?.slot4 === "number") ? slots.slot4 : slots?.slot4?.dec
+                const parseSlotColors = (value: { colors?: unknown[] } | number | undefined): Color[] | null => {
+                    if (typeof value === "number" || !Array.isArray(value?.colors)) {
+                        return null
+                    }
+                    const colors = value.colors
+                    const out: Color[] = []
+                    for (let i = 0; i < colors.length && i < 16; ++i) {
+                        const item = colors[i] as { rgb?: { r?: number, g?: number, b?: number }, r?: number, g?: number, b?: number }
+                        const r = (typeof item?.rgb?.r === "number") ? item.rgb.r : item?.r
+                        const g = (typeof item?.rgb?.g === "number") ? item.rgb.g : item?.g
+                        const b = (typeof item?.rgb?.b === "number") ? item.rgb.b : item?.b
+                        if (!Number.isInteger(r) || !Number.isInteger(g) || !Number.isInteger(b)) {
+                            return null
+                        }
+                        out.push({ r, g, b })
+                    }
+                    return out.length === 16 ? out : null
+                }
+                const slot1Colors = parseSlotColors(slots?.slot1)
+                const slot2Colors = parseSlotColors(slots?.slot2)
+                const slot3Colors = parseSlotColors(slots?.slot3)
+                const slot4Colors = parseSlotColors(slots?.slot4)
+                if (
+                    Number.isInteger(slot1Value) && slot1Value >= 0 &&
+                    Number.isInteger(slot2Value) && slot2Value >= 0 &&
+                    Number.isInteger(slot3Value) && slot3Value >= 0 &&
+                    Number.isInteger(slot4Value) && slot4Value >= 0
+                ) {
+                    this._map_palette_offset_slot1 = slot1Value
+                    this._map_palette_offset_slot2 = slot2Value
+                    this._map_palette_offset_slot3 = slot3Value
+                    this._map_palette_offset_slot4 = slot4Value
+                    this._paletteHeaderOffsetsCache[level] = [slot1Value, slot2Value, slot3Value, slot4Value]
+                    this._paletteHeaderColorsCache[level] = (slot1Colors && slot2Colors && slot3Colors && slot4Colors) ? {
+                        slot1: slot1Colors,
+                        slot2: slot2Colors,
+                        slot3: slot3Colors,
+                        slot4: slot4Colors
+                    } : null
+                    console.log(
+                        `Palette offsets source: json-file '${filename}' level=${level} room=${room} slots=[${slot1Value},${slot2Value},${slot3Value},${slot4Value}] colors=${this._paletteHeaderColorsCache[level] ? "embedded" : "offsets-only"}`
+                    )
+                    return true
+                }
+            } catch (_error) {
+                file.close()
+            }
+        }
+        this._paletteHeaderOffsetsCache[level] = null
+        this._paletteHeaderColorsCache[level] = null
+        return false
+    }
+
+    private async readRoomPaletteOffsets(level: number, room: number) {
+        if (await this.tryLoadRoomPaletteOffsetsFromJson(level, room)) {
             return
-
+        }
+        if (!this._res._lev) {
+            console.warn(`Palette offsets source: none level=${level} room=${room} (_lev not loaded and no json)`)
+            return
+        }
+        const leveldata_scratch = this._res._scratchBuffer
+        const offset = READ_BE_UINT32(this._res._lev, room * 4)
+        if (offset === 0) {
+            return
+        }
+        if (!bytekiller_unpack(leveldata_scratch, leveldata_scratch.length, this._res._lev, offset)) {
+            console.warn(`Bad CRC for level ${level} room ${room}`)
+            return
+        }
+        this._map_palette_offset_slot1 = READ_BE_UINT16(leveldata_scratch, 2)
+        this._map_palette_offset_slot2 = READ_BE_UINT16(leveldata_scratch, 4)
+        this._map_palette_offset_slot3 = READ_BE_UINT16(leveldata_scratch, 6)
+        this._map_palette_offset_slot4 = READ_BE_UINT16(leveldata_scratch, 8)
+        console.log(
+            `Palette offsets source: _lev level=${level} room=${room} slots=[${this._map_palette_offset_slot1},${this._map_palette_offset_slot2},${this._map_palette_offset_slot3},${this._map_palette_offset_slot4}]`
+        )
     }
 
-    PC_setLevelPalettes() {
+    private async AMIGA_tryLoadFrontLayerFromFile(level: number, room: number): Promise<boolean> {
+        const levelData = _gameLevels[level]
+        const names = levelData ? [
+            `levels/${levelData.name2}/${levelData.name}-room${room}.pixeldata.bin`,
+            `${levelData.name}-room${room}.pixeldata.bin`
+        ] : []
+        names.push(`level${level + 1}-room${room}.pixeldata.bin`)
+        names.push(`level${level}-room${room}.pixeldata.bin`)
+
+        for (const filename of names) {
+            const file = new File()
+            try {
+                const opened = await file.open(filename, "rb", this._res._fs)
+                if (!opened) {
+                    continue
+                }
+                const size = file.size()
+                if (size !== this._frontLayer.length) {
+                    console.warn(`Invalid front layer size for '${filename}': got ${size}, expected ${this._frontLayer.length}`)
+                    file.close()
+                    continue
+                }
+                file.read(this._frontLayer.buffer, this._frontLayer.length)
+                if (file.ioErr()) {
+                    file.close()
+                    continue
+                }
+                file.close()
+                return true
+            } catch (error) {
+                console.warn(`Could not load front layer file '${filename}'`, error)
+            }
+        }
+        return false
+    }
+
+    private setPaletteColors(paletteSlot: number, colors: Color[]) {
+        for (let i = 0; i < 16; ++i) {
+            this._stub.setPaletteEntry(paletteSlot * 16 + i, colors[i])
+        }
+    }
+
+    private getJsonPaletteColorsForOffset(level: number, palOffset: number): Color[] | null {
+        const colors = this._paletteHeaderColorsCache[level]
+        const offsets = this._paletteHeaderOffsetsCache[level]
+        if (!colors || !offsets) {
+            return null
+        }
+        if (palOffset === offsets[0]) {
+            return colors.slot1
+        }
+        if (palOffset === offsets[1]) {
+            return colors.slot2
+        }
+        if (palOffset === offsets[2]) {
+            return colors.slot3
+        }
+        if (palOffset === offsets[3]) {
+            return colors.slot4
+        }
+        return null
+    }
+
+    PC_setLevelPalettes(level: number) {
         if (this._unkPalSlot2 === 0) {
             this._unkPalSlot2 = this._map_palette_offset_slot3
         }
         if (this._unkPalSlot1 === 0) {
             this._unkPalSlot1 = this._map_palette_offset_slot3
         }
+        const jsonColors = this._paletteHeaderColorsCache[level]
+        if (jsonColors) {
+            console.log(`Palette colors source: json-embedded level=${level}`)
+            // background
+            this.setPaletteColors(0x0, jsonColors.slot1)
+            // objects
+            this.setPaletteColors(0x1, jsonColors.slot2)
+            this.setPaletteColors(0x2, jsonColors.slot3)
+            this.setPaletteColors(0x3, jsonColors.slot4)
+            // conrad
+            if (this._unkPalSlot1 === this._map_palette_offset_slot3) {
+                this.setPaletteSlotLE(4, Video._conrad_palette1)
+            } else {
+                this.setPaletteSlotLE(4, Video._conrad_palette2)
+            }
+            // slot 5 is monster palette
+            // foreground
+            this.setPaletteColors(0x8, jsonColors.slot1)
+            this.setPaletteColors(0x9, level === 0 ? jsonColors.slot1 : jsonColors.slot2)
+            // inventory
+            const inventoryColors = this.getJsonPaletteColorsForOffset(level, this._unkPalSlot2) || jsonColors.slot3
+            this.setPaletteColors(0xA, inventoryColors)
+            this.setPaletteColors(0xB, jsonColors.slot4)
+            this.setTextPalette()
+            return
+        }
+        console.log(
+            `Palette colors source: _pal offsets level=${level} slots=[${this._map_palette_offset_slot1},${this._map_palette_offset_slot2},${this._map_palette_offset_slot3},${this._map_palette_offset_slot4}] unk=[${this._unkPalSlot1},${this._unkPalSlot2}]`
+        )
         // background
         this.setPaletteSlotBE(0x0, this._map_palette_offset_slot1)
         // objects
@@ -557,158 +728,9 @@ pitch = 16
         this.setPaletteSlotBE(0xB, this._map_palette_offset_slot4)
         // slots 0xC and 0xD are cutscene palettes
         this.setTextPalette()
-    }
-
-    // _lev is a packed file. The first byte indicate where the compressed data starts.
-    // Address     Size                                Name/Purpose
-    // +---------+----------------------------------+-----------------------------------------------------------+
-    // | 0x00    | 4bytes (16-bit BE value)         | offset to start reading room 0 data from unpacked buffer  |
-    // +---------+----------------------------------+-----------------------------------------------------------+
-    // | 0x04    | 4bytes (16-bit BE value)         | offset to start reading room 1 data from unpacked buffer  |
-    // +---------+----------------------------------+-----------------------------------------------------------+
-    // | 0x08    | 4bytes (16-bit BE value)         | offset to start reading room 2 data from unpacked buffer  |
-    // +---------+----------------------------------+-----------------------------------------------------------+
-    // | 0x0B    | 4bytes (16-bit BE value)         | offset to start reading room 3 data from unpacked buffer  |
-    // +---------+----------------------------------+-----------------------------------------------------------+
-    // | 0x10    | 4bytes (16-bit BE value)         | offset to start reading room 4 data from unpacked buffer  |
-    // +---------+----------------------------------+-----------------------------------------------------------+
-
-    // The unzipped data is a sequence of blocks. Each block has the following format:
-    // Address    Size    Name/Purpose
-    // +---------+-------+------------------------------------------+
-    // | 0x00    | 10    | unknown data                             |
-    // +---------+-------+------------------------------------------+
-    // | 0x0A    | 2     | offset10 (16-bit BE value)              |
-    // +---------+-------+------------------------------------------+
-    // | 0x0C    | 2     | offset12 (16-bit BE value)              |
-    // +---------+-------+------------------------------------------+
-    // | 0x0E    | 2     | read_start_offset (16-bit BE value), where the real data starts within this file   |
-    // +---------+-------+------------------------------------------+
-
-    // Repeat: VAR=read_start_offset. Note this is reading from bank and not from this file.
-    // +---------+-------+------------------------------------------+
-    // | VAR     | 2     | d0_data (16-bit BE value)               |
-    // |         |       | - Bit 15 (0x8000): End marker if set    |
-    // |         |       | - Other bits: Bank data index           |
-    // +---------+-------+------------------------------------------+
-    // bank_data_size and bank_data are retrieved from a bank data buffer(other than this)
-    // +---------+-------+------------------------------------------+
-    // | VAR+2   | 1     | d3 (control byte)                       |
-    // |         |       | - If 255: Read entire bank              |
-    // |         |       | - If not 255: save d3 and Read next byte |
-    // +---------+-------+------------------------------------------+
-    // | VAR+2+1 | 1     | d4 multiplier for the read               |
-    // |         |       |  - d4 * 32bytes * (d3 + 1)               |
-    // +---------+-------+------------------------------------------+
-
-    // Buf structure, where the above data gets read looks like this:
-    // Address    Size    Name/Purpose
-    // +---------+-------+------------------------------------------+
-    // | 0x00    | 32    | empty bits                               |
-    // +---------+-------+------------------------------------------+
-    // | 0x20    | bank_data_size | all bank_data content           |
-    // +---------+-------+------------------------------------------+
-    // OR
-    // +---------+-------+------------------------------------------+
-    // | 0x20    | d4 * d3 * 32 | some bank_data content            |
-    // +---------+-------+------------------------------------------+
-    // REPEAT THE ABOVE BLOCKS UNTIL END OF FILE
-    AMIGA_decodeLev(level: number, room: number) {
-        const leveldata_scratch = this._res._scratchBuffer
-        //the first bytes represent the offsets in _lev file offset by room number
-        const offset = READ_BE_UINT32(this._res._lev, room * 4)
-        if (!bytekiller_unpack(leveldata_scratch, leveldata_scratch.length, this._res._lev, offset)) {
-            console.warn(`Bad CRC for level ${level} room ${room}`)
-            return
-        }
-        writeUnpackedLevelData(level, room, leveldata_scratch)
-
-        // set palette slots
-        this._map_palette_offset_slot1 = READ_BE_UINT16(leveldata_scratch, 2)
-        this._map_palette_offset_slot2 = READ_BE_UINT16(leveldata_scratch, 4)
-        this._map_palette_offset_slot3 = READ_BE_UINT16(leveldata_scratch, 6)
-        this._map_palette_offset_slot4 = READ_BE_UINT16(leveldata_scratch, 8)
-
-        // data pointers
-        let sgd_offset = READ_BE_UINT16(leveldata_scratch, 10)
-        const offset12 = READ_BE_UINT16(leveldata_scratch, 12)
-        let bank_datachunk_offset = READ_BE_UINT16(leveldata_scratch, 14)
-
-        //create a new buffer
-        const kTempMbkSize = 1024
-        const tiledata_buffer = new Uint8Array(kTempMbkSize * 32)
-
-        //empty the firs 32 bytes
-        let offset_sz = 0
-        for (let i = 0; i < 32; ++i) {
-            tiledata_buffer[i] = 0
-        }
-
-        //this is a counter, which sums how much we read from bank data to tiledata_buffer altogether
-        offset_sz += 32
-
-        // endless loop ends only when the end criteria is found
-        for (let loop = true; loop;) {
-
-            //this reads from scratchbuffer
-            let bank_data_id = READ_BE_UINT16(leveldata_scratch, bank_datachunk_offset)
-            bank_datachunk_offset += 2
-            if (bank_data_id & 0x8000) {
-                bank_data_id &= ~0x8000
-                loop = false
-            }
-
-            //these read from bank data
-            const d1 = this._res.getBankDataSize(bank_data_id)
-            let current_bank_data = this._res.findBankData(bank_data_id)
-            if (!current_bank_data) {
-                current_bank_data = this._res.loadBankData(bank_data_id)
-            }
-            const chunk_number = leveldata_scratch[bank_datachunk_offset++]
-            //read a next value that would indicate how much data to load
-            // 255 means all, other number means N * (a newly read size) * 32 bytes
-
-            if (chunk_number === UINT8_MAX) {
-                assert(!(offset_sz + d1 > kTempMbkSize * 32), `Assertion failed: ${offset_sz + d1} <= ${kTempMbkSize * 32}`)
-                tiledata_buffer.set(current_bank_data.subarray(0, d1), offset_sz)
-                offset_sz += d1
-            } else {
-                for (let i = 0; i < chunk_number + 1; ++i) {
-                    const chunk_size = leveldata_scratch[bank_datachunk_offset++]
-                    assert(!(offset_sz + 32 > kTempMbkSize * 32), `Assertion failed: ${offset_sz + 32} <= ${kTempMbkSize * 32}`)
-                    tiledata_buffer.set(current_bank_data.subarray(chunk_size * 32, (chunk_size * 32) + 32), offset_sz)
-                    offset_sz += 32
-                }
-            }
-        }
-
-        this._frontLayer.fill(0)
-        if (leveldata_scratch[1] !== 0) {
-            assert(!(!this._res._sgd), `Assertion failed: ${this._res._sgd}`)
-            Video.decodeSgd(this._frontLayer, new Uint8Array(leveldata_scratch.buffer, leveldata_scratch.byteOffset + sgd_offset), this._res._sgd)
-            sgd_offset = 0
-        }
-
-        Video.decodeLevHelper(
-            this._frontLayer, //dst
-            leveldata_scratch, //src
-            sgd_offset,
-            offset12,
-            tiledata_buffer, //buffer with tile data
-            leveldata_scratch[1] !== 0, //sgd buffer
-            true) //always true
-
-        //move front to back layer
-        this._backLayer.set(this._frontLayer.subarray(0, this._layerSize))
-
-        //set palettes for the drawing
-        this.PC_setLevelPalettes()
-
-
-        if (level === 0) { // tiles with color slot 0x9
+        if (level === 0) {
             this.setPaletteSlotBE(0x9, this._map_palette_offset_slot1)
         }
-        writeFrontLayerImage(level, room, this._frontLayer, this._w, this._h, this._stub._rgbPalette)
     }
 
     PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
@@ -741,32 +763,7 @@ pitch = 16
     }
 
     async fadeOut() {
-        if (global_game_options.fade_out_palette) {
-            await this.fadeOutPalette()
-        } else {
-            this._stub.fadeScreen()
-        }
-    }
-
-    async fadeOutPalette() {
-        for (let step = 16; step >= 0; --step) {
-            for (let c = 0; c < GAMESCREEN_W; ++c) {
-                const col:Color = {
-                    r: 0,
-                    g: 0,
-                    b: 0,
-                }
-                this._stub.getPaletteEntry(c, col)
-                col.r = col.r * step >> 4
-                col.g = col.g * step >> 4
-                col.b = col.b * step >> 4
-                this._stub.setPaletteEntry(c, col)
-            }
-            this.fullRefresh()
-            await this.updateScreen()
-            await this._stub.sleep(50)
-        }
-
+        this._stub.fadeScreen()
     }
 
     setPaletteSlotLE(palSlot: number, palData: Uint8Array) {
@@ -790,27 +787,9 @@ pitch = 16
         for (let i = 0; i < 16; ++i) {
             const color = READ_BE_UINT16(pal, p)
             p += 2
-            const c: Color = this.AMIGA_convertColor(color, true)
+            const c: Color = Video.AMIGA_convertColor(color, true)
             this._stub.setPaletteEntry(palette_color_slot * 16 + i, c)
         }
-    }
-
-    AMIGA_convertColor(color: number, bgr: boolean) { // 4 bits to 8 bits
-        let r = (color & 0xF00) >> 8;
-        let g = (color & 0xF0)  >> 4
-        let b =  color & 0xF
-        if (bgr) {
-            const tmp = r
-            r = b
-            b = tmp
-        }
-        const c: Color = {
-            r: (r << 4) | r,
-            g: (g << 4) | g,
-            b: (b << 4) | b,
-        }
-
-        return c
     }
 
     setTextPalette() {

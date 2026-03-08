@@ -88,7 +88,7 @@ export function gameHasLevelMap(game: Game, room: number) {
 
 export async function gameLoadLevelMap(game: Game, currentRoom: number) {
     game._currentIcon = UINT8_MAX
-    game._vid.PC_decodeMap(game._currentLevel, currentRoom)
+    await game._vid.PC_decodeMap(game._currentLevel, currentRoom)
 }
 
 export function gameClearLivePGETables(game: Game) {
@@ -115,9 +115,6 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     await game._res.load(lvl.name, ObjectType.OT_CT)
     await game._res.load(lvl.name, ObjectType.OT_PAL)
     await game._res.load(lvl.name, ObjectType.OT_RP)
-    if (game._currentLevel === 0) {
-        await game._res.load(lvl.name, ObjectType.OT_SGD)
-    }
     await game._res.load(lvl.name, ObjectType.OT_LEV)
     await game._res.load(lvl.name, ObjectType.OT_BNQ)
     await game._res.load(lvl.name2, ObjectType.OT_PGE)

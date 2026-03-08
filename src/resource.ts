@@ -54,8 +54,6 @@ class Resource {
     _pgeAllInitialStateFromFile: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
 
     _lev: Uint8Array
-    _levNum: number
-    _sgd: Uint8Array
     _bnq: Uint8Array
     _numObjectNodes: number
     _objectNodesMap: ObjectNode[] = new Array(255)
@@ -103,8 +101,6 @@ class Resource {
         this._pgeTotalNumInFile = 0
         // this._pgeInit = null
         this._lev = null
-        this._levNum = 0
-        this._sgd = null
         this._bnq = null
         this._readUint16 = READ_LE_UINT16
         this._readUint32 = READ_LE_UINT32
@@ -302,11 +298,6 @@ class Resource {
 
     load_BNQ(f: File) {
         this._bnq = this.loadFileData(f)
-    }
-
-    load_SGD(f: File) {
-        this._sgd = this.loadFileData(f)
-        this._sgd[0] = 0
     }
 
     load_PAL(f: File) {
@@ -682,8 +673,6 @@ class Resource {
         this._mbk = null
         this._pal = null
         this._lev = null
-        this._levNum = -1
-        this._sgd = null
         this._bnq = null
         this._ani = null
         this.free_OBJ()

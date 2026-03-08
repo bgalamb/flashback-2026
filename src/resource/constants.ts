@@ -57,10 +57,9 @@ enum ObjectType {
     OT_CMP,
     OT_OBC,
     OT_SPL,
-    OT_LEV,
-    OT_SGD,
     OT_BNQ,
-    OT_SPM
+    OT_SPM,
+    OT_LEV
 }
 
 const NUM_SFXS = 66

@@ -1,6 +1,6 @@
 import { assert } from "../assert"
 import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from "../intern"
-import { GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../game_constants"
+import { CT_ROOM_SIZE, GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../game_constants"
 import { bytekiller_unpack } from "../unpack"
 import { Video } from "../video"
 import { _gameLevels } from "../staticres"
@@ -70,8 +70,12 @@ class AmigaLevelImageExporter {
 
             const levelOutputDir = path.join(outputDir, `${level.name2}`)
             fs.mkdirSync(levelOutputDir, { recursive: true })
+            const lev = new Uint8Array(fs.readFileSync(resolved.levPath))
 
             for (let room = roomFrom; room <= roomTo; ++room) {
+                if (!AmigaLevelImageExporter.roomExists(lev, room)) {
+                    continue
+                }
                 const outputPath = path.join(levelOutputDir, `${resolved.baseName}-room${room}.ppm`)
                 try {AmigaLevelImageExporter.exportRoomImage(
                         resolved.levPath,
@@ -89,6 +93,103 @@ class AmigaLevelImageExporter {
                 }
             }
         }
+    }
+
+    static exportRoomLayerArtifacts(
+        levPath: string,
+        mbkPath: string,
+        palPath: string,
+        sgdPath: string,
+        level: number,
+        room: number,
+        outputPrefix: string
+    ) {
+        const fs = require('fs')
+        const path = require('path')
+        const lev = new Uint8Array(fs.readFileSync(levPath))
+        let bankPath = mbkPath
+        let usesBnqFormat = false
+        let mbk = new Uint8Array(fs.readFileSync(bankPath))
+        if (AmigaLevelImageExporter.isPlaceholderMbk(mbk)) {
+            const ext = path.extname(mbkPath)
+            const bnqPath = mbkPath.slice(0, mbkPath.length - ext.length) + '.BNQ'
+            const altBnqPath = mbkPath.slice(0, mbkPath.length - ext.length) + '.bnq'
+            if (fs.existsSync(bnqPath)) {
+                bankPath = bnqPath
+            } else if (fs.existsSync(altBnqPath)) {
+                bankPath = altBnqPath
+            } else {
+                throw new Error(`Unsupported MBK format in '${mbkPath}' and no matching BNQ file was found`)
+            }
+            mbk = new Uint8Array(fs.readFileSync(bankPath))
+            usesBnqFormat = true
+        }
+        const pal = new Uint8Array(fs.readFileSync(palPath))
+        const sgd = fs.existsSync(sgdPath) ? new Uint8Array(fs.readFileSync(sgdPath)) : new Uint8Array(0)
+
+        const exporter = new AmigaLevelImageExporter(mbk, pal, sgd, usesBnqFormat)
+        const frontLayer = exporter.decodeRoom(lev, level, room)
+
+        exporter.writePpm(`${outputPrefix}.ppm`, frontLayer)
+        fs.writeFileSync(`${outputPrefix}.pixeldata.bin`, frontLayer)
+        exporter.writePpmLayerGroup(`${outputPrefix}-backlayer.ppm`, frontLayer, [0, 1])
+        exporter.writePpmLayerGroup(`${outputPrefix}-frontlayer.ppm`, frontLayer, [2, 3])
+    }
+
+    static exportAllGameLevelRoomLayerArtifacts(dataDir: string, outputDir: string, roomFrom: number = 1, roomTo: number = 100) {
+        const fs = require('fs')
+        const path = require('path')
+
+        fs.mkdirSync(outputDir, { recursive: true })
+
+        for (let levelIndex = 0; levelIndex < _gameLevels.length; ++levelIndex) {
+            const level = _gameLevels[levelIndex]
+            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name)
+
+            if (!resolved) {
+                continue
+            }
+
+            const levelOutputDir = path.join(outputDir, `${level.name2}`)
+            fs.mkdirSync(levelOutputDir, { recursive: true })
+            const lev = new Uint8Array(fs.readFileSync(resolved.levPath))
+
+            for (let room = roomFrom; room <= roomTo; ++room) {
+                if (!AmigaLevelImageExporter.roomExists(lev, room)) {
+                    continue
+                }
+                const outputPrefix = path.join(levelOutputDir, `${resolved.baseName}-room${room}`)
+                try {
+                    AmigaLevelImageExporter.exportRoomLayerArtifacts(
+                        resolved.levPath,
+                        resolved.mbkPath,
+                        resolved.palPath,
+                        resolved.sgdPath || "",
+                        levelIndex,
+                        room,
+                        outputPrefix
+                    )
+                    console.log(`Wrote ${outputPrefix}.ppm`)
+                    console.log(`Wrote ${outputPrefix}.pixeldata.bin`)
+                    console.log(`Wrote ${outputPrefix}-backlayer.ppm`)
+                    console.log(`Wrote ${outputPrefix}-frontlayer.ppm`)
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error)
+                    console.warn(`Skipping level ${levelIndex} room ${room}: ${message}`)
+                }
+            }
+        }
+    }
+
+    private static roomExists(lev: Uint8Array, room: number): boolean {
+        if (room < 0 || room >= CT_ROOM_SIZE) {
+            return false
+        }
+        const offset = room * 4
+        if ((offset + 4) > lev.length) {
+            return false
+        }
+        return READ_BE_UINT32(lev, offset) !== 0
     }
 
     private static isPlaceholderMbk(data: Uint8Array): boolean {
@@ -241,6 +342,33 @@ class AmigaLevelImageExporter {
         fs.writeFileSync(outputPath, payload)
     }
 
+    private writePpmLayerGroup(outputPath: string, frontLayer: Uint8Array, paletteLayers: number[]) {
+        const fs = require('fs')
+        const header = new TextEncoder().encode(`P6\n${GAMESCREEN_W} ${GAMESCREEN_H}\n255\n`)
+        const body = new Uint8Array(frontLayer.length * 3)
+
+        for (let i = 0; i < frontLayer.length; ++i) {
+            const srcColorIndex = frontLayer[i]
+            const srcPaletteLayerIndex = ((srcColorIndex & 0x80) !== 0 ? 2 : 0) + ((srcColorIndex & 0x10) !== 0 ? 1 : 0)
+            const dstOffset = i * 3
+            if (paletteLayers.indexOf(srcPaletteLayerIndex) !== -1) {
+                const srcOffset = srcColorIndex * 3
+                body[dstOffset + 0] = this._rgbPalette[srcOffset + 0]
+                body[dstOffset + 1] = this._rgbPalette[srcOffset + 1]
+                body[dstOffset + 2] = this._rgbPalette[srcOffset + 2]
+            } else {
+                body[dstOffset + 0] = 0
+                body[dstOffset + 1] = 0
+                body[dstOffset + 2] = 0
+            }
+        }
+
+        const payload = new Uint8Array(header.length + body.length)
+        payload.set(header, 0)
+        payload.set(body, header.length)
+        fs.writeFileSync(outputPath, payload)
+    }
+
     private setPaletteSlotBE(paletteSlot: number, palOffset: number) {
         let p = palOffset * 32
         for (let i = 0; i < 16; ++i) {
@@ -318,10 +446,31 @@ class AmigaLevelImageExporter {
 
             if (d2 !== 0xFFFF) {
                 d2 &= ~(1 << 15)
-                const offset = READ_BE_UINT32(data, d2 * 4) & 0xFFFFFF
-                if (num !== d2) {
-                    num = d2
-                    AmigaLevelImageExporter.AMIGA_decodeRle(buf, data.subarray(offset))
+                const signedOffset = READ_BE_UINT32(data, d2 * 4) | 0
+                if (signedOffset < 0) {
+                    const ptrOffset = data.byteOffset - signedOffset
+                    const hasEmbeddedPtr = ptrOffset >= 0 && (ptrOffset + 2) <= data.buffer.byteLength
+                    if (hasEmbeddedPtr) {
+                        const ptr = new Uint8Array(data.buffer, ptrOffset)
+                        let ptrIndex = 0
+                        const size = READ_BE_UINT16(ptr, ptrIndex)
+                        ptrIndex += 2
+                        if (num !== d2) {
+                            num = d2
+                            buf.set(ptr.subarray(ptrIndex, size + ptrIndex))
+                        }
+                    } else {
+                        const offset = READ_BE_UINT32(data, d2 * 4) & 0xFFFFFF
+                        if (num !== d2) {
+                            num = d2
+                            AmigaLevelImageExporter.AMIGA_decodeRle(buf, data.subarray(offset))
+                        }
+                    }
+                } else {
+                    if (num !== d2) {
+                        num = d2
+                        AmigaLevelImageExporter.AMIGA_decodeRle(buf, data.subarray(signedOffset))
+                    }
                 }
             }
 
