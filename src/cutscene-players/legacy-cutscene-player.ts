@@ -1,6 +1,6 @@
 import { Graphics } from '../graphics'
 import { Buffer, Color, Point, READ_BE_UINT16 } from '../intern'
-import { ObjectType, Resource } from '../resource'
+import { ObjectType, Resource } from '../resource/resource'
 import { SystemStub, DF_FASTMODE, DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } from '../systemstub_web'
 import { Video } from '../video'
 import { _cosTable, _musicTable, _namesTableDOS,  _offsetsTableDOS, _sinTable } from '../staticres'

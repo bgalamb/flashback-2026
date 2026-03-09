@@ -1,4 +1,4 @@
-import { File } from '../file'
+import { File } from './file'
 import { ObjectType } from './constants'
 
 function createObjectTypeMapping(resource: any): Record<number, { extension: string, loader: (f: File) => void }> {

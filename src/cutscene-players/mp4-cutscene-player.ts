@@ -1,4 +1,4 @@
-import { FileSystem } from '../fs'
+import { FileSystem } from '../resource/fs'
 import { SystemStub } from '../systemstub_web'
 
 class Mp4CutscenePlayer {

@@ -1,5 +1,5 @@
 import { Color } from "../intern"
-import { Resource } from "../resource"
+import { Resource } from "../resource/resource"
 import { Video } from "../video"
 import { LegacyCutscenePlayer } from "../cutscene-players/legacy-cutscene-player"
 import type { SystemStub } from "../systemstub_web"

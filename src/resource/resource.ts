@@ -1,13 +1,13 @@
 import { FILE, File } from './file'
 import { FileSystem } from "./fs"
-import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "./intern"
-import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from './staticres'
-import { bytekiller_unpack } from './unpack'
-import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './resource/constants'
-import { createObjectTypeMapping } from './resource/loaders'
-import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './resource/parsers'
-import {GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from './game_constants'
-import { assert } from "./assert"
+import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "../intern"
+import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../staticres'
+import { bytekiller_unpack } from '../unpack'
+import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './constants'
+import { createObjectTypeMapping } from './loaders'
+import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './parsers'
+import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
+import { assert } from "../assert"
 
 
 class Resource {
@@ -42,7 +42,7 @@ class Resource {
     _pal: Uint8Array
     _ani: Uint8Array
     _tbn: Uint8Array
-    _ctData: Int8Array = new Int8Array(0x1D00)
+    _ctData: Int8Array = new Int8Array(CT_DATA_SIZE)
     _spr1: Uint8Array
     // this contains all the data for the sprites
     _sprData: Uint8Array[] = new Array(NUM_SPRITES)

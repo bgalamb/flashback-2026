@@ -1,5 +1,5 @@
 import { FileSystem } from "./fs"
-import { UINT16_MAX, UINT8_MAX } from './game_constants'
+import { UINT16_MAX, UINT8_MAX } from '../game_constants'
 
 enum SEEK {
     END,

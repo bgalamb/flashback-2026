@@ -3,7 +3,7 @@ import { CreatePGE, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT32 } from './int
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { Mixer } from './mixer'
-import { ObjectType } from './resource'
+import { ObjectType } from './resource/resource'
 import { GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
 import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
 import { _gameLevels } from './staticres'

@@ -1,9 +1,8 @@
-import { Resource } from '../resource'
+import { Resource } from '../resource/resource'
 import { SystemStub } from '../systemstub_web'
 import { Video } from '../video'
 import { _cineSceneIdToCutPairsDOS, _namesTableDOS } from '../staticres'
-import { UINT16_MAX, UINT8_MAX } from '../game_constants'
-import { global_game_options } from '../configs/global_game_options'
+import { UINT16_MAX, UINT8_MAX, global_game_options } from '../game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
 import { LegacyCutscenePlayer, OpcodeStub } from './legacy-cutscene-player'
 

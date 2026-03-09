@@ -3,10 +3,10 @@ import type { pge_OpcodeProc } from './intern'
 import { Cutscene } from './cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from './cutscene-players/mp4-cutscene-player'
 import { Mixer } from './mixer'
-import { Resource, ObjectType, LocaleData } from './resource'
+import { Resource, ObjectType, LocaleData } from './resource/resource'
 import { Video } from './video'
 import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP, SystemStub } from './systemstub_web'
-import { FileSystem } from './fs'
+import { FileSystem } from './resource/fs'
 import { Menu } from './menu'
 import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from './game_constants'
 
@@ -21,7 +21,7 @@ import {
 import {
     monsterListsByLevel
 } from './staticres-monsters'
-import { File } from './file'
+import { File } from './resource/file'
 import { _pge_opcodeTable } from './game_opcodes'
 import {
     UINT8_MAX,

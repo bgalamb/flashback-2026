@@ -2,6 +2,7 @@ import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game } from "./g
 import { CollisionSlot, CollisionSlot2, GroupPGE, LivePGE, ObjectOpcodeArgs, pge_ZOrderCallback } from "./intern"
 import { col_detectHit, col_detectHitCallback3, col_detectHitCallback1, col_detectHitCallback2, col_detectGunHitCallback2, col_detectGunHitCallback1, col_detectGunHit, col_detectGunHitCallback3, col_detectHitCallback4, col_detectHitCallback5 } from './collision'
 import {UINT8_MAX,UINT16_MAX,CT_ROOM_SIZE} from "./game_constants"
+import { CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE } from "./game_constants"
 import { assert } from "./assert"
 
 const pge_op_isInpUp = (args: ObjectOpcodeArgs, game: Game) => {
@@ -342,12 +343,12 @@ const pge_ZOrder = (pge: LivePGE, num: number, compare: pge_ZOrderCallback, unk:
 const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, game: Game) => {
 	let pge_collision_segments = pge.init_PGE.number_of_collision_segments
 	if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
-        const grid_data = game._res._ctData.subarray(0x100)
-		let dataIndex = 0x70 * pge.room_location
+        const grid_data = game._res._ctData.subarray(CT_HEADER_SIZE)
+		let dataIndex = CT_GRID_STRIDE * pge.room_location
 		let pge_pos_y = (((pge.pos_y / 36)>>0) & ~1) + pge_dy
 		let pge_pos_x = (pge.pos_x + 8) >> 4
 
-		dataIndex += pge_pos_x + pge_pos_y * 16
+		dataIndex += pge_pos_x + pge_pos_y * CT_GRID_WIDTH
 
 		let slot1: CollisionSlot2 = game._col_slots2Next
 		let i = 255
@@ -360,7 +361,7 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
 		while (slot1) {
 			if (slot1.unk2.buffer === grid_data.buffer && slot1.unk2.byteOffset === (grid_data.byteOffset + dataIndex)) {
 				slot1.data_size = pge_collision_segments - 1
-                assert(!(pge_collision_segments >= 0x70), `Assertion failed: ${pge_collision_segments} < 0x70`)
+                assert(!(pge_collision_segments >= CT_GRID_STRIDE), `Assertion failed: ${pge_collision_segments} < ${CT_GRID_STRIDE}`)
                 grid_data.subarray(dataIndex).fill(var8, 0, pge_collision_segments)
 				dataIndex += pge_collision_segments
 				return 1
@@ -383,7 +384,7 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
             let srcIndex = 0
             let dstIndex = 0
 			let n = pge_collision_segments
-            assert(!(n >= 0x10), `Assertion failed: ${n} < 0x10`)
+            assert(!(n >= CT_GRID_WIDTH), `Assertion failed: ${n} < ${CT_GRID_WIDTH}`)
 			while (n--) {
                 // int8 -> uint8
 				dst[dstIndex++] = src[srcIndex] & UINT8_MAX
@@ -494,18 +495,18 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 	let grid_pos_y = (args.pge.pos_y / 72) >> 0
 
 	if (grid_pos_y >= 0 && grid_pos_y <= 2) {
-		grid_pos_y *= 16
+		grid_pos_y *= CT_GRID_WIDTH
 		let _cx = args.a
 		if (game._pge_currentPiegeFacingDir) {
 			_cx = -_cx
 		}
 		let _bl
 		if (_cx >= 0) {
-			if (_cx > 0x10) {
-				_cx = 0x10
-			}
+				if (_cx > CT_GRID_WIDTH) {
+					_cx = CT_GRID_WIDTH
+				}
             let var2 = new Int8Array(game._res._ctData.buffer)
-            let var2Index = game._res._ctData.byteOffset + 0x100 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + grid_pos_x
+            let var2Index = game._res._ctData.byteOffset + CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 
             const var4 = new Uint8Array(game._col_activeCollisionSlots.buffer)
             let var4Index = game._col_activeCollisionSlots.byteOffset + col_area * 0x30 + grid_pos_y + grid_pos_x
@@ -524,9 +525,9 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 					if (pge_room < 0) {
                         return 0
                     }
-					var12 = 15
-					var2 = new Int8Array(game._res._ctData.buffer)
-                    var2Index = game._res._ctData.byteOffset + 0x101 + pge_room * 0x70 + grid_pos_y * 2 + 15 + 0x10
+						var12 = CT_GRID_WIDTH - 1
+						var2 = new Int8Array(game._res._ctData.buffer)
+                    var2Index = game._res._ctData.byteOffset + CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + (CT_GRID_WIDTH - 1) + CT_GRID_WIDTH
 
 					var4Index = var4Index - 31
 				}
@@ -552,11 +553,11 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 			} while (_cx >= 0);
 		} else {
 			_cx = -_cx
-			if (_cx > 0x10) {
-				_cx = 0x10
-			}
+				if (_cx > CT_GRID_WIDTH) {
+					_cx = CT_GRID_WIDTH
+				}
 
-            let var2 = game._res._ctData.subarray(0x101 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + grid_pos_x)
+            let var2 = game._res._ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x)
 			let var2Index = 0
             const var4 = new Uint8Array(game._col_activeCollisionSlots.buffer)
             let var4Index = game._col_activeCollisionSlots.byteOffset + 1 + col_area * 0x30 + grid_pos_y + grid_pos_x
@@ -564,7 +565,7 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
 			--_cx
 			do {
 				++var12
-				if (var12 === 0x10) {
+					if (var12 === CT_GRID_WIDTH) {
 					++col_area
 					if (col_area > 2) {
                         return 0
@@ -575,7 +576,7 @@ const pge_o_unk0x40 = (args: ObjectOpcodeArgs, game: Game) => {
                     }
 
 					var12 = 0
-					var2 = game._res._ctData.subarray(0x101 + pge_room * 0x70 + grid_pos_y * 2 + 0x10)
+						var2 = game._res._ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH)
                     var2Index = 0
 					var4Index += 32
 				}
@@ -1197,18 +1198,18 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 	let grid_pos_x = (_si.pos_x + 8) >> 4
 	let grid_pos_y = (_si.pos_y / 72) >> 0
 	if (grid_pos_y >= 0 && grid_pos_y <= 2) {
-		grid_pos_y *= 16
+		grid_pos_y *= CT_GRID_WIDTH
 		let _cx = args.a
 		if (game._pge_currentPiegeFacingDir) {
 			_cx = -_cx
 		}
 		if (_cx >= 0) {
-			if (_cx > 0x10) {
-				_cx = 0x10
-			}
+				if (_cx > CT_GRID_WIDTH) {
+					_cx = CT_GRID_WIDTH
+				}
 
-			ct_data = game._res._ctData
-			ctIndex = 0x100 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + grid_pos_x
+				ct_data = game._res._ctData
+				ctIndex = CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 			const var4 = new Uint8Array(game._col_activeCollisionSlots.buffer)
 			let var4Index = game._col_activeCollisionSlots.byteOffset + col_area * 0x30 + grid_pos_y + grid_pos_x
 			++var4Index
@@ -1225,8 +1226,8 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 					if (pge_room < 0) {
 						return 0
 					}
-					varA = 0xF
-					ctIndex = 0x101 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + varA
+						varA = CT_GRID_WIDTH - 1
+						ctIndex = CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + varA
 					var4Index -= 0x1F
 				}
 				--var4Index
@@ -1251,12 +1252,12 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 			} while (_cx >= 0)
 		} else {
 			_cx = -_cx
-			if (_cx > 0x10) {
-				_cx = 0x10
-			}
+				if (_cx > CT_GRID_WIDTH) {
+					_cx = CT_GRID_WIDTH
+				}
 
-			ct_data = game._res._ctData
-			ctIndex = 0x101 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + grid_pos_x
+				ct_data = game._res._ctData
+				ctIndex = CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 			const var4 = game._col_activeCollisionSlots
 			let var4Index = 1 + col_area * 0x30 + grid_pos_y + grid_pos_x
 			let varA = grid_pos_x
@@ -1264,7 +1265,7 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 			do {
 				if (!firstRun) {
 					++varA
-					if (varA === 0x10) {
+						if (varA === CT_GRID_WIDTH) {
 						++col_area
 						if (col_area > 2) {
 							return 0
@@ -1274,7 +1275,7 @@ const pge_o_unk0x6A = (args: ObjectOpcodeArgs, game: Game) => {
 							return 0
 						}
 						varA = 0
-						ctIndex = 0x100 + pge_room * 0x70 + grid_pos_y * 2 + 0x10 + varA
+							ctIndex = CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + varA
 						var4Index += 0x20
 					}
 				}
@@ -1358,7 +1359,7 @@ const pge_o_unk0x5F = (args: ObjectOpcodeArgs, game: Game) => {
 		if (_ax !== 0) {
 			if (!(_ax & 2) || args.a !== 1) {
 				pge.room_location = pge_room
-				pge.pos_x = grid_pos_x * 16
+					pge.pos_x = grid_pos_x * CT_GRID_WIDTH
 
 				return 1
 			}
@@ -1368,13 +1369,13 @@ const pge_o_unk0x5F = (args: ObjectOpcodeArgs, game: Game) => {
 			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
                 return 0
             }
-			grid_pos_x += 16
-		} else if (grid_pos_x > 15) {
+				grid_pos_x += CT_GRID_WIDTH
+			} else if (grid_pos_x > CT_GRID_WIDTH - 1) {
 			pge_room = game._res._ctData[CT_RIGHT_ROOM + pge_room]
 			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
                 return 0
             }
-			grid_pos_x -= 16
+				grid_pos_x -= CT_GRID_WIDTH
 		}
 		grid_pos_x += dx
 		++grid_pos_y

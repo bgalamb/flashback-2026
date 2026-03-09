@@ -1,14 +1,12 @@
-import { global_game_options } from "./configs/global_game_options"
 import { Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
-import { WidescreenMode } from "./enums/common_enums";
-import { Resource } from "./resource"
+import { Resource } from "./resource/resource"
 import { _conradPal1, _conradPal2, _gameLevels, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
-import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX, global_game_options } from './game_constants'
 import { writeLayerImages, writeLayerPixelData } from "./debugger-helpers/front-layer-image"
 import { assert } from "./assert"
-import { File } from "./file"
+import { File } from "./resource/file"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -22,7 +20,6 @@ class Video {
 
     _res: Resource
     _stub: SystemStub
-    _widescreenMode: WidescreenMode
 
     _w: number
     _h: number

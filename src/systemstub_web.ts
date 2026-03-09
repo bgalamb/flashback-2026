@@ -1,5 +1,4 @@
 import { CLIP, Color } from './intern'
-import {WidescreenMode} from './enums/common_enums'
 import { Scaler, ScalerType, _internalScaler } from './scaler'
 import { assert } from "./assert"
 

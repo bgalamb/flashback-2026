@@ -16,6 +16,11 @@ const CT_UP_ROOM = 0x00
 const CT_DOWN_ROOM = 0x40
 const CT_RIGHT_ROOM = 0x80
 const CT_LEFT_ROOM = 0xC0
+const CT_HEADER_SIZE = 0x100
+const CT_GRID_WIDTH = 16
+const CT_GRID_HEIGHT = 7
+const CT_GRID_STRIDE = CT_GRID_WIDTH * CT_GRID_HEIGHT
+const CT_DATA_SIZE = CT_HEADER_SIZE + CT_ROOM_SIZE * CT_GRID_STRIDE
 
 const PGE_NUM = 256
 const PGE_FLAG_MIRRORED = 0x01
@@ -32,6 +37,36 @@ const OBJ_FLAG_TOGGLE_MIRROR = 0x01
 const OBJ_FLAG_DEC_LIFE = 0x02
 const OBJ_FLAG_INC_LIFE = 0x04
 const OBJ_FLAG_SET_DEAD = 0x08
+
+const CONFIG_DEFAULTS = {
+  // 'https://warpdesign.github.io/flashback-web/demo-data'
+  datapath: "http://localhost:4445/DATA",
+  savepath: "",
+  levelnum: 0,
+  fullscreen: false,
+  scaler: "",
+  language: "EN",
+  widescreen: "none",
+  autosave: false
+}
+
+const GLOBAL_GAME_OPTION_DEFAULTS = {
+  dump_front_layer_image: false,
+  dump_front_layer_pixel_data: false,
+  load_front_layer_pixel_data: false,
+  dump_unpacked_level_data: false,
+  use_tile_data: false,
+  use_white_tshirt: false,
+  play_asc_cutscene: false,
+  play_caillou_cutscene: false,
+  play_metro_cutscene: false,
+  play_serrure_cutscene: false,
+  play_carte_cutscene: false,
+  play_gamesaved_sound: false
+}
+
+const DEFAULT_CONFIG = { ...CONFIG_DEFAULTS }
+const global_game_options = { ...GLOBAL_GAME_OPTION_DEFAULTS }
 
 export {
   UINT8_MAX,
@@ -51,6 +86,11 @@ export {
   CT_DOWN_ROOM,
   CT_RIGHT_ROOM,
   CT_LEFT_ROOM,
+  CT_HEADER_SIZE,
+  CT_GRID_WIDTH,
+  CT_GRID_HEIGHT,
+  CT_GRID_STRIDE,
+  CT_DATA_SIZE,
   PGE_NUM,
   PGE_FLAG_MIRRORED,
   PGE_FLAG_FLIP_X,
@@ -64,4 +104,8 @@ export {
   OBJ_FLAG_DEC_LIFE,
   OBJ_FLAG_INC_LIFE,
   OBJ_FLAG_SET_DEAD,
+  CONFIG_DEFAULTS,
+  GLOBAL_GAME_OPTION_DEFAULTS,
+  DEFAULT_CONFIG,
+  global_game_options,
 }

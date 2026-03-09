@@ -3,6 +3,7 @@ import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { GAMESCREEN_W } from './game_constants'
 import { UINT16_MAX, UINT8_MAX } from './game_constants'
+import { CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE } from './game_constants'
 
 export function gameColFindPiege(game: Game, pge: LivePGE, arg2: number) {
     if (pge.collision_slot !== UINT8_MAX) {
@@ -95,15 +96,15 @@ export function gameColGetGridData(game: Game, pge: LivePGE, dy: number, dx: num
             return 1
         }
 
-        room_ct_data = room_ct_data.subarray(pge_grid_x + 16 + pge_grid_y * 16 + next_room * 0x70)
+        room_ct_data = room_ct_data.subarray(pge_grid_x + CT_GRID_WIDTH + pge_grid_y * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[CT_DOWN_ROOM]
-    } else if (pge_grid_x >= 16) {
+    } else if (pge_grid_x >= CT_GRID_WIDTH) {
         room_ct_data = game._res._ctData.subarray(CT_RIGHT_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
         }
-        room_ct_data = room_ct_data.subarray(pge_grid_x - 16 + pge_grid_y * 16 + next_room * 0x70)
+        room_ct_data = room_ct_data.subarray(pge_grid_x - CT_GRID_WIDTH + pge_grid_y * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0x80]
     } else if (pge_grid_y < 1) {
         room_ct_data = game._res._ctData.subarray(CT_UP_ROOM)
@@ -111,20 +112,20 @@ export function gameColGetGridData(game: Game, pge: LivePGE, dy: number, dx: num
         if (next_room < 0) {
             return 1
         }
-        room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y + 6) * 16 + next_room * 0x70)
+        room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y + CT_GRID_HEIGHT - 1) * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0x100]
-    } else if (pge_grid_y >= 7) {
+    } else if (pge_grid_y >= CT_GRID_HEIGHT) {
         room_ct_data = game._res._ctData.subarray(CT_DOWN_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
         }
 
-        room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y - 6) * 16 + next_room * 0x70)
+        room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y - (CT_GRID_HEIGHT - 1)) * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0xC0]
     } else {
-        room_ct_data = game._res._ctData.subarray(0x100)
-        room_ct_data = room_ct_data.subarray(pge_grid_x + pge_grid_y * 16 + pge.room_location * 0x70)
+        room_ct_data = game._res._ctData.subarray(CT_HEADER_SIZE)
+        room_ct_data = room_ct_data.subarray(pge_grid_x + pge_grid_y * CT_GRID_WIDTH + pge.room_location * CT_GRID_STRIDE)
         return room_ct_data[0]
     }
 }
@@ -169,7 +170,7 @@ export function gameColGetGridPos(game: Game, pge: LivePGE, dx: number) {
 
     game.renders > game.debugStartFrame && console.log(`getGridPos x=${x} y=${y}`)
 
-    if (x < 0 || x > 15 || y < 0 || y > 2) {
+    if (x < 0 || x > CT_GRID_WIDTH - 1 || y < 0 || y > 2) {
         return UINT16_MAX
     } else {
         // this constructing a number, where X bits represent x and Y represent y coordinate?

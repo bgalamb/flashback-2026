@@ -1,12 +1,12 @@
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
+import { CT_DATA_SIZE, CT_DOWN_ROOM, CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
 import { _gameLevels } from "../staticres"
 import { bytekiller_unpack } from "../unpack"
 
 class CtGridTableExporter {
     private static readonly GRID_OFFSET = 0x100
-    private static readonly GRID_STRIDE = 0x70
-    private static readonly GRID_WIDTH = 16
-    private static readonly GRID_HEIGHT = 7
+    private static readonly GRID_STRIDE = CT_GRID_STRIDE
+    private static readonly GRID_WIDTH = CT_GRID_WIDTH
+    private static readonly GRID_HEIGHT = CT_GRID_HEIGHT
 
     static getLevelNames(): string[] {
         const unique: { [name: string]: true } = {}
@@ -129,7 +129,7 @@ class CtGridTableExporter {
         const fs = require("fs")
 
         const src = new Uint8Array(fs.readFileSync(ctPath))
-        const dst = new Uint8Array(0x1D00)
+        const dst = new Uint8Array(CT_DATA_SIZE)
         if (!bytekiller_unpack(dst, dst.length, src, src.length)) {
             throw new Error(`Failed to decode CT data from '${ctPath}'`)
         }

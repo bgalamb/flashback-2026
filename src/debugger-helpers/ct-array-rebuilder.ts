@@ -1,4 +1,4 @@
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
+import { CT_DATA_SIZE, CT_DOWN_ROOM, CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
 
 type RoomAdjacency = {
     room: number
@@ -9,11 +9,11 @@ type RoomAdjacency = {
 }
 
 class CtArrayRebuilder {
-    private static readonly CT_SIZE = 0x1D00
-    private static readonly GRID_OFFSET = 0x100
-    private static readonly GRID_STRIDE = 0x70
-    private static readonly GRID_W = 16
-    private static readonly GRID_H = 7
+    private static readonly CT_SIZE = CT_DATA_SIZE
+    private static readonly GRID_OFFSET = CT_HEADER_SIZE
+    private static readonly GRID_STRIDE = CT_GRID_STRIDE
+    private static readonly GRID_W = CT_GRID_WIDTH
+    private static readonly GRID_H = CT_GRID_HEIGHT
 
     static rebuildAllLevelsFromExport(txtRootDir: string, outDir: string) {
         const fs = require("fs")

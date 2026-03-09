@@ -1,4 +1,4 @@
-import { FileSystem } from "./fs"
+import { FileSystem } from "./resource/fs"
 import { ADDC_S16, S8_to_S16 } from "./intern"
 import { SfxPlayer } from "./sfx_player"
 import { SystemStub } from "./systemstub_web"

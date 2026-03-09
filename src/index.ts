@@ -1,9 +1,7 @@
-import { WidescreenMode } from './enums/common_enums'
-import { global_game_options } from './configs/global_game_options'
 import { ScalerParameters, defaultScaleParameters, SystemStub } from './systemstub_web'
-import { FileSystem } from './fs'
+import { FileSystem } from './resource/fs'
 import { Game } from './game'
-import { DEFAULT_CONFIG,  } from './configs/config'
+import { DEFAULT_CONFIG, global_game_options } from './game_constants'
 
 const g_caption = "REminiscence"
 
