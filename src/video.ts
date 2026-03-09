@@ -586,26 +586,7 @@ pitch = 16
         if (await this.tryLoadRoomPaletteOffsetsFromJson(level, room)) {
             return
         }
-        if (!this._res._lev) {
-            console.warn(`Palette offsets source: none level=${level} room=${room} (_lev not loaded and no json)`)
-            return
-        }
-        const leveldata_scratch = this._res._scratchBuffer
-        const offset = READ_BE_UINT32(this._res._lev, room * 4)
-        if (offset === 0) {
-            return
-        }
-        if (!bytekiller_unpack(leveldata_scratch, leveldata_scratch.length, this._res._lev, offset)) {
-            console.warn(`Bad CRC for level ${level} room ${room}`)
-            return
-        }
-        this._map_palette_offset_slot1 = READ_BE_UINT16(leveldata_scratch, 2)
-        this._map_palette_offset_slot2 = READ_BE_UINT16(leveldata_scratch, 4)
-        this._map_palette_offset_slot3 = READ_BE_UINT16(leveldata_scratch, 6)
-        this._map_palette_offset_slot4 = READ_BE_UINT16(leveldata_scratch, 8)
-        console.log(
-            `Palette offsets source: _lev level=${level} room=${room} slots=[${this._map_palette_offset_slot1},${this._map_palette_offset_slot2},${this._map_palette_offset_slot3},${this._map_palette_offset_slot4}]`
-        )
+        console.warn(`Palette offsets source: none level=${level} room=${room} (JSON required; _lev fallback disabled)`)
     }
 
     private async AMIGA_tryLoadFrontLayerFromFile(level: number, room: number): Promise<boolean> {
@@ -704,33 +685,7 @@ pitch = 16
             this.setTextPalette()
             return
         }
-        console.log(
-            `Palette colors source: _pal offsets level=${level} slots=[${this._map_palette_offset_slot1},${this._map_palette_offset_slot2},${this._map_palette_offset_slot3},${this._map_palette_offset_slot4}] unk=[${this._unkPalSlot1},${this._unkPalSlot2}]`
-        )
-        // background
-        this.setPaletteSlotBE(0x0, this._map_palette_offset_slot1)
-        // objects
-        this.setPaletteSlotBE(0x1, this._map_palette_offset_slot2)
-        this.setPaletteSlotBE(0x2, this._map_palette_offset_slot3)
-        this.setPaletteSlotBE(0x3, this._map_palette_offset_slot4)
-        // conrad
-        if (this._unkPalSlot1 === this._map_palette_offset_slot3) {
-            this.setPaletteSlotLE(4, Video._conrad_palette1)
-        } else {
-            this.setPaletteSlotLE(4, Video._conrad_palette2)
-        }
-        // slot 5 is monster palette
-        // foreground
-        this.setPaletteSlotBE(0x8, this._map_palette_offset_slot1)
-        this.setPaletteSlotBE(0x9, this._map_palette_offset_slot2)
-        // inventory
-        this.setPaletteSlotBE(0xA, this._unkPalSlot2)
-        this.setPaletteSlotBE(0xB, this._map_palette_offset_slot4)
-        // slots 0xC and 0xD are cutscene palettes
-        this.setTextPalette()
-        if (level === 0) {
-            this.setPaletteSlotBE(0x9, this._map_palette_offset_slot1)
-        }
+        console.warn(`Palette colors source: none level=${level} (JSON palette colors/offsets required; _pal fallback disabled)`)
     }
 
     PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {

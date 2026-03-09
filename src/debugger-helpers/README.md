@@ -1,155 +1,121 @@
-# Debugger Helpers Command Reference
+# Debugger Helpers
 
-This file summarizes what each script under `src/debugger-helpers` does and how to run it.
+This folder contains helper scripts for exporting and rebuilding CT (collision table) data.
 
-## Run style
+## CT Export Commands
 
-Use direct Node commands with ts-node register:
+### `export:ct:all`
+Export both adjacency maps and room grids for all levels.
 
-- `node -r ts-node/register/transpile-only ./src/debugger-helpers/<file>.ts <args>`
+```bash
+npm run export:ct:all -- <dataDir> <outputBaseDir>
+```
 
-## Former package.json script aliases
+Example:
 
-These aliases were removed from `package.json`. Use the direct command on the right:
+```bash
+npm run export:ct:all -- ./DATA ./out/ct-all
+```
 
-- `export:amiga-room` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-amiga-level-image.ts ...`
-- `export:all-amiga-rooms` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-amiga-level-images.ts ...`
-- `export:all-layer-artifacts` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-layer-artifacts.ts ...`
-- `export:mbk` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-mbk-image.ts ...`
-- `export:all-mbk` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-mbk-images.ts ...`
-- `export:bnq` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-bnq-image.ts ...`
-- `export:all-bnq` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-bnq-images.ts ...`
-- `export:palette` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-palette-image.ts ...`
-- `export:all-palette` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-palette-images.ts ...`
-- `export:cutscene` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video.ts ...`
-- `export:cutscene:id` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video-by-id.ts ...`
-- `export:cutscene:name` -> `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video-by-name.ts ...`
+Output layout:
 
-## Room / Level exports
+- `<outputBaseDir>/<level>/<level>-ct-adjacency.txt`
+- `<outputBaseDir>/<level>/<level>-ct-adjacency.json`
+- `<outputBaseDir>/<level>/room-XX-grid.txt` (existing rooms only)
 
-### `export-amiga-level-image.ts`
-- Purpose: Export one fully composited room image (`.ppm`).
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-amiga-level-image.ts <lev> <mbk> <pal> <sgd> <levelIndex> <room> <output.ppm>`
-- Example:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-amiga-level-image.ts DATA/level1.lev DATA/level1.mbk DATA/level1.pal DATA/level1.sgd 0 29 out/level1-room29.ppm`
+### `export:ct-adj`
+Export adjacency maps for all levels.
 
-### `export-room-layer-artifacts.ts`
-- Purpose: Export one room as a full set of artifacts.
-- Outputs:
-    - `<outputPrefix>.ppm`
-    - `<outputPrefix>.pixeldata.bin`
-    - `<outputPrefix>-backlayer.ppm`
-    - `<outputPrefix>-frontlayer.ppm`
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-room-layer-artifacts.ts <lev> <mbk> <pal> <sgd> <levelIndex> <room> <outputPrefix>`
+```bash
+npm run export:ct-adj -- <dataDir> [outputBaseDir|legacyOutputFilePath]
+```
 
-### `export-all-amiga-level-images.ts`
-- Purpose: Export composited room images for all levels/rooms.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-amiga-level-images.ts <dataDir> <outputDir>`
+Examples:
 
-### `export-all-level-layer-artifacts.ts`
-- Purpose: Export full artifact set for all existing rooms only.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-layer-artifacts.ts <dataDir> <outputDir>`
+```bash
+# preferred (base directory)
+npm run export:ct-adj -- ./DATA ./out/ct-adjacency
 
-### `export-all-level-palette-headers.ts`
-- Purpose: Extract one palette header per level from `_lev` (slots 1-4 offsets; taken from the first valid room in that level).
-- Output:
-    - `<outputDir>/<levelName2>/<baseLevelName>.paletteheader.json`
-    - Includes `sourceRoom`, slot offsets (`dec`/`hex`), and resolved `_pal` colors for each slot (`raw` Amiga value + converted `rgb`)
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-palette-headers.ts <dataDir> [outputDir]`
-- Example:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-palette-headers.ts DATA DATA/levels`
+# backward-compatible file-like argument
+npm run export:ct-adj -- ./DATA ./out/ct-adjacency.txt
+```
 
-## MBK / BNQ visualization
+For each level, this writes:
 
-### `export-mbk-image.ts`
-- Purpose: Export all tiles from one MBK file into a tile-atlas image.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-mbk-image.ts <mbk> <output.ppm> [pal] [paletteSlot] [tilesPerRow]`
+- `<base>/<level>/<level>-ct-adjacency.txt`
+- `<base>/<level>/<level>-ct-adjacency.json`
 
-### `export-bnq-image.ts`
-- Purpose: Export all tiles from one BNQ file into a tile-atlas image.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-bnq-image.ts <bnq> <output.ppm> [pal] [paletteSlot] [tilesPerRow]`
+### `export:ct-adj:level`
+Export adjacency map for one level.
 
-### `export-mbk-entry-image.ts`
-- Purpose: Export a single MBK entry by index.
-- Notes:
-    - Auto-falls back to same entry index from BNQ if MBK entry is empty.
-    - Output filename includes data source (`-src-mbk` or `-src-bnq`).
-    - Default output folder: `out/mbk-entry-images`.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-mbk-entry-image.ts <mbk> <entryIndex> [pal] [paletteSlot] [outputDir]`
-- Example:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-mbk-entry-image.ts DATA/level1.mbk 29 DATA/level1.pal 1`
+```bash
+npm run export:ct-adj:level -- <dataDir> <levelName> [outputTxt]
+```
 
-### `export-mbk-bnq-map-table.ts`
-- Purpose: Generate MBK↔BNQ index mapping tables.
-- Outputs (default folder `out/mbk-bnq-maps`):
-    - `<mbkBase>-<bnqBase>-index-map.csv`
-    - `<mbkBase>-<bnqBase>-index-map.txt` (ASCII art table)
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-mbk-bnq-map-table.ts <mbk> <bnq> [outputDir]`
+Example:
 
-### `export-all-mbk-images.ts`
-- Purpose: Export MBK atlases for all levels found under a data directory.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-mbk-images.ts <dataDir> <outputDir> [paletteSlot] [tilesPerRow]`
+```bash
+npm run export:ct-adj:level -- ./DATA level3 ./out/level3-ct-adjacency.txt
+```
 
-### `export-all-bnq-images.ts`
-- Purpose: Export BNQ atlases for all levels found under a data directory.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-bnq-images.ts <dataDir> <outputDir> [paletteSlot] [tilesPerRow]`
+When `outputTxt` is provided, a sibling JSON file is also generated:
 
-## Palette exports
+- `./out/level3-ct-adjacency.json`
 
-### `export-palette-image.ts`
-- Purpose: Export one `.pal` file to a palette preview image.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-palette-image.ts <pal> <output.ppm> [squareSize]`
+### `export:ct-grid:all`
+Export room grid ASCII tables for all levels and existing rooms only.
 
-### `export-all-palette-images.ts`
-- Purpose: Export palette preview images for all palette files in data dir.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-palette-images.ts <dataDir> <outputDir> [squareSize]`
+```bash
+npm run export:ct-grid:all -- <dataDir> <outputDir>
+```
 
-## Legacy cutscene video exports
+Example:
 
-### `export-legacy-cutscene-video.ts`
-- Purpose: Export a cutscene by low-level index/offset.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video.ts <dataDir> <cutNameIndex> <cutOffset> <output.(avi|mpg|mpeg)>`
+```bash
+npm run export:ct-grid:all -- ./DATA ./out/ct-grids
+```
 
-### `export-legacy-cutscene-video-by-id.ts`
-- Purpose: Export a cutscene by game cutscene id.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video-by-id.ts <dataDir> <cutsceneId> <output.(avi|mpg|mpeg)>`
+Output:
 
-### `export-legacy-cutscene-video-by-name.ts`
-- Purpose: Export a cutscene by symbolic name.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video-by-name.ts <dataDir> <cutName> <output.(avi|mpg|mpeg)> [cutOffset]`
+- `<outputDir>/<level>/room-XX-grid.txt`
 
-### `export-all-legacy-cutscene-videos.ts`
-- Purpose: Export all legacy cutscenes in one run.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-legacy-cutscene-videos.ts <dataDir> <outputDir> [avi|mpg|mpeg]`
+### `export:ct-grid:level-room`
+Export room grid ASCII table for one specific level + room.
 
-### `export-legacy-cutscene-video-by-scene.ts`
-- Purpose: Export one legacy cutscene by scene name.
-- Command:
-    - `node -r ts-node/register/transpile-only ./src/debugger-helpers/export-legacy-cutscene-video-by-scene.ts <dataDir> <sceneName> <output.(avi|mpg|mpeg)>`
+```bash
+npm run export:ct-grid:level-room -- <dataDir> <levelName> <room> <outputTxt>
+```
 
-## Internal helper modules (not CLI scripts)
+Example:
 
-These files are support modules used by the scripts above:
-- `amiga-level-image-exporter.ts`
-- `mbk-image-exporter.ts`
-- `bnq-image-exporter.ts`
-- `palette-image-exporter.ts`
-- `legacy-cutscene-video-exporter.ts`
-- `front-layer-image.ts`
+```bash
+npm run export:ct-grid:level-room -- ./DATA level1 29 ./out/level1-room29-grid.txt
+```
+
+## CT Rebuild Command
+
+### `rebuild:ct:from-txt`
+Rebuild CT arrays (`0x1D00` bytes) from the export layout.
+
+```bash
+npm run rebuild:ct:from-txt -- <txtExportRootDir> <outputDir>
+```
+
+Example:
+
+```bash
+npm run rebuild:ct:from-txt -- ./out/ct-all ./out/ct-rebuilt
+```
+
+Output:
+
+- `<outputDir>/level1.ct.bin`
+- `<outputDir>/level2.ct.bin`
+- `<outputDir>/level3.ct.bin`
+- `<outputDir>/level4.ct.bin`
+- `<outputDir>/level5.ct.bin`
+
+Notes:
+
+- Rebuilt adjacency is read from `<level>-ct-adjacency.json`.
+- Rebuilt grid bytes are read from `room-XX-grid.txt`.
