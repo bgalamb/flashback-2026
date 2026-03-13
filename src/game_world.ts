@@ -44,14 +44,16 @@ export function gameResetGameState(game: Game) {
     game._animBuffers._curPos[3] = UINT8_MAX
     game._currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
     game._cut.setDeathCutSceneId(UINT16_MAX)
-    game._pge_opTempVar2 = UINT16_MAX
+    game._opcodeTempVar2 = UINT16_MAX
     game._deathCutsceneCounter = 0
+    game._credits = 0
     game._saveStateCompleted = false
     game._loadMap = true
-    game.pge_resetGroups()
+    game.resetPgeGroups()
+    game._inventoryItemIndicesByOwner.clear()
     game._blinkingConradCounter = 0
-    game._pge_processOBJ = false
-    game._pge_opTempVar1 = 0
+    game._shouldProcessCurrentPgeObjectNode = false
+    game._opcodeTempVar1 = 0
     game._textToDisplay = UINT16_MAX
 }
 
@@ -92,17 +94,23 @@ export async function gameLoadLevelMap(game: Game, currentRoom: number) {
 }
 
 export function gameClearLivePGETables(game: Game) {
-    game._pge_liveLinkedListTableByRoomAllRooms.fill(null).map(() => CreatePGE())
-    game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly.fill(null).map(() => CreatePGE())
+    game._livePgeStore.liveByRoom.forEach((roomList) => {
+        roomList.length = 0
+    })
+    game._livePgeStore.activeFrameByIndex.fill(null)
+    game._livePgeStore.activeFrameList.length = 0
+    game._inventoryItemIndicesByOwner.clear()
 }
 
 export function gameCreatePgeLiveTable1(game: Game) {
+    game._livePgeStore.liveByRoom.forEach((roomList) => {
+        roomList.length = 0
+    })
     for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
         if (game._res._pgeAllInitialStateFromFile[i].skill <= game._skillLevel) {
             game.renders > game.debugStartFrame && console.log(`i=${i} => skill!`)
-            const pge = game._pgeLiveAll[i]
-            pge.next_PGE_in_room = game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location]
-            game._pge_liveLinkedListTableByRoomAllRooms[pge.room_location] = pge
+            const pge = game._livePgesByIndex[i]
+            game._livePgeStore.liveByRoom[pge.room_location].push(pge)
         }
     }
 }
@@ -127,20 +135,21 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game._curMonsterFrame = 0
     game._res.clearBankData()
     game._printLevelCodeCounter = 150
-    game._col_slots2Cur = game._col_slots2[0]
-    game._col_slots2Next = null
+    game._nextFreeRoomCollisionGridPatchRestoreSlot = game._roomCollisionGridPatchRestoreSlotPool[0]
+    game._activeRoomCollisionGridPatchRestoreSlots = null
 
     gameClearLivePGETables(game)
+    game._livePgeStore.initByIndex = game._res._pgeAllInitialStateFromFile
     const currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
     game._currentRoom = currentRoom
 
     let n = game._res._pgeTotalNumInFile
     while (n--) {
-        game.pge_loadForCurrentLevel(n, currentRoom)
+        game.loadPgeForCurrentLevel(n, currentRoom)
     }
     gameCreatePgeLiveTable1(game)
 
-    game.pge_resetGroups()
+    game.resetPgeGroups()
     game._validSaveState = false
     game._mix.playMusic(Mixer.MUSIC_TRACK + lvl.track)
     return currentRoom
@@ -215,7 +224,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
             return
         }
         xpos += 8
-        if (pge === game._pgeLiveAll[0]) {
+        if (pge === game._livePgesByIndex[0]) {
             game._animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h)
         } else if (pge.flags & 0x10) {
             game._animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h)
@@ -238,10 +247,8 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 }
 
 export async function gamePrepareCurrentRoomAnims(game: Game, currentRoom: number) {
-    let pge = game._pge_liveLinkedListTableByRoomAllRooms[currentRoom]
-    while (pge) {
+    for (const pge of game._livePgeStore.liveByRoom[currentRoom]) {
         await gamePrepareAnimsHelper(game, pge, 0, 0, currentRoom)
-        pge = pge.next_PGE_in_room
     }
 }
 
@@ -255,12 +262,10 @@ export async function gamePrepareAdjacentRoomAnims(
 ) {
     const pge_room = game._res._ctData[roomOffset + currentRoom]
     if (pge_room >= 0 && pge_room < 0x40) {
-        let pge = game._pge_liveLinkedListTableByRoomAllRooms[pge_room]
-        while (pge) {
+        for (const pge of game._livePgeStore.liveByRoom[pge_room]) {
             if (shouldPrepare(game, pge)) {
                 await gamePrepareAnimsHelper(game, pge, offsetX, offsetY, currentRoom)
             }
-            pge = pge.next_PGE_in_room
         }
     }
 }

@@ -23,8 +23,8 @@ export function gamePlaySound(game: Game, num: number, softVol: number) {
     }
 }
 
-export function gamePgePlayAnimSound(game: Game, pge: LivePGE, arg2: number) {
-    if ((pge.flags & PGE_FLAG_ACTIVE) && game._pge_playAnimSound) {
+export function gamePlayPgeAnimationSoundEffect(game: Game, pge: LivePGE, arg2: number) {
+    if ((pge.flags & PGE_FLAG_ACTIVE) && game._shouldPlayPgeAnimationSound) {
         const sfxId = (arg2 & UINT8_MAX) - 1
         if (game._currentRoom === pge.room_location) {
             game.playSound(sfxId, 0)

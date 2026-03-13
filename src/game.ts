@@ -1,5 +1,5 @@
-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, CollisionSlot2, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, CreatePGE, createLivePGE } from './intern'
-import type { pge_OpcodeProc } from './intern'
+import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry } from './intern'
+import type { ObjectOpcodeHandler } from './intern'
 import { Cutscene } from './cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from './cutscene-players/mp4-cutscene-player'
 import { Mixer } from './mixer'
@@ -13,7 +13,7 @@ import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from './game_constants'
 import {
     scoreTable,
     _gameLevels,
-    _pge_modKeysTable,
+    _pge_modKeysTable as modifierKeyMasksData,
     _protectionCodeData,
     _protectionPal,
     _protectionWordData,
@@ -22,7 +22,7 @@ import {
     monsterListsByLevel
 } from './staticres-monsters'
 import { File } from './resource/file'
-import { _pge_opcodeTable } from './game_opcodes'
+import { _pge_opcodeTable as opcodeHandlers } from './game_opcodes'
 import {
     UINT8_MAX,
     kIngameSaveSlot,
@@ -38,22 +38,12 @@ import {
 } from './game_constants'
 import { gamePlaySound } from './game_audio'
 import {
-    gameColClearState,
-    gameColFindCurrentCollidingObject,
-    gameColFindPiege,
-    gameColFindSlot,
-    gameColGetGridData,
-    gameColGetGridPos,
-    gameColPreparePiegeState,
-    gameColPrepareRoomState
-} from './game_collision'
-import {
     gameDrawAnimBuffer,
     gameDrawCharacter,
     gameDrawIcon,
     gameDrawObject,
     gameDrawObjectFrame,
-    gameDrawPiege,
+    gameDrawPge,
     gameDrawString
 } from './game_draw'
 import {
@@ -72,25 +62,22 @@ import {
     gameResetGameState
 } from './game_world'
 import {
-    gamePgeAddToCurrentRoomList,
-    gamePgeExecute,
-    gamePgeGetInventoryItemBefore,
-    gamePgeLoadForCurrentLevel,
-    gamePgePlayAnimSound,
-    gamePgeProcessOBJ,
-    gamePgeRemoveFromGroup,
-    gamePgeRemoveFromInventory,
-    gamePgeReorderInventory,
-    gamePgeResetGroups,
-    gamePgeSetCurrentInventoryObject,
-    gamePgeSetupAnim,
-    gamePgeSetupDefaultAnim,
-    gamePgeSetupNextAnimFrame,
-    gamePgeSetupOtherPieges,
-    gamePgeUpdateGroup,
-    gamePgeUpdateInventory,
-    gamePgeAddToInventory
+    gameAddPgeToInventory,
+    gameFindInventoryItemBeforePge,
+    gameLoadPgeForCurrentLevel,
+    gameQueuePgeGroupSignal,
+    gameRemovePgeFromInventory,
+    gameReorderPgeInventory,
+    gameResetPgeGroupState,
+    gameSetCurrentInventoryPge,
+    gameUpdatePgeInventory
 } from './game_pge'
+import {
+    gameFindInventoryItemByObjectId,
+    gameGetCurrentInventoryItemIndex,
+    gameGetInventoryItemIndices,
+    gameGetNextInventoryItemIndex
+} from './game_inventory'
 
 type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
@@ -98,8 +85,8 @@ type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game
 class Game {
     static _gameLevels: Level[] = _gameLevels
     static _scoreTable: Uint16Array = scoreTable
-    _pge_opcodeTable: pge_OpcodeProc[] = _pge_opcodeTable
-    static _pge_modKeysTable: Uint8Array = _pge_modKeysTable
+    _opcodeHandlers: ObjectOpcodeHandler[] = opcodeHandlers
+    static _modifierKeyMasks: Uint8Array = modifierKeyMasksData
     static _protectionCodeData: Uint8Array = _protectionCodeData
     static _protectionWordData: Uint8Array = _protectionWordData
     static _protectionPal: Uint8Array = _protectionPal
@@ -121,6 +108,7 @@ class Game {
     _currentLevel: number
     _skillLevel: number
     _score: number
+    _credits: number
     _currentRoom: number
     _currentIcon: number
     _loadMap: boolean
@@ -177,60 +165,43 @@ class Game {
 
     _inp_lastKeysHit: number
     _inp_lastKeysHitLeftRight: number
-    _pge_playAnimSound: boolean
+    _shouldPlayPgeAnimationSound: boolean
 
-    // This is the table where the PGEs are loaded from the PGE file
-    _pgeLiveAll = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
-    // This is a filtered table where PGEs are (re)arranged by roomLocation
-    // the PGE that is found in the array will have a link to the next PGE in the room, and that PGe to the next
-    // it's a linked list
-    _pge_liveLinkedListTableByRoomAllRooms = new Array<LivePGE>(PGE_NUM)
+    _livePgesByIndex = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
+    _livePgeStore: LivePgeRegistry = createLivePgeRegistry(this._livePgesByIndex)
+    _pendingGroupSignalsByPgeIndex: Map<number, GroupPGE[]> = new Map()
+    _inventoryItemIndicesByOwner: Map<number, number[]> = new Map()
 
+	_currentPgeRoom: number
+	_currentPgeFacingIsMirrored: boolean
+	_shouldProcessCurrentPgeObjectNode: boolean
+	_currentPgeInputMask: number
+	_opcodeTempVar1: number
+	_opcodeTempVar2: number
+	_opcodeComparisonResult1: number
+	_opcodeComparisonResult2: number
 
-    // This is a filtered table that contains PGEs at their original indexes only when they are in current room.
-    _pge_liveFlatTableFilteredByRoomCurrentRoomOnly = new Array<LivePGE>(PGE_NUM)
-    _pge_groups = new Array<GroupPGE>(PGE_NUM).fill(null).map(() => ({
-        next_entry: null,
-        index: 0,
-        group_id: 0,
-    }))
-    _pge_groupsTable = new Array<GroupPGE>(PGE_NUM)
-    _pge_nextFreeGroup: GroupPGE
-
-	_pge_currentPiegeRoom: number
-	_pge_currentPiegeFacingDir: boolean // (false == left)
-	_pge_processOBJ: boolean
-	_pge_inpKeysMask: number
-	_pge_opTempVar1: number
-	_pge_opTempVar2: number
-	_pge_compareVar1: number
-	_pge_compareVar2: number
-
-    _col_collisions_slots_counter: number
-    _col_curSlot: CollisionSlot
-    _col_slotsTable: CollisionSlot[] = new Array(PGE_NUM)
-    _col_slots: CollisionSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
-        ct_pos: 0,
-        prev_slot: null,
+    _nextFreeDynamicPgeCollisionSlotPoolIndex = 0
+    _dynamicPgeCollisionSlotsByPosition: Map<number, CollisionSlot[]> = new Map()
+    _dynamicPgeCollisionSlotObjectPool: CollisionSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
+        collision_grid_position_index: 0,
         pge: null,
         index: 0      
     }))
-	_col_slots2: CollisionSlot2[] = new Array(PGE_NUM).fill(null).map(() => ({
-        next_slot: null,
-        unk2: null,
-        data_size: 0,
-        data_buf: new Uint8Array(0x10)
+	_roomCollisionGridPatchRestoreSlotPool: RoomCollisionGridPatchRestoreSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
+        nextPatchedRegionRestoreSlot: null,
+        patchedGridDataView: null,
+        patchedCellCount: 0,
+        originalGridCellValues: new Uint8Array(0x10)
     }))
-	_col_slots2Cur: CollisionSlot2
-	_col_slots2Next: CollisionSlot2
-    _col_activeCollisionSlots: Uint8Array = new Uint8Array(0x30 * 3)
+	_nextFreeRoomCollisionGridPatchRestoreSlot: RoomCollisionGridPatchRestoreSlot
+	_activeRoomCollisionGridPatchRestoreSlots: RoomCollisionGridPatchRestoreSlot
+    _activeRoomCollisionSlotWindow: ActiveRoomCollisionSlotWindow = createActiveRoomCollisionSlotWindow()
 
-
-
-    _col_currentLeftRoom: number
-	_col_currentRightRoom: number
-	_col_currentPiegeGridPosX: number
-	_col_currentPiegeGridPosY: number
+    _activeCollisionLeftRoom: number
+	_activeCollisionRightRoom: number
+	_currentPgeCollisionGridX: number
+	_currentPgeCollisionGridY: number
     renders: number
     debugStartFrame: number
 
@@ -245,6 +216,7 @@ class Game {
         this._stateSlot = 1
         this._skillLevel = this._menu._skill = Skill.kSkillNormal
         this._currentLevel = this._menu._level = level
+        this._credits = 0
         this._autoSave = autoSave
         this._rewindPtr = -1
         this._rewindLen = 0
@@ -254,12 +226,8 @@ class Game {
         this._currentRoom = room
     }
 
-    pge_loadForCurrentLevel(idx: number, currentRoom: number) {
-        return gamePgeLoadForCurrentLevel(this, idx, currentRoom)
-    }
-
-    pge_setupDefaultAnim(pge: LivePGE) {
-        return gamePgeSetupDefaultAnim(this, pge)
+    loadPgeForCurrentLevel(idx: number, currentRoom: number) {
+        return gameLoadPgeForCurrentLevel(this, idx, currentRoom)
     }
 
     async playMpegCutscene(path: string) {
@@ -272,65 +240,24 @@ class Game {
         return gameRun(this)
     }
 
-    pge_removeFromGroup(idx: number) {
-        return gamePgeRemoveFromGroup(this, idx)
+    reorderPgeInventory(pge: LivePGE) {
+        return gameReorderPgeInventory(this, pge)
     }
 
-    pge_execute(live_pge: LivePGE, init_pge: InitPGE, obj: Obj) {
-        return gamePgeExecute(this, live_pge, init_pge, obj)
+    updatePgeInventory(pge1: LivePGE, pge2: LivePGE) {
+        return gameUpdatePgeInventory(this, pge1, pge2)
     }
 
-    pge_processOBJ(pge: LivePGE) {
-        return gamePgeProcessOBJ(this, pge)
-    }
-
-    pge_reorderInventory(pge: LivePGE) {
-        return gamePgeReorderInventory(this, pge)
-    }
-
-    pge_updateInventory(pge1: LivePGE, pge2: LivePGE) {
-        return gamePgeUpdateInventory(this, pge1, pge2)
-    }
-
-    pge_updateGroup(idx: number, unk1: number, unk2: number) {
-        return gamePgeUpdateGroup(this, idx, unk1, unk2)
-    }
-
-    pge_setupAnim(pge: LivePGE) {
-        return gamePgeSetupAnim(this, pge)
-    }
-
-    // TODO I can't change this._currentRoom here because it's set here
-    pge_setupOtherPieges(pge: LivePGE, init_pge: InitPGE) {
-        return gamePgeSetupOtherPieges(this, pge, init_pge)
-    }
-
-    pge_addToCurrentRoomList(pge: LivePGE, room: number) {
-        return gamePgeAddToCurrentRoomList(this, pge, room)
+    queuePgeGroupSignal(idx: number, unk1: number, unk2: number) {
+        return gameQueuePgeGroupSignal(this, idx, unk1, unk2)
     }
 
     playSound(num: number, softVol: number) {
         return gamePlaySound(this, num, softVol)
     }
 
-    pge_playAnimSound(pge: LivePGE, arg2: number) {
-        return gamePgePlayAnimSound(this, pge, arg2)
-    }
-
-    pge_setupNextAnimFrame(pge: LivePGE, le: GroupPGE) {
-        return gamePgeSetupNextAnimFrame(this, pge, le)
-    }
-
     drawIcon(iconNum: number, x: number, y: number, colMask: number) {
         return gameDrawIcon(this, iconNum, x, y, colMask)
-    }
-
-    col_findPiege(pge: LivePGE, arg2: number) {
-        return gameColFindPiege(this, pge, arg2)
-    }
-
-    col_findCurrentCollidingObject(pge: LivePGE, n1: number, n2: number, n3: number) {
-        return gameColFindCurrentCollidingObject(this, pge, n1, n2, n3)
     }
 
     printSaveStateCompleted() {
@@ -371,8 +298,8 @@ class Game {
     }
 
 
-    drawPiege(state: AnimBufferState) {
-        return gameDrawPiege(this, state)
+    drawPge(state: AnimBufferState) {
+        return gameDrawPge(this, state)
     }
     
     drawObject(dataPtr: Uint8Array, x: number, y: number, flags: number) {
@@ -387,20 +314,37 @@ class Game {
         return gameDrawCharacter(this, dataPtr, pos_x, pos_y, a, b, flags)
     }
 
-    pge_getInventoryItemBefore(pge: LivePGE, last_pge: LivePGE) {
-        return gamePgeGetInventoryItemBefore(this, pge, last_pge)
+    findInventoryItemBeforePge(pge: LivePGE, last_pge: LivePGE) {
+        return gameFindInventoryItemBeforePge(this, pge, last_pge)
     }
+
+    getInventoryItemIndices(ownerPge: LivePGE) {
+        return gameGetInventoryItemIndices(this, ownerPge)
+    }
+
+    getCurrentInventoryItemIndex(ownerPge: LivePGE) {
+        return gameGetCurrentInventoryItemIndex(this, ownerPge)
+    }
+
+    getNextInventoryItemIndex(ownerPge: LivePGE, inventoryItemIndex: number) {
+        return gameGetNextInventoryItemIndex(this, ownerPge, inventoryItemIndex)
+    }
+
+    findInventoryItemByObjectId(ownerPge: LivePGE, objectId: number) {
+        return gameFindInventoryItemByObjectId(this, ownerPge, objectId)
+    }
+
     
-    pge_removeFromInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
-        return gamePgeRemoveFromInventory(this, pge1, pge2, pge3)
+    removePgeFromInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
+        return gameRemovePgeFromInventory(this, pge1, pge2, pge3)
     }
 
-    pge_addToInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
-        return gamePgeAddToInventory(this, pge1, pge2, pge3)
+    addPgeToInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
+        return gameAddPgeToInventory(this, pge1, pge2, pge3)
     }
 
-    pge_setCurrentInventoryObject(pge: LivePGE) {
-        return gamePgeSetCurrentInventoryObject(this, pge)
+    setCurrentInventoryPge(pge: LivePGE) {
+        return gameSetCurrentInventoryPge(this, pge)
     }
 
     getRandomNumber() {
@@ -410,31 +354,6 @@ class Game {
     async inp_update() {
         return gameInpUpdate(this)
     }
-
-    col_prepareRoomState(currentRoom: number) {
-        return gameColPrepareRoomState(this, currentRoom)
-    }
-
-    col_clearState() {
-        return gameColClearState(this)
-    }
-
-    col_findSlot(pos: number) {
-        return gameColFindSlot(this, pos)
-    }
-
-    col_getGridData(pge: LivePGE, dy: number, dx: number) {
-        return gameColGetGridData(this, pge, dy, dx)
-    }
-
-    col_getGridPos(pge: LivePGE, dx: number) {
-        return gameColGetGridPos(this, pge, dx)
-    }
-
-    col_preparePiegeState(pge: LivePGE) {
-        return gameColPreparePiegeState(this, pge)
-    }
-
 
     resetGameState() {
         return gameResetGameState(this)
@@ -453,8 +372,8 @@ class Game {
         return gameLoadLevelData(this)
     }
 
-    pge_resetGroups() {
-        return gamePgeResetGroups(this)
+    resetPgeGroups() {
+        return gameResetPgeGroupState(this)
     }
 
     clearStateRewind() {

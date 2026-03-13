@@ -1,5 +1,5 @@
 import { Game } from "./game"
-import { UINT8_MAX } from './game_constants'
+import { UINT16_MAX, UINT8_MAX } from './game_constants'
 import { assert } from "./assert"
 
 const Skill = {
@@ -85,15 +85,12 @@ const CreatePGE = () => ({
     room_location: 0,
     life: 0,
     counter_value: 0,
-    collision_slot: 0,
-    next_inventory_PGE: 0,
-    current_inventory_PGE: 0,
+    collision_slot: UINT16_MAX,
     unkF: 0,
     anim_number: 0,
     flags: 0,
     index: 0,
     first_obj_number: 0,
-    next_PGE_in_room: null,
     init_PGE: null,
 })
 
@@ -105,15 +102,12 @@ const createLivePGE = () => ({
     room_location: 0,
     life: 0,
     counter_value: 0,
-    collision_slot: 0,
-    next_inventory_PGE: 0,
-    current_inventory_PGE: 0,
+    collision_slot: UINT16_MAX,
     unkF: 0,
     anim_number: 0,
     flags: 0,
     index: 0,
     first_obj_number: 0,
-    next_PGE_in_room: null,
     init_PGE: null
 })
 
@@ -126,19 +120,31 @@ interface LivePGE {
     life: number
     counter_value: number
     collision_slot: number
-    next_inventory_PGE: number
-    current_inventory_PGE: number
     unkF: number
     anim_number: number
     flags: number
     index: number
     first_obj_number: number
-    next_PGE_in_room: LivePGE
     init_PGE: InitPGE
 }
 
+interface LivePgeRegistry {
+    initByIndex: InitPGE[]
+    liveByIndex: LivePGE[]
+    liveByRoom: LivePGE[][]
+    activeFrameByIndex: Array<LivePGE | null>
+    activeFrameList: LivePGE[]
+}
+
+const createLivePgeRegistry = (liveByIndex: LivePGE[]): LivePgeRegistry => ({
+    initByIndex: [],
+    liveByIndex,
+    liveByRoom: new Array(liveByIndex.length).fill(null).map(() => []),
+    activeFrameByIndex: new Array<LivePGE | null>(liveByIndex.length).fill(null),
+    activeFrameList: []
+})
+
 interface GroupPGE {
-    next_entry: GroupPGE
     index: number
     group_id: number
 }
@@ -194,8 +200,8 @@ interface AnimBufferState {
     pge: LivePGE
 }
 
-type pge_OpcodeProc = (args: ObjectOpcodeArgs, game: Game) => number
-type pge_ZOrderCallback = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
+type ObjectOpcodeHandler = (args: ObjectOpcodeArgs, game: Game) => number
+type PgeZOrderComparator = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 
 class AnimBuffers {
     _states: Array<AnimBufferState[]> = [null, null, null, null]
@@ -217,22 +223,33 @@ class AnimBuffers {
 }
 
 interface CollisionSlot {
-    ct_pos: number
-    prev_slot: CollisionSlot
+    collision_grid_position_index: number
     pge: LivePGE
     index: number
 }
+
+interface ActiveRoomCollisionSlotWindow {
+    left: Array<CollisionSlot[] | null>
+    current: Array<CollisionSlot[] | null>
+    right: Array<CollisionSlot[] | null>
+}
+
+const createActiveRoomCollisionSlotWindow = () => ({
+    left: new Array<CollisionSlot[] | null>(0x30).fill(null),
+    current: new Array<CollisionSlot[] | null>(0x30).fill(null),
+    right: new Array<CollisionSlot[] | null>(0x30).fill(null)
+})
 
 interface BankSlot {
     entryNum: number
     ptr: Uint8Array
 }
 
-interface CollisionSlot2 {
-    next_slot: CollisionSlot2
-    unk2: Int8Array
-    data_size: number
-    data_buf: Uint8Array
+interface RoomCollisionGridPatchRestoreSlot {
+    nextPatchedRegionRestoreSlot: RoomCollisionGridPatchRestoreSlot
+    patchedGridDataView: Int8Array
+    patchedCellCount: number
+    originalGridCellValues: Uint8Array
 }
 
 interface InventoryItem {
@@ -330,5 +347,5 @@ class Buffer {
     }
 }
 
-export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, CollisionSlot2, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, CLIP, Buffer, ADDC_S16, S8_to_S16 }
-export type { pge_OpcodeProc, pge_ZOrderCallback }
+export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, LivePgeRegistry, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, CLIP, Buffer, ADDC_S16, S8_to_S16 }
+export type { ObjectOpcodeHandler, PgeZOrderComparator }

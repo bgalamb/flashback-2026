@@ -3,6 +3,7 @@ import type { Game } from './game'
 import { MAX_VOLUME } from './mixer'
 import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
 import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { gameFindFirstMatchingCollidingObject } from './game_collision'
 import { assert } from "./assert"
 
 const PGE_NUM = 256
@@ -27,7 +28,7 @@ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, 
 }
 
 export function gameDrawCurrentInventoryItem(game: Game) {
-    const src = game._pgeLiveAll[0].current_inventory_PGE
+    const src = game.getCurrentInventoryItemIndex(game._livePgesByIndex[0])
     if (src !== UINT8_MAX) {
         game._currentIcon = game._res._pgeAllInitialStateFromFile[src].icon_num
         game.drawIcon(game._currentIcon, 232, 8, 0xA)
@@ -35,10 +36,10 @@ export function gameDrawCurrentInventoryItem(game: Game) {
 }
 
 export function gameDrawLevelTexts(game: Game) {
-    const pge: LivePGE = game._pgeLiveAll[0]
-    let { obj, pge_out } = game.col_findCurrentCollidingObject(pge, 3, UINT8_MAX, UINT8_MAX)
+    const pge: LivePGE = game._livePgesByIndex[0]
+    let { obj, pge_out } = gameFindFirstMatchingCollidingObject(game, pge, 3, UINT8_MAX, UINT8_MAX)
     if (obj === 0) {
-        const res = game.col_findCurrentCollidingObject(pge_out, UINT8_MAX, 5, 9)
+        const res = gameFindFirstMatchingCollidingObject(game, pge_out, UINT8_MAX, 5, 9)
         obj = res.obj
         pge_out = res.pge_out
     }
@@ -169,14 +170,14 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
                     game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags)
                 }
             } else {
-                game.drawPiege(state[index])
+                game.drawPge(state[index])
             }
             index--
         } while (--numAnims !== 0)
     }
 }
 
-export function gameDrawPiege(game: Game, state: AnimBufferState) {
+export function gameDrawPge(game: Game, state: AnimBufferState) {
     const pge: LivePGE = state.pge
     game.drawObject(state.dataPtr, state.x, state.y, pge.flags)
 }

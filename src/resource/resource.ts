@@ -1,4 +1,4 @@
-import { FILE, File } from './file'
+import { File } from './file'
 import { FileSystem } from "./fs"
 import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "../intern"
 import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../staticres'
@@ -152,18 +152,21 @@ class Resource {
         this._entryName = `${objName}.${ext || typeConfig.extension}`;
 
         if (objType === ObjectType.OT_CT) {
-            const overridePath = `DATA/levels/${objName}/${objName}.ct.bin`
-            const overrideFile = await FILE.fopen(overridePath, "rb")
-            if (overrideFile) {
-                const overrideData = new Uint8Array(overrideFile._buf)
-                if (overrideData.byteLength === this._ctData.byteLength) {
-                    new Uint8Array(this._ctData.buffer).set(overrideData)
-                    this._entryName = overridePath
-                    console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideData.byteLength} bytes)`)
-                    return
+            const overridePath = `levels/${objName}/${objName}.ct.bin`
+            const overrideFile = new File()
+            if (await overrideFile.open(overridePath, "rb", this._fs)) {
+                const overrideSize = overrideFile.size()
+                if (overrideSize === this._ctData.byteLength) {
+                    overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
+                    if (!overrideFile.ioErr()) {
+                        this._entryName = overridePath
+                        console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
+                        return
+                    }
                 } else {
-                    console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideData.byteLength}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
+                    console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
                 }
+                overrideFile.close()
             }
         }
 

@@ -8,8 +8,9 @@ import { CHAR_W, GAMESCREEN_W } from './game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { UINT8_MAX } from './game_constants'
 import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
+import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
 import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
-import { gamePgeGetUserLeftRightUpDownKeyInput, gamePgeInnerProcess, gamePgePrepare } from './game_pge'
+import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
 import { gameChangeLevel, gameHasLevelMap, gameLoadLevelMap, gamePrepareAnimationsInRooms } from './game_world'
 
 export async function gamePlayCutscene(game: Game, id: number = -1) {
@@ -242,14 +243,15 @@ export async function gameDidDie(game: Game) {
     return false
 }
 
-export function gamePgeProcessLoop(game: Game, pge_liveTable2: LivePGE[], currentRoom: number) {
-    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
-        const pge: LivePGE = pge_liveTable2[i]
-        if (pge) {
-            game._col_currentPiegeGridPosY = ((pge.pos_y / 36) >> 0) & ~1
-            game._col_currentPiegeGridPosX = (pge.pos_x + 8) >> 4
-            gamePgeInnerProcess(game, pge, currentRoom)
-        }
+// Process each active PGE once for this frame after the dynamic collision slots and the
+// active left/current/right room collision window have been rebuilt. For each non-null PGE
+// entry, this loop refreshes the per-PGE collision-grid origin used by room-collision queries
+// and then hands control to gameRunPgeFrameLogic() to run that entity's frame logic.
+export function gameProcessActivePgesForFrame(game: Game, activeFramePges: LivePGE[], currentRoom: number) {
+    for (const pge of activeFramePges) {
+        game._currentPgeCollisionGridY = ((pge.pos_y / 36) >> 0) & ~1
+        game._currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
+        gameRunPgeFrameLogic(game, pge, currentRoom)
     }
 }
 
@@ -259,25 +261,26 @@ export async function gameMainLoop(game: Game) {
     if (await gameDidDie(game)) return
 
     game._vid._frontLayer.set(game._vid._backLayer.subarray(0, game._vid._layerSize))
-    await gamePgeGetUserLeftRightUpDownKeyInput(game)
-    gamePgePrepare(game, game._currentRoom)
-    game.col_prepareRoomState(game._currentRoom)
+    await gameUpdatePgeDirectionalInputState(game)
+    gameRebuildPgeCollisionStateForCurrentRoom(game, game._currentRoom)
+    gameRebuildActiveRoomCollisionSlotLookup(game, game._currentRoom)
+    gameRebuildActiveFramePgeList(game)
 
     const oldLevel = game._currentLevel
-    gamePgeProcessLoop(game, game._pge_liveFlatTableFilteredByRoomCurrentRoomOnly, game._currentRoom)
+    gameProcessActivePgesForFrame(game, game._livePgeStore.activeFrameList, game._currentRoom)
 
     if (oldLevel !== game._currentLevel) {
         await gameChangeLevel(game)
-        game._pge_opTempVar1 = 0
+        game._opcodeTempVar1 = 0
         return
     }
 
     if (game._loadMap) {
-        if (game._currentRoom === UINT8_MAX || !gameHasLevelMap(game, game._pgeLiveAll[0].room_location)) {
+        if (game._currentRoom === UINT8_MAX || !gameHasLevelMap(game, game._livePgesByIndex[0].room_location)) {
             game._cut.setId(6)
             game._deathCutsceneCounter = 1
         } else {
-            game._currentRoom = game._pgeLiveAll[0].room_location
+            game._currentRoom = game._livePgesByIndex[0].room_location
             await gameLoadLevelMap(game, game._currentRoom)
             game._loadMap = false
             game._vid.fullRefresh()
@@ -308,7 +311,7 @@ export async function gameMainLoop(game: Game) {
     }
     gameInpHandleSpecialKeys(game)
     if (game._autoSave && game._stub.getTimeStamp() - game._saveTimestamp >= kAutoSaveIntervalMs) {
-        if (game._pgeLiveAll[0].life > 0 && game._deathCutsceneCounter === 0) {
+        if (game._livePgesByIndex[0].life > 0 && game._deathCutsceneCounter === 0) {
             game.saveGameState(kAutoSaveSlot)
             game._saveTimestamp = game._stub.getTimeStamp()
         }
@@ -317,7 +320,7 @@ export async function gameMainLoop(game: Game) {
 
 export function gameInpHandleSpecialKeys(game: Game) {
     if (game._stub._pi.dbgMask & DF_SETLIFE) {
-        game._pgeLiveAll[0].life = 0x7FFF
+        game._livePgesByIndex[0].life = 0x7FFF
     }
     if (game._stub._pi.load) {
         game.loadGameState(game._stateSlot)
