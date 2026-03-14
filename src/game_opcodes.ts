@@ -820,6 +820,7 @@ const pge_op_collides2u1u = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_displayText = (args: PgeOpcodeArgs, game: Game) => {
+	console.log(`[pge-text] frame=${game.renders} currentRoom=${game._currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.room_location} text=${args.a} previousText=${game._textToDisplay}`)
 	game._textToDisplay = args.a
 	return UINT16_MAX
 }

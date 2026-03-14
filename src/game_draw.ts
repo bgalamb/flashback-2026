@@ -64,45 +64,65 @@ export function gameDrawLevelTexts(game: Game) {
 
 export async function gameDrawStoryTexts(game: Game) {
     if (game._textToDisplay !== UINT16_MAX) {
+        console.log(`[story-text] start frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay} inventoryIcon=${game._currentInventoryIconNum}`)
         let textColor = 0xE8
         let str = game._res.getGameString(game._textToDisplay)
         let index = 0
         game._vid._tempLayer.set(game._vid._frontLayer.subarray(0, game._vid._layerSize))
         let textSpeechSegment = 0
         while (!game._stub._pi.quit) {
-            game.drawIcon(game._currentInventoryIconNum, 80, 8, 0xA)
+            console.log(`[story-text] segment frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
+            const storyIconNum = Number.isInteger(game._currentInventoryIconNum) ? game._currentInventoryIconNum : UINT8_MAX
+            if (storyIconNum === UINT8_MAX) {
+                console.warn(`[story-text] missing inventory icon frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay}; skipping story icon draw`)
+            } else {
+                console.log(`[story-text] draw icon frame=${game.renders} icon=${storyIconNum}`)
+                game.drawIcon(storyIconNum, 80, 8, 0xA)
+            }
             let yPos = 26
 
             if (str[index] === UINT8_MAX) {
                 textColor = str[index + 1]
                 index += 3
+                console.log(`[story-text] control-prefix textColor=${textColor} nextIndex=${index}`)
+            }
 
-                while (1) {
-                    const len = getLineLength(str)
-                    const string = game._vid.drawString(new TextDecoder().decode(str).split('\u0000')[0], ((176 - len * CHAR_W) / 2) >> 0, yPos, textColor)
-                    str = new Uint8Array(string.length)
-                    for (let idx = 0; idx < string.length; ++idx) {
-                        str[idx] = string.charCodeAt(idx)
-                    }
-                    index = 0
-                    if (str[index] === 0 || str[index] === 0xB) {
-                        break
-                    }
-                    index++
-                    yPos += 8
+            while (1) {
+                const remaining = str.subarray(index)
+                const len = getLineLength(remaining)
+                const line = remaining.subarray(0, len)
+                console.log(`[story-text] draw line len=${len} y=${yPos} firstByte=${str[index]} index=${index}`)
+                game._vid.drawString(new TextDecoder().decode(line), ((176 - len * CHAR_W) / 2) >> 0, yPos, textColor)
+
+                index += len
+                const terminator = str[index]
+                console.log(`[story-text] line terminator=${terminator} nextIndex=${index}`)
+                if (terminator === 0 || terminator === 0xB) {
+                    break
                 }
+                if (terminator !== 0xA) {
+                    console.warn(`[story-text] unexpected line terminator=${terminator} at index=${index} for text=${game._textToDisplay}`)
+                    break
+                }
+                index++
+                yPos += 8
             }
             let voiceSegmentData: Uint8Array = null
             let voiceSegmentLen = 0
             const res = await game._res.load_VCE(game._textToDisplay, textSpeechSegment++)
             voiceSegmentData = res.buf
             voiceSegmentLen = res.bufSize
+            console.log(`[story-text] voice frame=${game.renders} text=${game._textToDisplay} hasVoice=${!!voiceSegmentData} voiceLen=${voiceSegmentLen}`)
             if (voiceSegmentData) {
                 game._mix.play(voiceSegmentData, voiceSegmentLen, 32000, MAX_VOLUME)
             }
             await game._vid.updateScreen()
+            if (!voiceSegmentData) {
+                console.log(`[story-text] waiting for input without voice frame=${game.renders} text=${game._textToDisplay}`)
+            }
             while (!game._stub._pi.backspace && !game._stub._pi.quit) {
                 if (voiceSegmentData && !game._mix.isPlaying(voiceSegmentData)) {
+                    console.log(`[story-text] voice finished frame=${game.renders} text=${game._textToDisplay}`)
                     break
                 }
                 await game.inp_update()
@@ -120,6 +140,7 @@ export async function gameDrawStoryTexts(game: Game) {
 
             game._vid._frontLayer.set(game._vid._tempLayer.subarray(0, game._vid._layerSize))
         }
+        console.log(`[story-text] end frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay}`)
         game._textToDisplay = UINT16_MAX
     }
 }

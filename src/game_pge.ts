@@ -43,6 +43,20 @@ import {
     gameUpdatePgeInventoryLinks as gameInventoryPgeUpdateInventory
 } from './game_inventory'
 
+function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
+    return game.renders > game.debugStartFrame || game._currentRoom === 39 || pge?.room_location === 39 || game._textToDisplay !== UINT16_MAX
+}
+
+function logPgeInteraction(game: Game, scope: string, message: string, pge?: LivePGE) {
+    if (!shouldLogPgeInteraction(game, pge)) {
+        return
+    }
+    const prefix = pge
+        ? `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} state=${pge.script_state_type}/${pge.first_script_entry_index}`
+        : `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom}`
+    console.log(`${prefix} ${message}`)
+}
+
 
 export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom: number) {
     const initial_pge_from_file: InitPGE = game._res._pgeAllInitialStateFromFile[idx]
@@ -282,6 +296,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
     game._currentPgeFacingIsMirrored = (pge.flags & PGE_FLAG_MIRRORED) !== 0
     game._currentPgeRoom = pge.room_location
     const pendingGroups = game._pendingSignalsByTargetPgeIndex.get(pge.index)
+    logPgeInteraction(game, 'pge-frame', `start currentRoomArg=${currentRoom} pos=(${pge.pos_x},${pge.pos_y}) animSeq=${pge.anim_seq} pendingGroups=${pendingGroups?.map(({ senderPgeIndex, signalId }) => `${senderPgeIndex}:${signalId}`).join(',') || 'none'}`, pge)
     game.renders > game.debugStartFrame && console.log(`_currentPgeFacingIsMirrored=${game._currentPgeFacingIsMirrored} _currentPgeRoom=${game._currentPgeRoom} pendingGroups=${pendingGroups?.length ?? 0}`)
     if (pendingGroups?.length) {
         gameApplyNextPgeAnimationFrameFromGroups(game, pge, pendingGroups)
@@ -299,12 +314,15 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
         let i = 0
         while (1) {
             game.renders > game.debugStartFrame && console.log(`** pge_process(${i++})`)
+            logPgeInteraction(game, 'pge-step', `scriptEntryIndex=${objIndex} type=${scriptEntry.type} opcodes=0x${scriptEntry.opcode1.toString(16)}/0x${scriptEntry.opcode2.toString(16)}/0x${scriptEntry.opcode3.toString(16)} args=${scriptEntry.opcode_arg1}/${scriptEntry.opcode_arg2}/${scriptEntry.opcode_arg3}`, pge)
             if (scriptEntry.type !== pge.script_state_type) {
                 game.renders > game.debugStartFrame && console.log('exiting pge_process loop: removing', pge.index)
+                logPgeInteraction(game, 'pge-frame', `end reason=script-type-mismatch text=${game._textToDisplay}`, pge)
                 gameRemovePgeFromPendingGroups(game, pge.index)
                 return
             }
             const _ax = gameExecutePgeObjectStep(game, pge, init_pge, scriptEntry)
+            logPgeInteraction(game, 'pge-step', `result=${_ax} nextState=${pge.script_state_type}/${pge.first_script_entry_index} pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} text=${game._textToDisplay} loadMap=${game._loadMap}`, pge)
 
             if (game._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
                 if (pge.index === 79 && _ax === UINT16_MAX && scriptEntry.opcode1 === 0x60 && scriptEntry.opcode2 === 0 && scriptEntry.opcode3 === 0) {
@@ -322,7 +340,9 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
                 if (snd) {
                     gamePlayPgeAnimationSound(game, pge, snd)
                 }
+                logPgeInteraction(game, 'pge-transition', `before roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} loadMap=${game._loadMap}`, pge)
                 gameHandlePgeRoomTransitionAndActivation(game, pge, init_pge)
+                logPgeInteraction(game, 'pge-transition', `after roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} currentRoom=${game._currentRoom} loadMap=${game._loadMap}`, pge)
                 break
             }
             ++objIndex
@@ -334,6 +354,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
     gameAdvancePgeAnimationState(game, pge)
     ++pge.anim_seq
     gameRemovePgeFromPendingGroups(game, pge.index)
+    logPgeInteraction(game, 'pge-frame', `end animSeq=${pge.anim_seq} animNumber=${pge.anim_number} text=${game._textToDisplay}`, pge)
 }
 
 export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
@@ -380,6 +401,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
         room_ct_data = game._res._ctData.subarray(CT_DOWN_ROOM)
     }
     if (room_ct_data) {
+        logPgeInteraction(game, 'pge-transition', `crossing room boundary from=${pge.room_location} pos=(${pge.pos_x},${pge.pos_y}) objectType=${init_pge.object_type}`, pge)
         let room = pge.room_location << 24 >> 24
         if (room >= 0) {
             room = room_ct_data[room]
@@ -392,6 +414,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
             if (!(game._currentRoom & 0x80) && game._currentRoom < 0x40) {
                 for (const pge_it of game._livePgeStore.liveByRoom[game._currentRoom]) {
                     if (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST) {
+                        logPgeInteraction(game, 'pge-activate', `activate current-room pge=${pge_it.index} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
                         game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
                         pge_it.flags |= PGE_FLAG_ACTIVE
                     }
@@ -400,6 +423,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
                 if (room >= 0 && room < 0x40) {
                     for (const pge_it of game._livePgeStore.liveByRoom[room]) {
                         if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 48 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
+                            logPgeInteraction(game, 'pge-activate', `activate upper-neighbor pge=${pge_it.index} room=${room} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
                             game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
                             pge_it.flags |= PGE_FLAG_ACTIVE
                         }
@@ -409,6 +433,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
                 if (room >= 0 && room < 0x40) {
                     for (const pge_it of game._livePgeStore.liveByRoom[room]) {
                         if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 176 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
+                            logPgeInteraction(game, 'pge-activate', `activate lower-neighbor pge=${pge_it.index} room=${room} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
                             game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
                             pge_it.flags |= PGE_FLAG_ACTIVE
                         }
@@ -424,6 +449,7 @@ export function gameAddPgeToRoomLiveList(game: Game, pge: LivePGE, room: number)
     if (room !== pge.room_location) {
         const previousRoomList = game._livePgeStore.liveByRoom[room]
         if (!previousRoomList) {
+            logPgeInteraction(game, 'pge-live-list', `skip move missing previousRoomList oldRoom=${room} newRoom=${pge.room_location}`, pge)
             return
         }
         const previousRoomIndex = previousRoomList.indexOf(pge)
@@ -432,6 +458,9 @@ export function gameAddPgeToRoomLiveList(game: Game, pge: LivePGE, room: number)
             const nextRoomList = game._livePgeStore.liveByRoom[pge.room_location]
             if (nextRoomList) {
                 nextRoomList.push(pge)
+                logPgeInteraction(game, 'pge-live-list', `moved oldRoom=${room} newRoom=${pge.room_location}`, pge)
+            } else {
+                logPgeInteraction(game, 'pge-live-list', `skip move missing nextRoomList oldRoom=${room} newRoom=${pge.room_location}`, pge)
             }
         }
     }
