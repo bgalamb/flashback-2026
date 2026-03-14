@@ -1,5 +1,5 @@
-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, Obj, ObjectNode, GroupPGE, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry } from './intern'
-import type { ObjectOpcodeHandler } from './intern'
+import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from './intern'
+import type { PgeOpcodeHandler } from './intern'
 import { Cutscene } from './cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from './cutscene-players/mp4-cutscene-player'
 import { Mixer } from './mixer'
@@ -85,7 +85,7 @@ type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game
 class Game {
     static _gameLevels: Level[] = _gameLevels
     static _scoreTable: Uint16Array = scoreTable
-    _opcodeHandlers: ObjectOpcodeHandler[] = opcodeHandlers
+    _opcodeHandlers: PgeOpcodeHandler[] = opcodeHandlers
     static _modifierKeyMasks: Uint8Array = modifierKeyMasksData
     static _protectionCodeData: Uint8Array = _protectionCodeData
     static _protectionWordData: Uint8Array = _protectionWordData
@@ -115,8 +115,10 @@ class Game {
     _printLevelCodeCounter: number
     _randSeed: number
     _currentInventoryIconNum: number
-    _curMonsterFrame: number
-    _curMonsterNum: number
+    // Loaded monster visuals keep sprite data and palette data together.
+    // Monsters currently still render through palette slot 5, but the map keeps
+    // the visual data grouped by monster script-node index.
+    _loadedMonsterVisualsByScriptNodeIndex: Map<number, LoadedMonsterVisual> = new Map()
     _blinkingConradCounter: number
     _textToDisplay: number
     _eraseBackground: boolean
@@ -127,6 +129,7 @@ class Game {
         h: 0,
         dataPtr: null,
         pge: null,
+        paletteColorMaskOverride: -1,
     }))
     _animBuffer1State: AnimBufferState[]  = new Array(6).fill(null).map(() => ({
         x: 0,
@@ -135,6 +138,7 @@ class Game {
         h: 0,
         dataPtr: null,
         pge: null,
+        paletteColorMaskOverride: -1,
     }))
     _animBuffer2State: AnimBufferState[]  = new Array(42).fill(null).map(() => ({
         x: 0,
@@ -143,6 +147,7 @@ class Game {
         h: 0,
         dataPtr: null,
         pge: null,
+        paletteColorMaskOverride: -1,
     }))
     _animBuffer3State: AnimBufferState[] = new Array(12).fill(null).map(() => ({
         x: 0,
@@ -151,6 +156,7 @@ class Game {
         h: 0,
         dataPtr: null,
         pge: null,
+        paletteColorMaskOverride: -1,
     }))
     _animBuffers: AnimBuffers = new AnimBuffers()
     _deathCutsceneCounter: number
@@ -169,7 +175,7 @@ class Game {
 
     _livePgesByIndex = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
     _livePgeStore: LivePgeRegistry = createLivePgeRegistry(this._livePgesByIndex)
-    _pendingGroupSignalsByPgeIndex: Map<number, GroupPGE[]> = new Map()
+    _pendingSignalsByTargetPgeIndex: Map<number, PendingPgeSignal[]> = new Map()
     _inventoryItemIndicesByOwner: Map<number, number[]> = new Map()
 
 	_currentPgeRoom: number
@@ -248,8 +254,8 @@ class Game {
         return gameUpdatePgeInventory(this, pge1, pge2)
     }
 
-    queuePgeGroupSignal(idx: number, unk1: number, unk2: number) {
-        return gameQueuePgeGroupSignal(this, idx, unk1, unk2)
+    queuePgeGroupSignal(senderPgeIndex: number, targetPgeIndex: number, signalId: number) {
+        return gameQueuePgeGroupSignal(this, senderPgeIndex, targetPgeIndex, signalId)
     }
 
     playSound(num: number, softVol: number) {
@@ -310,8 +316,8 @@ class Game {
         return gameDrawObjectFrame(this, bankDataPtr, dataPtr, x, y, flags)
     }
     
-    drawCharacter(dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number) {
-        return gameDrawCharacter(this, dataPtr, pos_x, pos_y, a, b, flags)
+    drawCharacter(dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
+        return gameDrawCharacter(this, dataPtr, pos_x, pos_y, a, b, flags, paletteColorMaskOverride)
     }
 
     findInventoryItemBeforePge(pge: LivePGE, last_pge: LivePGE) {

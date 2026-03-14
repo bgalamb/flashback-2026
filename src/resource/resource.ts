@@ -1,11 +1,12 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
-import { Color, InitPGE, ObjectNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, CreateObj } from "../intern"
+import { Color, InitPGE, PgeScriptNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, createPgeScriptEntry, ResolvedSpriteSet, LoadedConradVisual } from "../intern"
 import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../staticres'
+import { _conradVisualVariants } from '../staticres'
 import { bytekiller_unpack } from '../unpack'
 import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './constants'
 import { createObjectTypeMapping } from './loaders'
-import { decodeOBJData, decodePGEData, processSpriteOffsetData } from './parsers'
+import { hydrateParsedOBJData, hydrateParsedPGEData, buildResolvedSpriteViewsByIndex } from './parsers'
 import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
 import { assert } from "../assert"
 
@@ -44,8 +45,12 @@ class Resource {
     _tbn: Uint8Array
     _ctData: Int8Array = new Int8Array(CT_DATA_SIZE)
     _spr1: Uint8Array
-    // this contains all the data for the sprites
-    _sprData: Uint8Array[] = new Array(NUM_SPRITES)
+    // This is the resolved runtime sprite lookup used by rendering.
+    // Each entry directly points at the sprite bytes for an anim_number.
+    _resolvedSpriteSet: ResolvedSpriteSet = {
+        spritesByIndex: new Array(NUM_SPRITES).fill(null)
+    }
+    _loadedConradVisualsByVariantId: Map<number, LoadedConradVisual> = new Map()
     _sprm: Uint8Array = new Uint8Array(0x10000)
 
     // number of total PGEs in the file
@@ -56,7 +61,7 @@ class Resource {
     _lev: Uint8Array
     _bnq: Uint8Array
     _numObjectNodes: number
-    _objectNodesMap: ObjectNode[] = new Array(255)
+    _objectNodesMap: PgeScriptNode[] = new Array(255)
     _sfxList: SoundFx[]
     _numSfx: number
     _cmd: Uint8Array
@@ -96,7 +101,7 @@ class Resource {
         this._ani = null
         this._tbn = null
         this._spr1 = null
-        // this._sprData = null
+        // this._resolvedSpriteSet = null
         // this._sprm = null
         this._pgeTotalNumInFile = 0
         // this._pgeInit = null
@@ -148,8 +153,14 @@ class Resource {
             throw new Error(`Load not implemented for object type: ${objType}`);
         }
 
-        // Use provided extension or default to mapped extension
-        this._entryName = `${objName}.${ext || typeConfig.extension}`;
+        if (objType === ObjectType.OT_PGE) {
+            this._entryName = this.getParsedPgeOverridePath(objName)
+        } else if (objType === ObjectType.OT_OBJ) {
+            this._entryName = this.getParsedObjOverridePath(objName)
+        } else {
+            // Use provided extension or default to mapped extension
+            this._entryName = `${objName}.${ext || typeConfig.extension}`;
+        }
 
         if (objType === ObjectType.OT_CT) {
             const overridePath = `levels/${objName}/${objName}.ct.bin`
@@ -177,6 +188,10 @@ class Resource {
             } catch (error) {
                 throw new Error(`Failed to load ${this._entryName}: ${error.message}`);
             }
+        } else if (objType === ObjectType.OT_PGE) {
+            throw new Error(`Missing parsed PGE file '${this._entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
+        } else if (objType === ObjectType.OT_OBJ) {
+            throw new Error(`Missing parsed OBJ file '${this._entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
         }
     }
 
@@ -192,7 +207,7 @@ class Resource {
 // | type              | uint16    | 2             | PGE type identifier                        |
 // | pos_x             | uint16    | 2             | X-axis position                            |
 // | pos_y             | uint16    | 2             | Y-axis position                            |
-// | obj_node_number   | uint16    | 2             | Associated object node number              |
+// | script_node_index   | uint16    | 2             | Associated object node number              |
 // | life              | uint16    | 2             | Life/health value                          |
 // | counter_values    | uint16[4] | 8             | 4 counter values (2 bytes each)            |
 // | object_type       | uint8     | 1             | Type of object                             |
@@ -208,16 +223,25 @@ class Resource {
 // | unk1C             | uint8     | 1             | Unknown/reserved byte                      |
 // | text_num          | uint16    | 2             | Text/string number                         |
 // +--------------------------------------------------------------------------------------------+
-    load_PGE(f: File) {
-        const _pge: Uint8Array =this.loadFileData(f, 12, false)
-        this.decodePGE(_pge)
+    load_PGE_JSON(f: File) {
+        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        this.decodeParsedPGE(parsedJson)
     }
 
-
-    decodePGE(p: Uint8Array) {
-        const parsed = decodePGEData(p, this._pgeAllInitialStateFromFile.length)
+    decodeParsedPGE(json: string) {
+        const parsed = hydrateParsedPGEData(JSON.parse(json), this._pgeAllInitialStateFromFile.length)
         this._pgeTotalNumInFile = parsed.pgeNum
         this._pgeAllInitialStateFromFile = parsed.pgeInit
+    }
+
+    private getParsedPgeOverridePath(objName: string): string {
+        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
+        return `levels/${objName}/${baseName}.pge.json`
+    }
+
+    private getParsedObjOverridePath(objName: string): string {
+        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
+        return `levels/${objName}/${baseName}.obj.json`
     }
 
 // +--------------------------------------------------------------------------------------------+
@@ -227,7 +251,7 @@ class Resource {
 // +--------------------+-----------+---------------+-------------------------------------------+
 // | last_obj_number   | uint16    | 2             | Last object number in the node             |
 // | num_objects       | uint16    | -             | Number of objects in the node              |
-// | objects           | Array<Obj>| -             | Collection of objects in the node          |
+// | objects           | Array<PgeScriptEntry>| -             | Collection of objects in the node          |
 // +--------------------------------------------------------------------------------------------+
 //
 // +--------------------------------------------------------------------------------------------+
@@ -238,30 +262,23 @@ class Resource {
 // | type              | uint16    | 2             | Object type                                |
 // | dx                | int8      | 1             | X-axis displacement                        |
 // | dy                | int8      | 1             | Y-axis displacement                        |
-// | init_obj_type     | uint16    | 2             | Initial object type                        |
+// | next_script_state_type     | uint16    | 2             | Initial object type                        |
 // | opcode2           | uint8     | 1             | Opcode 2                                   |
 // | opcode1           | uint8     | 1             | Opcode 1                                   |
 // | flags             | uint8     | 1             | Object flags                               |
 // | opcode3           | uint8     | 1             | Opcode 3                                   |
-// | init_obj_number   | uint16    | 2             | Initial object number                      |
+// | next_script_entry_index   | uint16    | 2             | Initial object number                      |
 // | opcode_arg1       | int16     | 2             | Opcode argument 1                          |
 // | opcode_arg2       | int16     | 2             | Opcode argument 2                          |
 // | opcode_arg3       | int16     | 2             | Opcode argument 3                          |
 // +--------------------------------------------------------------------------------------------+
-    load_OBJ(f: File) {
-        const len = f.size()
-        const dat = this.loadFileData(f)
-
-        this._numObjectNodes = READ_LE_UINT16(dat)
-        if (this._numObjectNodes !== 230 ){
-            throw(`Assertion failed: ${this._numObjectNodes}`)
-        }
-        this.decodeOBJ(dat.subarray(2,len -2), len -2)
+    load_OBJ_JSON(f: File) {
+        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        this.decodeParsedOBJ(parsedJson)
     }
 
-    decodeOBJ(tmp: Uint8Array, size: number) {
-        this._numObjectNodes = 230
-        const parsed = decodeOBJData(tmp, size, this._numObjectNodes)
+    decodeParsedOBJ(json: string) {
+        const parsed = hydrateParsedOBJData(JSON.parse(json))
         this._numObjectNodes = parsed.numObjectNodes
         this._objectNodesMap = parsed.objectNodesMap
     }
@@ -296,9 +313,9 @@ class Resource {
         for (let i = 0; i < NUM_SPRITES; ++i) {
             const offset = Resource._spmOffsetsTable[i]
             if (offset >= kPersoDatSize) {
-                this._sprData[i] = this._sprm.subarray(offset - kPersoDatSize)
+                this._resolvedSpriteSet.spritesByIndex[i] = this._sprm.subarray(offset - kPersoDatSize)
             } else {
-                this._sprData[i] = this._spr1.subarray(offset)
+                this._resolvedSpriteSet.spritesByIndex[i] = this._spr1.subarray(offset)
             }
         }
     }
@@ -515,15 +532,46 @@ class Resource {
     }
 
     private _processOffsetData(offDataForAMonster: Uint8Array, sprDataForAMonster: Uint8Array): void {
-        processSpriteOffsetData(
+        this._resolvedSpriteSet.spritesByIndex = buildResolvedSpriteViewsByIndex(
             offDataForAMonster,
             sprDataForAMonster,
-            this._sprData,
             NUM_SPRITES,
             this.SPRITE_TERMINATOR,
             this.INVALID_OFFSET,
             this.ENTRY_SIZE
         )
+    }
+
+    async loadMonsterResolvedSpriteSet(fileName: string): Promise<ResolvedSpriteSet> {
+        const monsterSpriteFile = new File()
+        const monsterSpriteEntryName = `${fileName}.SPR`
+        if (!await monsterSpriteFile.open(monsterSpriteEntryName, "rb", this._fs)) {
+            throw new Error(`Cannot load '${monsterSpriteEntryName}'`)
+        }
+        const monsterSpriteBlob = this.loadFileData(monsterSpriteFile, 12)
+        const offData = await this.loadFileDataByFileName(`${fileName}.OFF`)
+        return {
+            spritesByIndex: buildResolvedSpriteViewsByIndex(
+                offData,
+                monsterSpriteBlob,
+                NUM_SPRITES,
+                this.SPRITE_TERMINATOR,
+                this.INVALID_OFFSET,
+                this.ENTRY_SIZE
+            )
+        }
+    }
+
+    initializeConradVisuals(): void {
+        this._loadedConradVisualsByVariantId.clear()
+        for (const conradVisualVariant of _conradVisualVariants) {
+            this._loadedConradVisualsByVariantId.set(conradVisualVariant.id, {
+                id: conradVisualVariant.id,
+                palette: conradVisualVariant.palette,
+                paletteSlot: conradVisualVariant.paletteSlot,
+                resolvedSpriteSet: this._resolvedSpriteSet
+            })
+        }
     }
 
     // LOAD SOUND EFFECTS
@@ -681,7 +729,7 @@ class Resource {
 
 
     free_OBJ() {
-        let prevNode: ObjectNode = null
+        let prevNode: PgeScriptNode = null
         for (let i = 0; i < this._numObjectNodes; ++i) {
             if (this._objectNodesMap[i] !== prevNode) {
                 const curNode = this._objectNodesMap[i]

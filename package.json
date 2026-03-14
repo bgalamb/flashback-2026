@@ -18,7 +18,10 @@
     "export:ct-grid:level-room": "ts-node --transpile-only ./src/debugger-helpers/export-ct-grid-level-room.ts",
     "export:ct-grid:all": "ts-node --transpile-only ./src/debugger-helpers/export-ct-grid-all.ts",
     "export:ct:all": "ts-node --transpile-only ./src/debugger-helpers/export-ct-all.ts",
-    "rebuild:ct:from-txt": "ts-node --transpile-only ./src/debugger-helpers/rebuild-ct-from-txt.ts"
+    "export:sprite:image": "ts-node --transpile-only ./src/debugger-helpers/export-sprite-image.ts",
+    "rebuild:ct:from-txt": "ts-node --transpile-only ./src/debugger-helpers/rebuild-ct-from-txt.ts",
+    "export:pge:json": "ts-node --transpile-only ./src/debugger-helpers/export-pge-json.ts",
+    "export:obj:json": "ts-node --transpile-only ./src/debugger-helpers/export-obj-json.ts"
   },
   "repository": {
     "type": "git",

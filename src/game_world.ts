@@ -10,6 +10,19 @@ import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
 import { assert } from "./assert"
 
+const MONSTER_PALETTE_SLOT = 5
+
+function isMonsterPge(initPge: InitPGE): boolean {
+    return initPge.script_node_index === 0x49 || initPge.object_type === 10
+}
+
+function getLoadedMonsterVisualForPge(game: Game, pge: LivePGE) {
+    if (!isMonsterPge(pge.init_PGE)) {
+        return null
+    }
+    return game._loadedMonsterVisualsByScriptNodeIndex.get(pge.init_PGE.script_node_index) || null
+}
+
 export function gameGetRandomNumber(game: Game) {
     let n = game._randSeed * 2
     if ((game._randSeed << 32 >> 32) >= 0) {
@@ -59,10 +72,7 @@ export function gameResetGameState(game: Game) {
 
 export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRoom: number) {
     const initPge: InitPGE = pge.init_PGE
-    if (initPge.obj_node_number !== 0x49 && initPge.object_type !== 10) {
-        return UINT16_MAX
-    }
-    if (initPge.obj_node_number === game._curMonsterFrame) {
+    if (!isMonsterPge(initPge)) {
         return UINT16_MAX
     }
     if (pge.room_location !== currentRoom) {
@@ -70,13 +80,20 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
     }
 
     const currentLevelMonsters = monsterListsByLevel[game._currentLevel]
-    const currentMonster = currentLevelMonsters.find((monster) => monster.frame === initPge.obj_node_number)
-    game._curMonsterFrame = currentMonster.frame
-    if (game._curMonsterNum !== currentMonster.id) {
-        game._curMonsterNum = currentMonster.id
-        await game._res.load(currentMonster.name, ObjectType.OT_SPRM)
-        await game._res.load_SPRITE_OFFSETS(currentMonster.name, game._res._sprm)
-        game._vid.setPaletteSlotLE(5, currentMonster.palette)
+    const currentMonster = currentLevelMonsters.find((monster) => monster.monsterScriptNodeIndex === initPge.script_node_index)
+    if (!currentMonster) {
+        throw new Error(`Missing monster descriptor for script node ${initPge.script_node_index} on level ${game._currentLevel}`)
+    }
+    if (!game._loadedMonsterVisualsByScriptNodeIndex.has(currentMonster.monsterScriptNodeIndex)) {
+        const resolvedSpriteSet = await game._res.loadMonsterResolvedSpriteSet(currentMonster.name)
+        game._loadedMonsterVisualsByScriptNodeIndex.set(currentMonster.monsterScriptNodeIndex, {
+            monsterId: currentMonster.id,
+            monsterScriptNodeIndex: currentMonster.monsterScriptNodeIndex,
+            palette: currentMonster.palette,
+            paletteSlot: MONSTER_PALETTE_SLOT,
+            resolvedSpriteSet
+        })
+        game._vid.setPaletteSlotLE(MONSTER_PALETTE_SLOT, currentMonster.palette)
     }
     return UINT16_MAX
 }
@@ -131,8 +148,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     await game._res.load(lvl.name2, ObjectType.OT_TBN)
 
     game._cut.setId(lvl.cutscene_id)
-    game._curMonsterNum = UINT8_MAX
-    game._curMonsterFrame = 0
+    game._loadedMonsterVisualsByScriptNodeIndex.clear()
     game._res.clearBankData()
     game._printLevelCodeCounter = 150
     game._nextFreeRoomCollisionGridPatchRestoreSlot = game._roomCollisionGridPatchRestoreSlotPool[0]
@@ -198,7 +214,10 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         let dh = 0
 
         assert(!(pge.anim_number >= 1287), `Assertion failed: ${pge.anim_number} < 1287`)
-        dataPtr = game._res._sprData[pge.anim_number]
+        const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
+        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res._resolvedSpriteSet
+        const paletteColorMaskOverride = loadedMonsterVisual ? (loadedMonsterVisual.paletteSlot << 4) : -1
+        dataPtr = resolvedSpriteSet.spritesByIndex[pge.anim_number]
         if (dataPtr === null) {
             return
         }
@@ -225,11 +244,11 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         }
         xpos += 8
         if (pge === game._livePgesByIndex[0]) {
-            game._animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h)
+            game._animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         } else if (pge.flags & 0x10) {
-            game._animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h)
+            game._animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         } else {
-            game._animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h)
+            game._animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         }
     } else {
         assert(!(pge.anim_number >= game._res._numSpc), `Assertion failed: ${pge.anim_number} < ${game._res._numSpc}`)

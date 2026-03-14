@@ -1,12 +1,12 @@
 import type {
     InitPGE,
     LivePGE,
-    Obj,
-    ObjectNode,
-    ObjectOpcodeArgs
+    PgeScriptEntry,
+    PgeScriptNode,
+    PgeOpcodeArgs
 } from './intern'
 import { assert } from "./assert"
-import type { ObjectOpcodeHandler } from './intern'
+import type { PgeOpcodeHandler } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game as GameClass } from './game'
 import { GAMESCREEN_W } from './game_constants'
@@ -49,13 +49,15 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
     const live_pge: LivePGE = game._livePgesByIndex[idx]
 
     live_pge.init_PGE = initial_pge_from_file
-    live_pge.obj_type = initial_pge_from_file.type
+    live_pge.script_state_type = initial_pge_from_file.type
     live_pge.pos_x = initial_pge_from_file.pos_x
     live_pge.pos_y = initial_pge_from_file.pos_y
     live_pge.anim_seq = 0
     live_pge.room_location = initial_pge_from_file.init_room
 
-    live_pge.life = initial_pge_from_file.life
+    // Conrad is PGE index 0. Override his starting shield count here instead of
+    // changing the inventory counter item, which only mirrors Conrad's real life.
+    live_pge.life = idx === 0 ? 10 : initial_pge_from_file.life
     if (game._skillLevel >= 2 && initial_pge_from_file.object_type === 10) {
         live_pge.life *= 2
     }
@@ -86,22 +88,22 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
     }
 
     live_pge.flags = flags
-    assert(!(initial_pge_from_file.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${initial_pge_from_file.obj_node_number} < ${game._res._numObjectNodes}}`)
-    const on: ObjectNode = game._res._objectNodesMap[initial_pge_from_file.obj_node_number]
+    assert(!(initial_pge_from_file.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${initial_pge_from_file.script_node_index} < ${game._res._numObjectNodes}}`)
+    const on: PgeScriptNode = game._res._objectNodesMap[initial_pge_from_file.script_node_index]
 
-    let obj = 0
+    let scriptEntryIndex = 0
     let i = 0
-    while (on.objects[obj].type !== live_pge.obj_type) {
+    while (on.objects[scriptEntryIndex].type !== live_pge.script_state_type) {
         ++i
-        ++obj
+        ++scriptEntryIndex
     }
     assert(!(i >= on.num_objects), `Assertion failed: ${i} < ${on.num_objects}`)
-    live_pge.first_obj_number = i
+    live_pge.first_script_entry_index = i
     gameInitializePgeDefaultAnimation(game, live_pge)
 }
 
 export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
-    const anim_data = game._res.getAniData(pge.obj_type)
+    const anim_data = game._res.getAniData(pge.script_state_type)
     if (pge.anim_seq < game._res._readUint16(anim_data)) {
         pge.anim_seq = 0
     }
@@ -125,68 +127,68 @@ export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
 }
 
 export function gameRemovePgeFromPendingGroups(game: Game, idx: number) {
-    game._pendingGroupSignalsByPgeIndex.delete(idx)
+    game._pendingSignalsByTargetPgeIndex.delete(idx)
 }
 
-export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge: InitPGE, obj: Obj) {
-    let op: ObjectOpcodeHandler
-    const args: ObjectOpcodeArgs = {
+export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge: InitPGE, scriptEntry: PgeScriptEntry) {
+    let op: PgeOpcodeHandler
+    const args: PgeOpcodeArgs = {
         pge: null,
         a: 0,
         b: 0,
     }
-    if (obj.opcode1) {
+    if (scriptEntry.opcode1) {
         args.pge = live_pge
-        args.a = obj.opcode_arg1
+        args.a = scriptEntry.opcode_arg1
         args.b = 0
-        game.renders > game.debugStartFrame && console.log(`pge_execute op1=0x${obj.opcode1.toString(16)}`)
-        op = game._opcodeHandlers[obj.opcode1]
+        game.renders > game.debugStartFrame && console.log(`pge_execute op1=0x${scriptEntry.opcode1.toString(16)}`)
+        op = game._opcodeHandlers[scriptEntry.opcode1]
         if (!op) {
             debugger
-            throw(`Game::pge_execute() missing call to pge_opcode 0x${obj.opcode1.toString(16)}`)
+            throw(`Game::pge_execute() missing call to pge_opcode 0x${scriptEntry.opcode1.toString(16)}`)
         }
         if (!(op(args, game) & UINT8_MAX)) {
             return 0
         }
     }
-    if (obj.opcode2) {
+    if (scriptEntry.opcode2) {
         args.pge = live_pge
-        args.a = obj.opcode_arg2
-        args.b = obj.opcode_arg1
-        game.renders > game.debugStartFrame && console.log(`pge_execute op2=0x${obj.opcode2.toString(16)}`)
-        const op2 = game._opcodeHandlers[obj.opcode2]
+        args.a = scriptEntry.opcode_arg2
+        args.b = scriptEntry.opcode_arg1
+        game.renders > game.debugStartFrame && console.log(`pge_execute op2=0x${scriptEntry.opcode2.toString(16)}`)
+        const op2 = game._opcodeHandlers[scriptEntry.opcode2]
         if (!op2) {
             debugger
-            console.warn(`Game::pge_execute() missing call to pge_opcode 0x${obj.opcode2.toString(16)}`)
+            console.warn(`Game::pge_execute() missing call to pge_opcode 0x${scriptEntry.opcode2.toString(16)}`)
             return 0
         }
         if (!(op2(args, game) & UINT8_MAX)) {
             return 0
         }
     }
-    if (obj.opcode3) {
+    if (scriptEntry.opcode3) {
         args.pge = live_pge
-        args.a = obj.opcode_arg3
+        args.a = scriptEntry.opcode_arg3
         args.b = 0
-        game.renders > game.debugStartFrame && console.log(`pge_execute op3=0x${obj.opcode3.toString(16)}`)
-        op = game._opcodeHandlers[obj.opcode3]
+        game.renders > game.debugStartFrame && console.log(`pge_execute op3=0x${scriptEntry.opcode3.toString(16)}`)
+        op = game._opcodeHandlers[scriptEntry.opcode3]
         if (op) {
             op(args, game)
         } else {
             debugger
-            console.warn(`Game::pge_execute() missing call to pge_opcode 0x${obj.opcode3.toString(16)}`)
+            console.warn(`Game::pge_execute() missing call to pge_opcode 0x${scriptEntry.opcode3.toString(16)}`)
         }
     }
-    live_pge.obj_type = obj.init_obj_type
-    live_pge.first_obj_number = obj.init_obj_number
+    live_pge.script_state_type = scriptEntry.next_script_state_type
+    live_pge.first_script_entry_index = scriptEntry.next_script_entry_index
     live_pge.anim_seq = 0
-    if (obj.flags & 0xF0) {
-        game._score += GameClass._scoreTable[obj.flags >> 4]
+    if (scriptEntry.flags & 0xF0) {
+        game._score += GameClass._scoreTable[scriptEntry.flags >> 4]
     }
-    if (obj.flags & OBJ_FLAG_TOGGLE_MIRROR) {
+    if (scriptEntry.flags & OBJ_FLAG_TOGGLE_MIRROR) {
         live_pge.flags ^= PGE_FLAG_MIRRORED
     }
-    if (obj.flags & OBJ_FLAG_DEC_LIFE) {
+    if (scriptEntry.flags & OBJ_FLAG_DEC_LIFE) {
         --live_pge.life
         if (init_pge.object_type === 1) {
             game._shouldProcessCurrentPgeObjectNode = true
@@ -194,19 +196,19 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
             game._score += 100
         }
     }
-    if (obj.flags & OBJ_FLAG_INC_LIFE) {
+    if (scriptEntry.flags & OBJ_FLAG_INC_LIFE) {
         ++live_pge.life
     }
-    if (obj.flags & OBJ_FLAG_SET_DEAD) {
+    if (scriptEntry.flags & OBJ_FLAG_SET_DEAD) {
         live_pge.life = -1
     }
 
     if (live_pge.flags & PGE_FLAG_MIRRORED) {
-        live_pge.pos_x -= obj.dx
+        live_pge.pos_x -= scriptEntry.dx
     } else {
-        live_pge.pos_x += obj.dx
+        live_pge.pos_x += scriptEntry.dx
     }
-    live_pge.pos_y += obj.dy
+    live_pge.pos_y += scriptEntry.dy
 
     if (game._shouldProcessCurrentPgeObjectNode && init_pge.object_type === 1) {
         if (gameObjectNodeHasPgeGroupCondition(game, live_pge) !== 0) {
@@ -219,18 +221,18 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
 
 export function gameObjectNodeHasPgeGroupCondition(game: Game, pge: LivePGE) {
     const init_pge: InitPGE = pge.init_PGE
-    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-    const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
-    let objIndex = pge.first_obj_number
-    let obj: Obj = on.objects[objIndex]
-    let i = pge.first_obj_number
-    while (i < on.last_obj_number && pge.obj_type === obj.type) {
-        if (obj.opcode2 === 0x6B) return UINT16_MAX
-        if (obj.opcode2 === 0x22 && obj.opcode_arg2 <= 4) return UINT16_MAX
-        if (obj.opcode1 === 0x6B) return UINT16_MAX
-        if (obj.opcode1 === 0x22 && obj.opcode_arg1 <= 4) return UINT16_MAX
+    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
+    const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+    let objIndex = pge.first_script_entry_index
+    let scriptEntry: PgeScriptEntry = on.objects[objIndex]
+    let i = pge.first_script_entry_index
+    while (i < on.last_obj_number && pge.script_state_type === scriptEntry.type) {
+        if (scriptEntry.opcode2 === 0x6B) return UINT16_MAX
+        if (scriptEntry.opcode2 === 0x22 && scriptEntry.opcode_arg2 <= 4) return UINT16_MAX
+        if (scriptEntry.opcode1 === 0x6B) return UINT16_MAX
+        if (scriptEntry.opcode1 === 0x22 && scriptEntry.opcode_arg1 <= 4) return UINT16_MAX
         objIndex++
-        obj = on.objects[objIndex]
+        scriptEntry = on.objects[objIndex]
         ++i
     }
     return 0
@@ -244,31 +246,31 @@ export function gameUpdatePgeInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
     return gameInventoryPgeUpdateInventory(game, pge1, pge2)
 }
 
-export function gameQueuePgeGroupSignal(game: Game, idx: number, unk1: number, unk2: number) {
-    let pge: LivePGE = game._livePgesByIndex[unk1]
+export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targetPgeIndex: number, signalId: number) {
+    let pge: LivePGE = game._livePgesByIndex[targetPgeIndex]
     if (!(pge.flags & PGE_FLAG_ACTIVE)) {
         if (!(pge.init_PGE.flags & INIT_PGE_FLAG_HAS_COLLISION)) {
             return
         }
         pge.flags |= PGE_FLAG_ACTIVE
-        game._livePgeStore.activeFrameByIndex[unk1] = pge
+        game._livePgeStore.activeFrameByIndex[targetPgeIndex] = pge
     }
-    if (unk2 <= 4) {
+    if (signalId <= 4) {
         const pge_room = pge.room_location
-        pge = game._livePgesByIndex[idx]
+        pge = game._livePgesByIndex[senderPgeIndex]
         if (pge_room !== pge.room_location) {
             return
         }
-        if (unk1 === 0 && game._blinkingConradCounter !== 0) {
+        if (targetPgeIndex === 0 && game._blinkingConradCounter !== 0) {
             return
         }
     }
-    const pendingGroups = game._pendingGroupSignalsByPgeIndex.get(unk1) ?? []
+    const pendingGroups = game._pendingSignalsByTargetPgeIndex.get(targetPgeIndex) ?? []
     pendingGroups.unshift({
-        index: idx,
-        group_id: unk2
+        senderPgeIndex,
+        signalId
     })
-    game._pendingGroupSignalsByPgeIndex.set(unk1, pendingGroups)
+    game._pendingSignalsByTargetPgeIndex.set(targetPgeIndex, pendingGroups)
 }
 
 // Run one frame of OBJ-script logic for a single PGE. This consumes pending group signals,
@@ -279,33 +281,33 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
     game._shouldPlayPgeAnimationSound = true
     game._currentPgeFacingIsMirrored = (pge.flags & PGE_FLAG_MIRRORED) !== 0
     game._currentPgeRoom = pge.room_location
-    const pendingGroups = game._pendingGroupSignalsByPgeIndex.get(pge.index)
+    const pendingGroups = game._pendingSignalsByTargetPgeIndex.get(pge.index)
     game.renders > game.debugStartFrame && console.log(`_currentPgeFacingIsMirrored=${game._currentPgeFacingIsMirrored} _currentPgeRoom=${game._currentPgeRoom} pendingGroups=${pendingGroups?.length ?? 0}`)
     if (pendingGroups?.length) {
         gameApplyNextPgeAnimationFrameFromGroups(game, pge, pendingGroups)
     }
-    let anim_data = game._res.getAniData(pge.obj_type)
+    let anim_data = game._res.getAniData(pge.script_state_type)
     game.renders > game.debugStartFrame && console.log(`read=${game._res._readUint16(anim_data)} anim_seq=${pge.anim_seq}`)
     if (game._res._readUint16(anim_data) <= pge.anim_seq) {
         game.renders > game.debugStartFrame && console.log('if')
         const init_pge: InitPGE = pge.init_PGE
-        assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
+        assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
 
-        const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
-        let objIndex = pge.first_obj_number
-        let obj: Obj = on.objects[objIndex]
+        const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+        let objIndex = pge.first_script_entry_index
+        let scriptEntry: PgeScriptEntry = on.objects[objIndex]
         let i = 0
         while (1) {
             game.renders > game.debugStartFrame && console.log(`** pge_process(${i++})`)
-            if (obj.type !== pge.obj_type) {
+            if (scriptEntry.type !== pge.script_state_type) {
                 game.renders > game.debugStartFrame && console.log('exiting pge_process loop: removing', pge.index)
                 gameRemovePgeFromPendingGroups(game, pge.index)
                 return
             }
-            const _ax = gameExecutePgeObjectStep(game, pge, init_pge, obj)
+            const _ax = gameExecutePgeObjectStep(game, pge, init_pge, scriptEntry)
 
             if (game._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
-                if (pge.index === 79 && _ax === UINT16_MAX && obj.opcode1 === 0x60 && obj.opcode2 === 0 && obj.opcode3 === 0) {
+                if (pge.index === 79 && _ax === UINT16_MAX && scriptEntry.opcode1 === 0x60 && scriptEntry.opcode2 === 0 && scriptEntry.opcode3 === 0) {
                     if (gameGetCollisionLanePositionIndexByXY(game, game._livePgesByIndex[79], 0) === gameGetCollisionLanePositionIndexByXY(game, game._livePgesByIndex[0], 0)) {
                         game.queuePgeGroupSignal(79, 0, 4)
                     }
@@ -314,7 +316,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
 
             if (_ax !== 0) {
                 game.renders > game.debugStartFrame && console.log('exiting pge_process loop room transition handling')
-                anim_data = game._res.getAniData(pge.obj_type)
+                anim_data = game._res.getAniData(pge.script_state_type)
                 const snd = anim_data[2]
 
                 if (snd) {
@@ -324,7 +326,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
                 break
             }
             ++objIndex
-            obj = on.objects[objIndex]
+            scriptEntry = on.objects[objIndex]
         }
     } else {
         game.renders > game.debugStartFrame && console.log('else')
@@ -335,7 +337,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
 }
 
 export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
-    const anim_data = game._res.getAniData(pge.obj_type)
+    const anim_data = game._res.getAniData(pge.script_state_type)
     if (game._res._readUint16(anim_data) < pge.anim_seq) {
         pge.anim_seq = 0
     }
@@ -433,12 +435,12 @@ export function gamePlayPgeAnimationSound(game: Game, pge: LivePGE, arg2: number
     return gameAudioPgePlayAnimSound(game, pge, arg2)
 }
 
-export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePGE, pendingGroups: { index: number; group_id: number }[]) {
+export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePGE, pendingGroups: { senderPgeIndex: number; signalId: number }[]) {
     const init_pge: InitPGE = pge.init_PGE
-    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
+    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
 
     const set_anim = () => {
-        const anim_data = game._res.getAniData(pge.obj_type)
+        const anim_data = game._res.getAniData(pge.script_state_type)
         const _dh = game._res._readUint16(anim_data) & 0x00FF
         let _dl = pge.anim_seq
         const anim_frame = anim_data.subarray(6 + _dl * 4)
@@ -460,55 +462,55 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
         game._currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
     }
 
-    const on: ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
-    let onIndex = pge.first_obj_number
-    let obj: Obj = on.objects[onIndex]
-    let i = pge.first_obj_number
+    const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+    let onIndex = pge.first_script_entry_index
+    let scriptEntry: PgeScriptEntry = on.objects[onIndex]
+    let i = pge.first_script_entry_index
 
-    while (i < on.last_obj_number && pge.obj_type === obj.type) {
+    while (i < on.last_obj_number && pge.script_state_type === scriptEntry.type) {
         for (const pendingGroup of pendingGroups) {
-            const groupId = pendingGroup.group_id
-            if (obj.opcode2 === 0x6B) {
-                if (obj.opcode_arg2 === 0) {
+            const groupId = pendingGroup.signalId
+            if (scriptEntry.opcode2 === 0x6B) {
+                if (scriptEntry.opcode_arg2 === 0) {
                     if (groupId === 1 || groupId === 2) {
                         set_anim()
                         return
                     }
                 }
-                if (obj.opcode_arg2 === 1) {
+                if (scriptEntry.opcode_arg2 === 1) {
                     if (groupId === 3 || groupId === 4) {
                         set_anim()
                         return
                     }
                 }
-            } else if (groupId === obj.opcode_arg2) {
-                if (obj.opcode2 === 0x22 || obj.opcode2 === 0x6F) {
+            } else if (groupId === scriptEntry.opcode_arg2) {
+                if (scriptEntry.opcode2 === 0x22 || scriptEntry.opcode2 === 0x6F) {
                     set_anim()
                     return
                 }
             }
-            if (obj.opcode1 === 0x6B) {
-                if (obj.opcode_arg1 === 0) {
+            if (scriptEntry.opcode1 === 0x6B) {
+                if (scriptEntry.opcode_arg1 === 0) {
                     if (groupId === 1 || groupId === 2) {
                         set_anim()
                         return
                     }
                 }
-                if (obj.opcode_arg1 === 1) {
+                if (scriptEntry.opcode_arg1 === 1) {
                     if (groupId === 3 || groupId === 4) {
                         set_anim()
                         return
                     }
                 }
-            } else if (groupId === obj.opcode_arg1) {
-                if (obj.opcode1 === 0x22 || obj.opcode1 === 0x6F) {
+            } else if (groupId === scriptEntry.opcode_arg1) {
+                if (scriptEntry.opcode1 === 0x22 || scriptEntry.opcode1 === 0x6F) {
                     set_anim()
                     return
                 }
             }
         }
         ++onIndex
-        obj = on.objects[onIndex]
+        scriptEntry = on.objects[onIndex]
         ++i
     }
 }
@@ -584,5 +586,5 @@ export async function gameUpdatePgeDirectionalInputState(game: Game) {
 }
 
 export function gameResetPgeGroupState(game: Game) {
-    game._pendingGroupSignalsByPgeIndex.clear()
+    game._pendingSignalsByTargetPgeIndex.clear()
 }

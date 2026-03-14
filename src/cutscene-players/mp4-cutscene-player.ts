@@ -91,12 +91,10 @@ class Mp4CutscenePlayer {
             const pollInput = async () => {
                 while (!settled) {
                     await this._stub.processEvents()
-                    if (this._stub._pi.backspace || this._stub._pi.escape || this._stub._pi.enter || this._stub._pi.space) {
-                        console.log(`Mp4CutscenePlayer::play() interrupted by input backspace=${this._stub._pi.backspace} escape=${this._stub._pi.escape} enter=${this._stub._pi.enter} space=${this._stub._pi.space}`)
+                    if (this._stub._pi.backspace || this._stub._pi.escape) {
+                        console.log(`Mp4CutscenePlayer::play() interrupted by input backspace=${this._stub._pi.backspace} escape=${this._stub._pi.escape}`)
                         this._stub._pi.backspace = false
                         this._stub._pi.escape = false
-                        this._stub._pi.enter = false
-                        this._stub._pi.space = false
                         finish(false)
                         return
                     }

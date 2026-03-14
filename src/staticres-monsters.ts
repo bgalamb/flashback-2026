@@ -1,20 +1,20 @@
 import { UINT8_MAX } from './game_constants'
 
 type Monster = {
-    frame: number,
+    monsterScriptNodeIndex: number,
     id:number,
     name:string
     palette:Uint8Array
 }
 
 function createMonster(
-    frame: number,
+    monsterScriptNodeIndex: number,
     id: number,
     name: string,
     palette: Uint8Array
 ): Monster {
     return {
-        frame,
+        monsterScriptNodeIndex,
         id,
         name: name,
         palette: palette
@@ -51,30 +51,30 @@ const monsterListsByLevel: MonsterList[] = [
         createMonster(34,0,'junky',_monsterPals[0]),
         createMonster(35,0,'junky',_monsterPals[0]),
         createMonster(75,0,'junky',_monsterPals[0]),
-        createMonster(73,1,'mercenai',_monsterPals[0]),
-        createMonster(77,1,'mercenai',_monsterPals[0]),
-        createMonster(118,2,'replican',_monsterPals[0])
+        createMonster(73,1,'mercenai',_monsterPals[1]),
+        createMonster(77,1,'mercenai',_monsterPals[1]),
+        createMonster(118,2,'replican',_monsterPals[2])
     ],
     /*level2*/[
-        createMonster(118,2,'replican',_monsterPals[0])
+        createMonster(118,2,'replican',_monsterPals[2])
     ],
     /*level3*/	[
-        createMonster(77,1,'mercenai',_monsterPals[0]),
-        createMonster(118,2,'replican',_monsterPals[0])
+        createMonster(77,1,'mercenai',_monsterPals[1]),
+        createMonster(118,2,'replican',_monsterPals[2])
     ],
     /*level4*/	[
-        createMonster(118,2,'replican',_monsterPals[0]),
-        createMonster(172,2,'replican',_monsterPals[0]),
-        createMonster(215,3,'glue',_monsterPals[0]),
+        createMonster(118,2,'replican',_monsterPals[2]),
+        createMonster(172,2,'replican',_monsterPals[2]),
+        createMonster(215,3,'glue',_monsterPals[3]),
     ],
     /*level5*/	[
-        createMonster(176,3,'glue',_monsterPals[0]),
-        createMonster(215,3,'glue',_monsterPals[0]),
+        createMonster(176,3,'glue',_monsterPals[3]),
+        createMonster(215,3,'glue',_monsterPals[3]),
     ],
     /*level6*/	[
-        createMonster(176,3,'glue',_monsterPals[0]),
-        createMonster(215,3,'glue',_monsterPals[0]),
-        createMonster(216,3,'glue',_monsterPals[0]),
+        createMonster(176,3,'glue',_monsterPals[3]),
+        createMonster(215,3,'glue',_monsterPals[3]),
+        createMonster(216,3,'glue',_monsterPals[3]),
     ]
 
 ]

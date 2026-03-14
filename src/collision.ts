@@ -1,5 +1,5 @@
 import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from './game'
-import { CollisionSlot, InitPGE, LivePGE, Obj, ObjectNode } from './intern'
+import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from './intern'
 import type { col_Callback1, col_Callback2 } from './game'
 import { UINT16_MAX } from './game_constants'
 import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game_collision'
@@ -73,48 +73,48 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 
 const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) => {
 	const init_pge:InitPGE = pge.init_PGE
-    assert(!(init_pge.obj_node_number >= game._res._numObjectNodes), `Assertion failed: ${init_pge.obj_node_number} < ${game._res._numObjectNodes}`)
-	// assert(init_pge->obj_node_number < _res._numObjectNodes);
-	const on:ObjectNode = game._res._objectNodesMap[init_pge.obj_node_number]
-	let obj:Obj = on.objects[pge.first_obj_number]
-	let i = pge.first_obj_number
-	while (pge.obj_type === obj.type && on.last_obj_number > i) {
-		if (obj.opcode2 === 0x6B) { // pge_op_isInGroupSlice
-			if (obj.opcode_arg2 === 0) {
+    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
+	// assert(init_pge->script_node_index < _res._numObjectNodes);
+	const scriptNode: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+	let scriptEntry: PgeScriptEntry = scriptNode.objects[pge.first_script_entry_index]
+	let i = pge.first_script_entry_index
+	while (pge.script_state_type === scriptEntry.type && scriptNode.last_obj_number > i) {
+		if (scriptEntry.opcode2 === 0x6B) { // pge_op_isInGroupSlice
+			if (scriptEntry.opcode_arg2 === 0) {
 				if (groupId === 1 || groupId === 2) {
                     return UINT16_MAX
                 }
 			}
-			if (obj.opcode_arg2 === 1) {
+			if (scriptEntry.opcode_arg2 === 1) {
 				if (groupId === 3 || groupId === 4) {
                     return UINT16_MAX
                 }
 			}
-		} else if (obj.opcode2 === 0x22) { // pge_op_isInGroup
-			if (obj.opcode_arg2 === groupId) {
+		} else if (scriptEntry.opcode2 === 0x22) { // pge_op_isInGroup
+			if (scriptEntry.opcode_arg2 === groupId) {
                 return UINT16_MAX
             }
 		}
 
-		if (obj.opcode1 === 0x6B) { // pge_op_isInGroupSlice
-			if (obj.opcode_arg1 === 0) {
+		if (scriptEntry.opcode1 === 0x6B) { // pge_op_isInGroupSlice
+			if (scriptEntry.opcode_arg1 === 0) {
 				if (groupId === 1 || groupId === 2) {
                     return UINT16_MAX
                 }
 			}
-			if (obj.opcode_arg1 === 1) {
+			if (scriptEntry.opcode_arg1 === 1) {
 				if (groupId === 3 || groupId === 4) {
                     return UINT16_MAX
                 }
 			}
-		} else if (obj.opcode1 === 0x22) { // pge_op_isInGroup
-			if (obj.opcode_arg1 === groupId) {
+		} else if (scriptEntry.opcode1 === 0x22) { // pge_op_isInGroup
+			if (scriptEntry.opcode_arg1 === groupId) {
                 return UINT16_MAX
             }
 		}
-		// ++obj;
+		// ++scriptEntry;
 		++i;
-        obj = on.objects[i]
+        scriptEntry = scriptNode.objects[i]
 	}
 
 	return 0
@@ -154,6 +154,10 @@ const col_detectHitCallback1 = (pge: LivePGE, dy: number, unk1: number, unk2: nu
 	} else {
 		return 0
 	}
+}
+
+const col_detectHitCallback6 = (_pge: LivePGE, _dy: number, _unk1: number, _unk2: number, _game: Game) => {
+	return 0
 }
 
 const col_detectHitCallback4 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
@@ -313,4 +317,4 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 	return 0
 }
 
-export { col_detectHitCallbackHelper, col_detectHitCallback1, col_detectHitCallback2, col_detectHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHit, col_detectGunHitCallback1, col_detectGunHitCallback2, col_detectGunHitCallback3, col_detectGunHit }
+export { col_detectHitCallbackHelper, col_detectHitCallback1, col_detectHitCallback2, col_detectHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHitCallback6, col_detectHit, col_detectGunHitCallback1, col_detectGunHitCallback2, col_detectGunHitCallback3, col_detectGunHit }

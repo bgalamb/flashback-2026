@@ -165,9 +165,9 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
                 const val = new DataView(ptr.buffer, ptr.byteOffset - 2).getUint8(0)
                 if (!(val & 0x80)) {
                     game._vid.PC_decodeSpm(state[index].dataPtr, game._res._scratchBuffer)
-                    game.drawCharacter(game._res._scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags)
+                    game.drawCharacter(game._res._scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 } else {
-                    game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags)
+                    game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 }
             } else {
                 game.drawPge(state[index])
@@ -295,7 +295,7 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
     game._vid.markBlockAsDirty(sprite_x, sprite_y, sprite_clipped_w, sprite_clipped_h, 1)
 }
 
-export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number) {
+export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
     let var16 = false
     if (b & 0x40) {
         b &= 0xBF
@@ -380,7 +380,7 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
     }
 
     const dst_offset = GAMESCREEN_W * pos_y + pos_x
-    const sprite_col_mask = ((flags & 0x60) === 0x60) ? 0x50 : 0x40
+    const sprite_col_mask = paletteColorMaskOverride >= 0 ? paletteColorMaskOverride : (((flags & 0x60) === 0x60) ? 0x50 : 0x40)
 
     if (!(flags & PGE_FLAG_FLIP_X)) {
         if (var16) {

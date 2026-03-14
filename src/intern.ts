@@ -39,7 +39,7 @@ interface InitPGE {
     type: number
     pos_x: number
     pos_y: number
-    obj_node_number: number
+    script_node_index: number
     life: number
     counter_values: number[]
     object_type: number
@@ -60,7 +60,7 @@ const CreateInitPGE = () => ({
     type: 0,
     pos_x: 0,
     pos_y: 0,
-    obj_node_number: 0,
+    script_node_index: 0,
     life: 0,
     counter_values: [],
     object_type: 0,
@@ -78,7 +78,7 @@ const CreateInitPGE = () => ({
 })
 
 const CreatePGE = () => ({
-    obj_type: 0,
+    script_state_type: 0,
     pos_x: 0,
     pos_y: 0,
     anim_seq: 0,
@@ -90,12 +90,12 @@ const CreatePGE = () => ({
     anim_number: 0,
     flags: 0,
     index: 0,
-    first_obj_number: 0,
+    first_script_entry_index: 0,
     init_PGE: null,
 })
 
 const createLivePGE = () => ({
-    obj_type: 0,
+    script_state_type: 0,
     pos_x: 0,
     pos_y: 0,
     anim_seq: 0,
@@ -107,12 +107,12 @@ const createLivePGE = () => ({
     anim_number: 0,
     flags: 0,
     index: 0,
-    first_obj_number: 0,
+    first_script_entry_index: 0,
     init_PGE: null
 })
 
 interface LivePGE {
-    obj_type: number
+    script_state_type: number
     pos_x: number
     pos_y: number
     anim_seq: number
@@ -124,7 +124,7 @@ interface LivePGE {
     anim_number: number
     flags: number
     index: number
-    first_obj_number: number
+    first_script_entry_index: number
     init_PGE: InitPGE
 }
 
@@ -144,48 +144,67 @@ const createLivePgeRegistry = (liveByIndex: LivePGE[]): LivePgeRegistry => ({
     activeFrameList: []
 })
 
-interface GroupPGE {
-    index: number
-    group_id: number
+interface PendingPgeSignal {
+    senderPgeIndex: number
+    signalId: number
 }
 
-const CreateObj = () => ({
+interface ResolvedSpriteSet {
+    spritesByIndex: Array<Uint8Array | null>
+}
+
+interface LoadedMonsterVisual {
+    monsterId: number
+    monsterScriptNodeIndex: number
+    palette: Uint8Array
+    paletteSlot: number
+    resolvedSpriteSet: ResolvedSpriteSet
+}
+
+interface LoadedConradVisual {
+    id: number
+    palette: Uint8Array
+    paletteSlot: number
+    resolvedSpriteSet: ResolvedSpriteSet
+}
+
+const createPgeScriptEntry = () => ({
     type: 0,
     dx: 0,
     dy: 0,
-    init_obj_type: 0,
+    next_script_state_type: 0,
+    next_script_entry_index: 0,
+    flags: 0,
     opcode1: 0,
     opcode2: 0,
-    flags: 0,
     opcode3: 0,
-    init_obj_number: 0,
     opcode_arg1: 0,
     opcode_arg2: 0,
     opcode_arg3: 0
 })
 
-interface Obj {
+interface PgeScriptEntry {
     type: number
     dx: number
     dy: number
-    init_obj_type: number
+    next_script_state_type: number
+    next_script_entry_index: number
+    flags: number
     opcode1: number
     opcode2: number
-    flags: number
     opcode3: number
-    init_obj_number: number
     opcode_arg1: number
     opcode_arg2: number
     opcode_arg3: number
 }
 
-interface ObjectNode {
+interface PgeScriptNode {
     last_obj_number: number
-    objects: Obj[]
+    objects: PgeScriptEntry[]
     num_objects: number
 }
 
-interface ObjectOpcodeArgs {
+interface PgeOpcodeArgs {
     pge: LivePGE
     a: number
     b: number
@@ -198,16 +217,17 @@ interface AnimBufferState {
     h: number
     dataPtr: Uint8Array
     pge: LivePGE
+    paletteColorMaskOverride: number
 }
 
-type ObjectOpcodeHandler = (args: ObjectOpcodeArgs, game: Game) => number
+type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
 type PgeZOrderComparator = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 
 class AnimBuffers {
     _states: Array<AnimBufferState[]> = [null, null, null, null]
     _curPos: number[] = [0, 0, 0, 0]
 
-    addState(stateNum: number, x: number, y: number, dataPtr: Uint8Array, pge: LivePGE, w: number = 0, h: number = 0) {
+    addState(stateNum: number, x: number, y: number, dataPtr: Uint8Array, pge: LivePGE, w: number = 0, h: number = 0, paletteColorMaskOverride: number = -1) {
         assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
         const curPos = this._curPos[stateNum]
         const index = curPos === UINT8_MAX ? 0 : curPos + 1
@@ -218,6 +238,7 @@ class AnimBuffers {
         state.h = h
         state.dataPtr = dataPtr
         state.pge = pge
+        state.paletteColorMaskOverride = paletteColorMaskOverride
         this._curPos[stateNum] = (this._curPos[stateNum] + 1) % 256
     }
 }
@@ -347,5 +368,5 @@ class Buffer {
     }
 }
 
-export { CreateObj, CreatePGE, CreateInitPGE, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, GroupPGE, Obj, ObjectNode, ObjectOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, LivePgeRegistry, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, CLIP, Buffer, ADDC_S16, S8_to_S16 }
-export type { ObjectOpcodeHandler, PgeZOrderComparator }
+export { createPgeScriptEntry, CreatePGE, CreateInitPGE, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, PendingPgeSignal, ResolvedSpriteSet, LoadedMonsterVisual, LoadedConradVisual, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, LivePgeRegistry, BankSlot, InventoryItem, SoundFx, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, CLIP, Buffer, ADDC_S16, S8_to_S16 }
+export type { PgeOpcodeHandler, PgeZOrderComparator }

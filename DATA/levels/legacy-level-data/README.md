@@ -1,6 +1,6 @@
 # Legacy Level Data
 
-This folder contains legacy level assets (`.lev`) and legacy palette files under `palettes/`.
+This folder contains legacy level assets (`.lev`), legacy raw `.pge` files, legacy raw `.obj` files, and legacy palette files under `palettes/`.
 
 ## How level data is used now
 
@@ -20,6 +20,18 @@ Current runtime map rendering is driven by pre-generated assets in `DATA/levels/
 - Legacy palette binaries are in `DATA/levels/legacy-level-data/palettes/`.
 - Runtime no longer falls back to `_pal` offset reads when JSON color data is missing.
 - Palette data is expected from JSON metadata (offsets and/or embedded colors).
+
+## `_pge` source (current behavior)
+
+- Legacy raw `.pge` files are stored in this folder as source assets only.
+- Runtime no longer loads binary `.pge` files.
+- Runtime expects parsed JSON PGE data under `DATA/levels/<levelName2>/`.
+
+## `_obj` source (current behavior)
+
+- Legacy raw `.obj` files are stored in this folder as source assets only.
+- Runtime no longer loads binary `.obj` files.
+- Runtime expects parsed JSON OBJ data under `DATA/levels/<levelName2>/`.
 
 ## Notes
 

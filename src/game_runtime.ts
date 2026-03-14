@@ -55,6 +55,7 @@ export async function gameRun(game: Game) {
     await game._res.load('GLOBAL', ObjectType.OT_SPC)
     await game._res.load('PERSO', ObjectType.OT_SPR)
     await game._res.load_SPRITE_OFFSETS('PERSO', game._res._spr1)
+    game._res.initializeConradVisuals()
     await game._res.load_FIB('GLOBAL')
 
     const presentMenu = true

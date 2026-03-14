@@ -1,6 +1,6 @@
 import { Color, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32 } from "./intern"
 import { Resource } from "./resource/resource"
-import { _conradPal1, _conradPal2, _gameLevels, _palSlot0xF, _textPal } from "./staticres"
+import { _gameLevels, _palSlot0xF, _textPal } from "./staticres"
 import { SystemStub } from "./systemstub_web"
 import { bytekiller_unpack } from "./unpack"
 import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX, global_game_options } from './game_constants'
@@ -11,8 +11,6 @@ import { File } from "./resource/file"
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
 class Video {
-    static _conrad_palette1: Uint8Array = _conradPal1
-    static _conrad_palette2: Uint8Array = _conradPal2
     static _textPal: Uint8Array = _textPal
     static _palSlot0xF: Uint8Array = _palSlot0xF
     static _tempMbkSize = 1024
@@ -665,13 +663,21 @@ pitch = 16
             this.setPaletteColors(0x1, jsonColors.slot2)
             this.setPaletteColors(0x2, jsonColors.slot3)
             this.setPaletteColors(0x3, jsonColors.slot4)
-            // conrad
+            // Conrad visuals are loaded from PERSO at startup and wrapped into
+            // Resource._loadedConradVisualsByVariantId, which keeps the shared
+            // resolved sprite set together with each palette variant for slot 4.
+            const activeConradVisual = this._res._loadedConradVisualsByVariantId.get(
+                this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
+            )
             if (this._unkPalSlot1 === this._map_palette_offset_slot3) {
-                this.setPaletteSlotLE(4, Video._conrad_palette1)
+                this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
             } else {
-                this.setPaletteSlotLE(4, Video._conrad_palette2)
+                this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
             }
-            // slot 5 is monster palette
+            // Slot 5 is the monster palette slot.
+            // gameLoadMonsterSprites() in game_world.ts still builds a LoadedMonsterVisual
+            // per monster script-node index so sprite data and palette data stay grouped,
+            // but monster rendering currently applies all monster palettes through slot 5.
             // foreground
             this.setPaletteColors(0x8, jsonColors.slot1)
             this.setPaletteColors(0x9, level === 0 ? jsonColors.slot1 : jsonColors.slot2)
@@ -727,7 +733,8 @@ pitch = 16
 
         if (palSlot === 4 && global_game_options.use_white_tshirt) {
             const color12: Color = Video.AMIGA_convertColor(0x888)
-            const color13: Color = Video.AMIGA_convertColor((palData === Video._conrad_palette2) ? 0x888 : 0xCCC)
+            const conradDarkShirtVisual = this._res._loadedConradVisualsByVariantId.get(2)
+            const color13: Color = Video.AMIGA_convertColor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)
             this._stub.setPaletteEntry(palSlot * 16 + 12, color12)
             this._stub.setPaletteEntry(palSlot * 16 + 13, color13)
         }

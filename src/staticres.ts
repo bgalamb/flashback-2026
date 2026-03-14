@@ -1395,15 +1395,28 @@ const _protectionPal = Uint8Array.from([
 
 const _gameSavedSoundLen = 8005
 
-const _conradPal1 = Uint8Array.from([
+const _conradPaletteVariant1 = Uint8Array.from([
 	0x00, 0x00, 0xCC, 0x0C, 0x8F, 0x08, 0x7E, 0x07, 0x6C, 0x06, 0x5B, 0x05, 0x4A, 0x04, 0x63, 0x09,
 	0x52, 0x07, 0x41, 0x06, 0x30, 0x06, 0x76, 0x0C, 0x14, 0x09, 0x25, 0x0B, 0x88, 0x08, UINT8_MAX, 0x0F
 ])
 
-const _conradPal2 = Uint8Array.from([
+const _conradPaletteVariant2 = Uint8Array.from([
 	0x00, 0x00, 0x7C, 0x0B, 0x04, 0x03, 0x03, 0x03, 0x03, 0x02, 0x02, 0x02, 0x01, 0x01, 0x26, 0x0A,
 	0x14, 0x08, 0x03, 0x06, 0x02, 0x04, 0x43, 0x09, 0x02, 0x06, 0x02, 0x07, 0x6A, 0x0A, UINT8_MAX, 0x0F
 ])
+
+const _conradVisualVariants = [
+	{
+		id: 1,
+		paletteSlot: 4,
+		palette: _conradPaletteVariant1
+	},
+	{
+		id: 2,
+		paletteSlot: 4,
+		palette: _conradPaletteVariant2
+	}
+]
 
 const _textPal = Uint8Array.from([
 	0x00, 0x00, 0x11, 0x01, 0x22, 0x02, 0xEF, 0x0E, 0x00, 0x0F, 0xF0, 0x0F, 0xA0, 0x0E, 0xB0, 0x0F,
@@ -2806,4 +2819,4 @@ const _sfxPeriodTable = Uint16Array.from([
 
 
 
-export { _namesTableDOS, _offsetsTableDOS, _cineSceneIdToCutPairsDOS, _cosTable, _sinTable, _musicTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _conradPal1, _conradPal2, _textPal, _palSlot0xF, _periodTable, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable }
+export { _namesTableDOS, _offsetsTableDOS, _cineSceneIdToCutPairsDOS, _cosTable, _sinTable, _musicTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _conradVisualVariants, _textPal, _palSlot0xF, _periodTable, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable }

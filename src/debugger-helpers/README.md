@@ -2,6 +2,50 @@
 
 This folder contains helper scripts for exporting and rebuilding CT (collision table) data.
 
+## PGE Export Command
+
+### `export:pge:json`
+Parse every legacy raw `.PGE` file from `DATA/levels/legacy-level-data/` and write the generated JSON version used by the runtime.
+
+```bash
+npm run export:pge:json -- ./DATA
+```
+
+Output:
+
+- `levels/level1/level1.pge.json`
+- `levels/level2/level2.pge.json`
+- `levels/level3/level3.pge.json`
+- `levels/level4_1/level4.pge.json`
+- `levels/level4_2/level4.pge.json`
+- `levels/level5_1/level5.pge.json`
+- `levels/level5_2/level5.pge.json`
+
+The exporter also appends these generated files to `DATA/files.json` so the game can resolve them through its virtual filesystem.
+Legacy source `.pge` files are expected under `DATA/levels/legacy-level-data/`.
+
+## OBJ Export Command
+
+### `export:obj:json`
+Parse every legacy raw `.OBJ` file from `DATA/levels/legacy-level-data/` and write the generated JSON version used by the runtime.
+
+```bash
+npm run export:obj:json -- ./DATA
+```
+
+Output:
+
+- `levels/level1/level1.obj.json`
+- `levels/level2/level2.obj.json`
+- `levels/level3/level3.obj.json`
+- `levels/level4_1/level4.obj.json`
+- `levels/level4_2/level4.obj.json`
+- `levels/level5_1/level5.obj.json`
+- `levels/level5_2/level5.obj.json`
+
+The exporter also appends these generated files to `DATA/files.json` so the game can resolve them through its virtual filesystem.
+Legacy source `.obj` files are expected under `DATA/levels/legacy-level-data/`.
+
 ## CT Export Commands
 
 ### `export:ct:all`
@@ -119,3 +163,71 @@ Notes:
 
 - Rebuilt adjacency is read from `<level>-ct-adjacency.json`.
 - Rebuilt grid bytes are read from `room-XX-grid.txt`.
+
+## Sprite Export Command
+
+### `export:sprite:image`
+Export one sprite, or all resolved sprites from a `SPR` + `OFF` pair, as `PPM` image files.
+
+Usage:
+
+```bash
+npm run export:sprite:image -- <spr> <off> <spriteIndex> <paletteRef> <output.ppm> [flags]
+npm run export:sprite:image -- <spr> <off> all <paletteRef> <outputDir> [flags]
+```
+
+Examples:
+
+```bash
+# one Conrad sprite using Conrad palette variant 1
+npm run export:sprite:image -- ./DATA/PERSO.SPR ./DATA/PERSO.OFF 0 conrad:1 ./out/conrad-0000.ppm
+
+# all sprites from PERSO using Conrad palette variant 1
+npm run export:sprite:image -- ./DATA/PERSO.SPR ./DATA/PERSO.OFF all conrad:1 ./out/perso-sprites
+
+# all sprites from JUNKY using the monster palette defined for level 1, script-node 34
+npm run export:sprite:image -- ./DATA/JUNKY.SPR ./DATA/JUNKY.OFF all monster:1:34 ./out/junky-sprites
+```
+
+Output:
+
+- single-sprite mode writes one file to `<output.ppm>`
+- `all` mode writes one file per resolved sprite entry into `<outputDir>`
+- files are named like `sprite-0000.ppm`, `sprite-0001.ppm`, ...
+
+#### Where `paletteRef` comes from
+
+`paletteRef` is not read from the `SPR` or `OFF` files.
+
+The sprite files only contain:
+
+- sprite byte data (`SPR`)
+- sprite offset/index entries (`OFF`)
+
+They do **not** contain the palette choice the exporter should use to color the pixels.
+
+So `paletteRef` is an explicit exporter input that tells the script which built-in palette source to use.
+
+Currently the exporter supports:
+
+- `conrad:<variantId>`
+- `monster:<level>:<monsterScriptNodeIndex>`
+
+These are resolved in [`sprite-image-exporter.ts`](/Users/balazsgalambos/git/flashback-web/src/debugger-helpers/sprite-image-exporter.ts):
+
+- `conrad:<variantId>`
+  - resolved from Conrad palette variants in [`staticres.ts`](/Users/balazsgalambos/git/flashback-web/src/staticres.ts)
+  - specifically `_conradVisualVariants`
+
+- `monster:<level>:<monsterScriptNodeIndex>`
+  - resolved from monster palette definitions in [`staticres-monsters.ts`](/Users/balazsgalambos/git/flashback-web/src/staticres-monsters.ts)
+  - specifically `monsterListsByLevel`
+
+So for example:
+
+- `conrad:1`
+  - use Conrad palette variant `1`
+- `monster:1:34`
+  - use the palette for the monster entry in level `1` whose `monsterScriptNodeIndex` is `34`
+
+This lookup happens in `SpriteImageExporter.resolvePalette()`.
