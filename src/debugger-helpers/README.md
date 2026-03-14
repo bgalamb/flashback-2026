@@ -67,6 +67,11 @@ Output layout:
 - `<outputBaseDir>/<level>/<level>-ct-adjacency.json`
 - `<outputBaseDir>/<level>/room-XX-grid.txt` (existing rooms only)
 
+Notes:
+
+- The `.json` file is the authoritative adjacency export. It preserves the raw per-room `up`, `down`, `left`, and `right` values exactly as stored in CT data.
+- The `.txt` file is only a human-readable spatial visualization. It is useful for inspection, but it is lossy and should not be used as the source of truth for rebuilding CT adjacency.
+
 ### `export:ct-adj`
 Export adjacency maps for all levels.
 
@@ -88,6 +93,11 @@ For each level, this writes:
 
 - `<base>/<level>/<level>-ct-adjacency.txt`
 - `<base>/<level>/<level>-ct-adjacency.json`
+
+Notes:
+
+- The JSON adjacency can contain negative values such as `-1`. In this context, `-1` means there is no valid destination room for that direction in the CT data.
+- One practical example is a fall or transition that should not land in another room. The text map may still place rooms in a simple grid for visualization, but only the JSON preserves the exact transition value.
 
 ### `export:ct-adj:level`
 Export adjacency map for one level.
@@ -161,8 +171,10 @@ Output:
 
 Notes:
 
-- Rebuilt adjacency is read from `<level>-ct-adjacency.json`.
+- Rebuilt adjacency is read from `<level>-ct-adjacency.json`, not from `<level>-ct-adjacency.txt`.
 - Rebuilt grid bytes are read from `room-XX-grid.txt`.
+- This matters because the JSON preserves special adjacency values such as `-1`, while the text export is only a rendered view.
+- In the rebuilt CT array, `-1` is written back as the original signed byte value and means there is no valid destination room for that direction.
 
 ## Sprite Export Command
 

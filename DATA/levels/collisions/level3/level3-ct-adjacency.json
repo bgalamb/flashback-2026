@@ -1,0 +1,453 @@
+{
+  "level": "level3",
+  "rooms": [
+    {
+      "room": 0,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 1,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 2,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 3,
+      "up": -1,
+      "down": 11,
+      "left": -1,
+      "right": -1
+    },
+    {
+      "room": 4,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 5,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 6,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 7,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 8,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 9,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 10,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 11,
+      "up": 3,
+      "down": 19,
+      "left": -1,
+      "right": -1
+    },
+    {
+      "room": 12,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 13,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 14,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 15,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 16,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 17,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 18,
+      "up": -1,
+      "down": -1,
+      "left": 20,
+      "right": 19
+    },
+    {
+      "room": 19,
+      "up": 11,
+      "down": -1,
+      "left": 18,
+      "right": 20
+    },
+    {
+      "room": 20,
+      "up": -1,
+      "down": 28,
+      "left": 19,
+      "right": 18
+    },
+    {
+      "room": 21,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 22,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 23,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 24,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 25,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 26,
+      "up": -1,
+      "down": -1,
+      "left": 28,
+      "right": 27
+    },
+    {
+      "room": 27,
+      "up": -1,
+      "down": -1,
+      "left": 26,
+      "right": 28
+    },
+    {
+      "room": 28,
+      "up": 20,
+      "down": 36,
+      "left": 27,
+      "right": 26
+    },
+    {
+      "room": 29,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 30,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 31,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 32,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 33,
+      "up": -1,
+      "down": -1,
+      "left": 37,
+      "right": 34
+    },
+    {
+      "room": 34,
+      "up": -1,
+      "down": -1,
+      "left": 33,
+      "right": 35
+    },
+    {
+      "room": 35,
+      "up": -1,
+      "down": -1,
+      "left": 34,
+      "right": 36
+    },
+    {
+      "room": 36,
+      "up": 28,
+      "down": 44,
+      "left": 35,
+      "right": 37
+    },
+    {
+      "room": 37,
+      "up": -1,
+      "down": -1,
+      "left": 36,
+      "right": 33
+    },
+    {
+      "room": 38,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 39,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 40,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 41,
+      "up": -1,
+      "down": -1,
+      "left": 45,
+      "right": 42
+    },
+    {
+      "room": 42,
+      "up": -1,
+      "down": -1,
+      "left": 41,
+      "right": 43
+    },
+    {
+      "room": 43,
+      "up": -1,
+      "down": 51,
+      "left": 42,
+      "right": 44
+    },
+    {
+      "room": 44,
+      "up": 36,
+      "down": -1,
+      "left": 43,
+      "right": 45
+    },
+    {
+      "room": 45,
+      "up": -1,
+      "down": -1,
+      "left": 44,
+      "right": 41
+    },
+    {
+      "room": 46,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 47,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 48,
+      "up": -1,
+      "down": -1,
+      "left": 54,
+      "right": 49
+    },
+    {
+      "room": 49,
+      "up": -1,
+      "down": -1,
+      "left": 48,
+      "right": 50
+    },
+    {
+      "room": 50,
+      "up": -1,
+      "down": -1,
+      "left": 49,
+      "right": 51
+    },
+    {
+      "room": 51,
+      "up": 43,
+      "down": 59,
+      "left": 50,
+      "right": 52
+    },
+    {
+      "room": 52,
+      "up": -1,
+      "down": -1,
+      "left": 51,
+      "right": 53
+    },
+    {
+      "room": 53,
+      "up": -1,
+      "down": -1,
+      "left": 52,
+      "right": 54
+    },
+    {
+      "room": 54,
+      "up": -1,
+      "down": -1,
+      "left": 53,
+      "right": 48
+    },
+    {
+      "room": 55,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    },
+    {
+      "room": 56,
+      "up": -1,
+      "down": -1,
+      "left": 62,
+      "right": 57
+    },
+    {
+      "room": 57,
+      "up": -1,
+      "down": -1,
+      "left": 56,
+      "right": 58
+    },
+    {
+      "room": 58,
+      "up": -1,
+      "down": -1,
+      "left": 57,
+      "right": 59
+    },
+    {
+      "room": 59,
+      "up": 51,
+      "down": -1,
+      "left": 58,
+      "right": 60
+    },
+    {
+      "room": 60,
+      "up": -1,
+      "down": -1,
+      "left": 59,
+      "right": 61
+    },
+    {
+      "room": 61,
+      "up": -1,
+      "down": -1,
+      "left": 60,
+      "right": 62
+    },
+    {
+      "room": 62,
+      "up": -1,
+      "down": -1,
+      "left": 61,
+      "right": 56
+    },
+    {
+      "room": 63,
+      "up": 0,
+      "down": 0,
+      "left": 0,
+      "right": 0
+    }
+  ]
+}
