@@ -6,6 +6,7 @@ import { monsterListsByLevel } from "../staticres-monsters"
 import { buildResolvedSpriteViewsByIndex } from "../resource/parsers"
 import { NUM_SPRITES } from "../resource/constants"
 import { Video } from "../video"
+import { encodeRgbPng } from "../png-rgb"
 
 type RgbImage = {
     width: number
@@ -37,7 +38,7 @@ class SpriteImageExporter {
         }
         const paletteSource = this.resolvePalette(paletteRef)
         const image = this.renderRawSpriteEntry(rawSpriteEntry, paletteSource, flags)
-        fs.writeFileSync(outputPath, this.toPpm(image.width, image.height, image.pixels))
+        fs.writeFileSync(outputPath, Buffer.from(encodeRgbPng(image.width, image.height, image.pixels)))
     }
 
     static exportAllSpriteImages(
@@ -58,8 +59,8 @@ class SpriteImageExporter {
                 continue
             }
             const image = this.renderRawSpriteEntry(rawSpriteEntry, paletteSource, flags)
-            const outputPath = path.join(outputDir, `sprite-${spriteIndex.toString().padStart(4, "0")}.ppm`)
-            fs.writeFileSync(outputPath, this.toPpm(image.width, image.height, image.pixels))
+            const outputPath = path.join(outputDir, `sprite-${spriteIndex.toString().padStart(4, "0")}.png`)
+            fs.writeFileSync(outputPath, Buffer.from(encodeRgbPng(image.width, image.height, image.pixels)))
         }
     }
 
@@ -350,14 +351,6 @@ class SpriteImageExporter {
         }
 
         return { width, height, pixels }
-    }
-
-    private static toPpm(width: number, height: number, rgbPixels: Uint8Array) {
-        const header = new TextEncoder().encode(`P6\n${width} ${height}\n255\n`)
-        const output = new Uint8Array(header.length + rgbPixels.length)
-        output.set(header, 0)
-        output.set(rgbPixels, header.length)
-        return output
     }
 }
 

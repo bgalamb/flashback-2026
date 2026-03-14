@@ -423,10 +423,16 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
 export function gameAddPgeToRoomLiveList(game: Game, pge: LivePGE, room: number) {
     if (room !== pge.room_location) {
         const previousRoomList = game._livePgeStore.liveByRoom[room]
+        if (!previousRoomList) {
+            return
+        }
         const previousRoomIndex = previousRoomList.indexOf(pge)
         if (previousRoomIndex >= 0) {
             previousRoomList.splice(previousRoomIndex, 1)
-            game._livePgeStore.liveByRoom[pge.room_location].push(pge)
+            const nextRoomList = game._livePgeStore.liveByRoom[pge.room_location]
+            if (nextRoomList) {
+                nextRoomList.push(pge)
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_
 import { writeLayerImages, writeLayerPixelData } from "./debugger-helpers/front-layer-image"
 import { assert } from "./assert"
 import { File } from "./resource/file"
+import { decodeIndexedPng, paletteBankToColors } from "./indexed-png"
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4:number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -35,6 +36,7 @@ class Video {
     _map_palette_offset_slot4: number
     _paletteHeaderOffsetsCache: Array<[number, number, number, number] | null | undefined>
     _paletteHeaderColorsCache: Array<{ slot1: Color[], slot2: Color[], slot3: Color[], slot4: Color[] } | null | undefined>
+    _currentRoomPngPaletteColors: Color[][] | null
 
     _charFrontColor: number
     _charTransparentColor: number
@@ -63,6 +65,7 @@ class Video {
       this._charShadowColor = 0
       this._paletteHeaderOffsetsCache = []
       this._paletteHeaderColorsCache = []
+      this._currentRoomPngPaletteColors = null
       this._drawChar = (dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => this.PC_drawStringChar(dst, pitch, x, y, src, color, chr)
 
     }
@@ -585,13 +588,18 @@ pitch = 16
     }
 
     private async AMIGA_tryLoadFrontLayerFromFile(level: number, room: number): Promise<boolean> {
+        this._currentRoomPngPaletteColors = null
+        return this.tryLoadFrontLayerFromIndexedPng(level, room)
+    }
+
+    private async tryLoadFrontLayerFromIndexedPng(level: number, room: number): Promise<boolean> {
         const levelData = _gameLevels[level]
         const names = levelData ? [
-            `levels/${levelData.name2}/${levelData.name}-room${room}.pixeldata.bin`,
-            `${levelData.name}-room${room}.pixeldata.bin`
+            `levels/${levelData.name2}/${levelData.name}-room${room}.pixeldata.png`,
+            `${levelData.name}-room${room}.pixeldata.png`
         ] : []
-        names.push(`level${level + 1}-room${room}.pixeldata.bin`)
-        names.push(`level${level}-room${room}.pixeldata.bin`)
+        names.push(`level${level + 1}-room${room}.pixeldata.png`)
+        names.push(`level${level}-room${room}.pixeldata.png`)
 
         for (const filename of names) {
             const file = new File()
@@ -601,20 +609,38 @@ pitch = 16
                     continue
                 }
                 const size = file.size()
-                if (size !== this._frontLayer.length) {
-                    console.warn(`Invalid front layer size for '${filename}': got ${size}, expected ${this._frontLayer.length}`)
+                if (size <= 0) {
                     file.close()
                     continue
                 }
-                file.read(this._frontLayer.buffer, this._frontLayer.length)
+                const raw = new Uint8Array(size)
+                file.read(raw.buffer, size)
                 if (file.ioErr()) {
                     file.close()
                     continue
                 }
                 file.close()
+                const png = await decodeIndexedPng(raw)
+                if (png.width !== this._w || png.height !== this._h) {
+                    console.warn(`Invalid indexed PNG room size for '${filename}': got ${png.width}x${png.height}, expected ${this._w}x${this._h}`)
+                    continue
+                }
+                if (png.pixels.length !== this._frontLayer.length) {
+                    console.warn(`Invalid indexed PNG pixel buffer size for '${filename}': got ${png.pixels.length}, expected ${this._frontLayer.length}`)
+                    continue
+                }
+                this._frontLayer.set(png.pixels)
+                this._currentRoomPngPaletteColors = []
+                for (let slot = 0; slot < 16; ++slot) {
+                    const colors = paletteBankToColors(png.palette, slot)
+                    if (colors) {
+                        this._currentRoomPngPaletteColors[slot] = colors
+                    }
+                }
+                console.log(`Front layer source: indexed-png '${filename}'`)
                 return true
             } catch (error) {
-                console.warn(`Could not load front layer file '${filename}'`, error)
+                console.warn(`Could not load indexed PNG front layer file '${filename}'`, error)
             }
         }
         return false
@@ -647,12 +673,44 @@ pitch = 16
         return null
     }
 
+    private getCurrentRoomPngPaletteColors(slot: number): Color[] | null {
+        if (!this._currentRoomPngPaletteColors || slot < 0 || slot >= this._currentRoomPngPaletteColors.length) {
+            return null
+        }
+        return this._currentRoomPngPaletteColors[slot] || null
+    }
+
     PC_setLevelPalettes(level: number) {
         if (this._unkPalSlot2 === 0) {
             this._unkPalSlot2 = this._map_palette_offset_slot3
         }
         if (this._unkPalSlot1 === 0) {
             this._unkPalSlot1 = this._map_palette_offset_slot3
+        }
+        const pngSlot0 = this.getCurrentRoomPngPaletteColors(0x0)
+        const pngSlot1 = this.getCurrentRoomPngPaletteColors(0x1)
+        const pngSlot2 = this.getCurrentRoomPngPaletteColors(0x2)
+        const pngSlot3 = this.getCurrentRoomPngPaletteColors(0x3)
+        const pngSlot8 = this.getCurrentRoomPngPaletteColors(0x8)
+        const pngSlot9 = this.getCurrentRoomPngPaletteColors(0x9)
+        const pngSlotA = this.getCurrentRoomPngPaletteColors(0xA)
+        const pngSlotB = this.getCurrentRoomPngPaletteColors(0xB)
+        if (pngSlot0 && pngSlot1 && pngSlot2 && pngSlot3 && pngSlot8 && pngSlot9 && pngSlotA && pngSlotB) {
+            console.log(`Palette colors source: room-indexed-png level=${level}`)
+            this.setPaletteColors(0x0, pngSlot0)
+            this.setPaletteColors(0x1, pngSlot1)
+            this.setPaletteColors(0x2, pngSlot2)
+            this.setPaletteColors(0x3, pngSlot3)
+            const activeConradVisual = this._res._loadedConradVisualsByVariantId.get(
+                this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
+            )
+            this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
+            this.setPaletteColors(0x8, pngSlot8)
+            this.setPaletteColors(0x9, pngSlot9)
+            this.setPaletteColors(0xA, pngSlotA)
+            this.setPaletteColors(0xB, pngSlotB)
+            this.setTextPalette()
+            return
         }
         const jsonColors = this._paletteHeaderColorsCache[level]
         if (jsonColors) {
