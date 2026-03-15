@@ -2,7 +2,7 @@ import { SpriteImageExporter } from "./sprite-image-exporter"
 
 function printUsage() {
     console.error("Usage:")
-    console.error("  npx ts-node --transpile-only ./src/debugger-helpers/export-sprite-image.ts <spr> <off> <spriteIndex> <paletteRef> <output.ppm> [flags]")
+    console.error("  npx ts-node --transpile-only ./src/debugger-helpers/export-sprite-image.ts <spr> <off> <spriteIndex> <paletteRef> <output.png> [flags]")
     console.error("  npx ts-node --transpile-only ./src/debugger-helpers/export-sprite-image.ts <spr> <off> all <paletteRef> <outputDir> [flags]")
     console.error("paletteRef can be 'conrad:<variantId>' or 'monster:<level>:<monsterScriptNodeIndex>'")
 }

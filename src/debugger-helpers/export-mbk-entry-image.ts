@@ -1,6 +1,7 @@
 import { assert } from "../assert"
 import { READ_BE_UINT16, READ_BE_UINT32 } from "../intern"
 import { bytekiller_unpack } from "../unpack"
+import { encodeRgbPng } from "../png-rgb"
 
 type RgbColor = {
     r: number
@@ -163,7 +164,7 @@ function decodeBnqEntry(bnq: Uint8Array, entryIndex: number): Uint8Array {
     return decoded
 }
 
-function writePpmForEntry(outputPath: string, bankData: Uint8Array, palette: RgbColor[], tilesPerRow: number = 16) {
+function writePngForEntry(outputPath: string, bankData: Uint8Array, palette: RgbColor[], tilesPerRow: number = 16) {
     const fs = require("fs")
     const TILE_SIZE = 8
     const TILE_FRAME = 1
@@ -190,7 +191,6 @@ function writePpmForEntry(outputPath: string, bankData: Uint8Array, palette: Rgb
         ++tileIndex
     }
 
-    const header = new TextEncoder().encode(`P6\n${width} ${height}\n255\n`)
     const body = new Uint8Array(indexed.length * 3)
     for (let i = 0; i < indexed.length; ++i) {
         const color = palette[indexed[i] & 0x0F]
@@ -199,10 +199,7 @@ function writePpmForEntry(outputPath: string, bankData: Uint8Array, palette: Rgb
         body[dst + 1] = color.g
         body[dst + 2] = color.b
     }
-    const output = new Uint8Array(header.length + body.length)
-    output.set(header, 0)
-    output.set(body, header.length)
-    fs.writeFileSync(outputPath, output)
+    fs.writeFileSync(outputPath, Buffer.from(encodeRgbPng(width, height, body)))
 }
 
 function main() {
@@ -265,8 +262,8 @@ function main() {
     fs.mkdirSync(outputDir, { recursive: true })
     const mbkBaseName = path.basename(mbkPath).replace(/\.[^.]+$/, "")
     const sourceTag = source.toLowerCase()
-    const outputPath = path.join(outputDir, `${mbkBaseName}-entry${entryIndex}-slot${paletteSlot}-src-${sourceTag}.ppm`)
-    writePpmForEntry(outputPath, bankData, palette, 16)
+    const outputPath = path.join(outputDir, `${mbkBaseName}-entry${entryIndex}-slot${paletteSlot}-src-${sourceTag}.png`)
+    writePngForEntry(outputPath, bankData, palette, 16)
 
     console.log(`Wrote ${outputPath}`)
     console.log(`Source: ${source}`)

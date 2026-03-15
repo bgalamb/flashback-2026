@@ -1,4 +1,4 @@
-import { AmigaLevelImageExporter } from "./amiga-level-image-exporter"
+import { AmigaLevelImageExporter } from "./legacy-room-png-exporter"
 
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/debugger-helpers/export-all-amiga-level-images.ts <dataDir> <outputDir>")

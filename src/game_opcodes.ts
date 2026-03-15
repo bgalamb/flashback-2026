@@ -820,6 +820,7 @@ const pge_op_collides2u1u = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_displayText = (args: PgeOpcodeArgs, game: Game) => {
+	console.log(`[pge-text] frame=${game.renders} currentRoom=${game._currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.room_location} text=${args.a} previousText=${game._textToDisplay}`)
 	game._textToDisplay = args.a
 	return UINT16_MAX
 }
@@ -1723,11 +1724,16 @@ const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
 
 		if (previousRoom !== destinationPge.room_location) {
 			const previousRoomList = game._livePgeStore.liveByRoom[previousRoom]
-			const previousRoomIndex = previousRoomList.indexOf(destinationPge)
-			if (previousRoomIndex >= 0) {
-				previousRoomList.splice(previousRoomIndex, 1)
+			if (previousRoomList) {
+				const previousRoomIndex = previousRoomList.indexOf(destinationPge)
+				if (previousRoomIndex >= 0) {
+					previousRoomList.splice(previousRoomIndex, 1)
+				}
 			}
-			game._livePgeStore.liveByRoom[destinationPge.room_location].push(destinationPge)
+			const nextRoomList = game._livePgeStore.liveByRoom[destinationPge.room_location]
+			if (nextRoomList) {
+				nextRoomList.push(destinationPge)
+			}
 		}
 
 		if (destinationPge.init_PGE.script_node_index === sourcePge.init_PGE.script_node_index) {

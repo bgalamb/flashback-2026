@@ -1,4 +1,4 @@
-import { AmigaLevelImageExporter } from "./amiga-level-image-exporter"
+import { AmigaLevelImageExporter } from "./legacy-room-png-exporter"
 
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/debugger-helpers/export-room-layer-artifacts.ts <lev> <mbk> <pal> <sgd> <levelIndex> <room> <outputPrefix>")
@@ -30,10 +30,9 @@ function main() {
         outputPrefix
     )
 
-    console.log(`Wrote ${outputPrefix}.ppm`)
-    console.log(`Wrote ${outputPrefix}.pixeldata.bin`)
-    console.log(`Wrote ${outputPrefix}-backlayer.ppm`)
-    console.log(`Wrote ${outputPrefix}-frontlayer.ppm`)
+    console.log(`Wrote ${outputPrefix}.pixeldata.png`)
+    console.log(`Wrote ${outputPrefix}-backlayer.png`)
+    console.log(`Wrote ${outputPrefix}-frontlayer.png`)
 }
 
 main()
