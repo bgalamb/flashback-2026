@@ -249,7 +249,8 @@ const _gameLevels = [
 	{ name: "level4", name2: "level4_1", cutscene_id: 0x34, sound: 3, track: 6 },
 	{ name: "level4", name2: "level4_2", cutscene_id: 0x39, sound: 3, track: 6 },
 	{ name: "level5", name2: "level5_1", cutscene_id: 0x35, sound: 4, track: 7 },
-	{ name: "level5", name2: "level5_2", cutscene_id: UINT16_MAX, sound: 4, track: 7 }
+	{ name: "level5", name2: "level5_2", cutscene_id: UINT16_MAX, sound: 4, track: 7 },
+	{ name: "level10", name2: "level10", cutscene_id: 0x00, sound: 1, track: 3 }
 ]
 
 const scoreTable = Uint16Array.from([

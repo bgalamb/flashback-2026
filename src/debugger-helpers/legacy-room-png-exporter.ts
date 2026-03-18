@@ -331,11 +331,14 @@ class AmigaLevelImageExporter {
         this.setPaletteSlotBE(0x3, mapPaletteOffsetSlot4)
         this.setPaletteSlotBE(0x8, mapPaletteOffsetSlot1)
         this.setPaletteSlotBE(0x9, mapPaletteOffsetSlot2)
-        this.setPaletteSlotBE(0xA, mapPaletteOffsetSlot3)
-        this.setPaletteSlotBE(0xB, mapPaletteOffsetSlot4)
+        this.setPaletteSlotBE(0xA, mapPaletteOffsetSlot1)
+        this.setPaletteSlotBE(0xB, mapPaletteOffsetSlot2)
+        this.setPaletteSlotBE(0xC, mapPaletteOffsetSlot3)
+        this.setPaletteSlotBE(0xD, mapPaletteOffsetSlot4)
 
         if (level === 0) {
             this.setPaletteSlotBE(0x9, mapPaletteOffsetSlot1)
+            this.setPaletteSlotBE(0xB, mapPaletteOffsetSlot1)
         }
 
         return frontLayer
@@ -374,14 +377,12 @@ class AmigaLevelImageExporter {
             const slot = value >> 4
             const colorIndex = value & 0x0F
             if (layerGroup === "back") {
-                if (slot === 0x0 || slot === 0x1) {
+                if (slot === 0x0 || slot === 0x1 || slot === 0x2 || slot === 0x3) {
                     pixels[i] = value
                 }
                 continue
             }
-            if (slot === 0x8) {
-                pixels[i] = value
-            } else if (slot === 0x9) {
+            if (slot === 0x8 || slot === 0x9 || slot === 0xA || slot === 0xB) {
                 pixels[i] = value
             }
         }
@@ -416,9 +417,13 @@ class AmigaLevelImageExporter {
         if (layerGroup === "back") {
             this.copyPaletteRange(palette, 0x0, 0x0)
             this.copyPaletteRange(palette, 0x1, 0x1)
+            this.copyPaletteRange(palette, 0x2, 0x2)
+            this.copyPaletteRange(palette, 0x3, 0x3)
         } else {
             this.copyPaletteRange(palette, 0x8, 0x8)
             this.copyPaletteRange(palette, 0x9, 0x9)
+            this.copyPaletteRange(palette, 0xA, 0xA)
+            this.copyPaletteRange(palette, 0xB, 0xB)
         }
         return palette
     }

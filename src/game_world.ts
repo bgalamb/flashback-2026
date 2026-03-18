@@ -4,7 +4,7 @@ import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { Mixer } from './mixer'
 import { ObjectType } from './resource/resource'
-import { GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
+import { CT_GRID_STRIDE, CT_HEADER_SIZE, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
 import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
 import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
@@ -99,8 +99,23 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
 }
 
 export function gameHasLevelMap(game: Game, room: number) {
-    if (game._res._lev) {
-        return READ_BE_UINT32(game._res._lev, room * 4) !== 0
+    if (room < 0 || room >= 0x40) {
+        return false
+    }
+    const ct = game._res._ctData
+    if (
+        ct[CT_UP_ROOM + room] !== 0 ||
+        ct[CT_DOWN_ROOM + room] !== 0 ||
+        ct[CT_RIGHT_ROOM + room] !== 0 ||
+        ct[CT_LEFT_ROOM + room] !== 0
+    ) {
+        return true
+    }
+    const gridOffset = CT_HEADER_SIZE + room * CT_GRID_STRIDE
+    for (let i = 0; i < CT_GRID_STRIDE; ++i) {
+        if (ct[gridOffset + i] !== 0) {
+            return true
+        }
     }
     return false
 }
@@ -138,9 +153,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
 
     await game._res.load(lvl.name, ObjectType.OT_MBK)
     await game._res.load(lvl.name, ObjectType.OT_CT)
-    await game._res.load(lvl.name, ObjectType.OT_PAL)
     await game._res.load(lvl.name, ObjectType.OT_RP)
-    await game._res.load(lvl.name, ObjectType.OT_LEV)
     await game._res.load(lvl.name, ObjectType.OT_BNQ)
     await game._res.load(lvl.name2, ObjectType.OT_PGE)
     await game._res.load(lvl.name2, ObjectType.OT_OBJ)

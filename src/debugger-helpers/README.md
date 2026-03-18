@@ -46,6 +46,28 @@ Output:
 The exporter also appends these generated files to `DATA/files.json` so the game can resolve them through its virtual filesystem.
 Legacy source `.obj` files are expected under `DATA/levels/legacy-level-data/`.
 
+## TBN Export Command
+
+### `export:tbn:json`
+Parse every legacy raw `.TBN` file from the `DATA/` root and write the generated JSON version used by the runtime.
+
+```bash
+npm run export:tbn:json -- ./DATA
+```
+
+Output:
+
+- `levels/level1/level1.tbn.json`
+- `levels/level2/level2.tbn.json`
+- `levels/level3/level3.tbn.json`
+- `levels/level4_1/level4.tbn.json`
+- `levels/level4_2/level4.tbn.json`
+- `levels/level5_1/level5.tbn.json`
+- `levels/level5_2/level5.tbn.json`
+
+The exporter also appends these generated files to `DATA/files.json` so the game can resolve them through its virtual filesystem.
+Legacy source `.tbn` files are expected at the `DATA/` root.
+
 ## CT Export Commands
 
 ### `export:ct:all`
@@ -146,6 +168,47 @@ Example:
 npm run export:ct-grid:level-room -- ./DATA level1 29 ./out/level1-room29-grid.txt
 ```
 
+## Generated Collision Dataset Commands
+
+### `generate:validated-room-collisions`
+Generate a fresh collision dataset in a new folder using:
+
+- a source room-id set
+- source adjacency when available, otherwise a random room-transition graph
+- validated room grid data
+- the current room-grid validity rules for Conrad walkability
+
+Usage:
+
+```bash
+npm run generate:validated-room-collisions -- <inputRoomGridDir> <outputDir> [seed]
+```
+
+Examples:
+
+```bash
+# generate a new random dataset; seed is derived from the output folder name + room ids
+npm run generate:validated-room-collisions -- ./DATA/levels/generated/level10-collisions ./DATA/levels/generated/level11-collisions
+
+# generate a reproducible random dataset with an explicit seed
+npm run generate:validated-room-collisions -- ./DATA/levels/generated/level10-collisions ./DATA/levels/generated/level11-collisions 123456
+```
+
+Output:
+
+- `<outputDir>/<levelName>-ct-adjacency.json`
+- `<outputDir>/<levelName>-ct-adjacency.txt`
+- `<outputDir>/room-XX-grid.txt`
+
+Notes:
+
+- The generator reuses the source adjacency graph when the input level already has a `<level>-ct-adjacency.json`. Otherwise it falls back to random adjacency generation.
+- When no explicit seed is passed, the generator derives one from the output folder name and room id list, so the same inputs are reproducible.
+- When an explicit seed is passed, you can rerun the command with the same seed to reproduce the exact same random graph and room layouts.
+- The generator runs the in-memory validator and bounded repair pipeline before accepting output.
+- For authored levels, if bounded synthesis cannot reach a clean result, it can fall back to copying a validator-clean source dataset.
+- The implementation lives in [`src/level-generator`](/Users/balazsgalambos/git/flashback-web/src/level-generator).
+
 ## CT Rebuild Command
 
 ### `rebuild:ct:from-txt`
@@ -175,6 +238,7 @@ Notes:
 - Rebuilt grid bytes are read from `room-XX-grid.txt`.
 - This matters because the JSON preserves special adjacency values such as `-1`, while the text export is only a rendered view.
 - In the rebuilt CT array, `-1` is written back as the original signed byte value and means there is no valid destination room for that direction.
+- Rebuilt CT files are written only to the `outputDir` you pass. Use `DATA/levels/generated/<level>` for generated outputs.
 
 ## Sprite Export Command
 
@@ -290,7 +354,7 @@ Each pixel byte is preserved exactly:
 For room rendering, the important runtime slots are:
 
 - `0x0`, `0x1`, `0x2`, `0x3`
-- `0x8`, `0x9`, `0xA`, `0xB`
+- `0x8`, `0x9`, `0xA`, `0xB`, `0xC`, `0xD`
 
 The room loader reads this PNG directly and uses:
 
@@ -303,8 +367,8 @@ The layer PNGs are not screenshots. They are also indexed pixeldata images.
 
 They are constrained on purpose:
 
-- back layer PNG uses only palette slots `0` and `1`
-- front layer PNG uses only palette slots `8` and `9`
+- back layer PNG uses palette slots `0` through `3`
+- front layer PNG uses palette slots `8` through `B`
 - transparent pixels use index `0xFF`
 
 This is important because it makes the layer files easier to edit and merge deterministically.
@@ -314,14 +378,18 @@ The remapping rules are:
 - back layer:
   - room slot `0x0` stays `0x0`
   - room slot `0x1` stays `0x1`
+  - room slot `0x2` stays `0x2`
+  - room slot `0x3` stays `0x3`
 - front layer:
   - room slot `0x8` stays `0x8`
   - room slot `0x9` stays `0x9`
+  - room slot `0xA` stays `0xA`
+  - room slot `0xB` stays `0xB`
 
 So the split files preserve the runtime room bytes directly for the visible layers:
 
-- back = slots `0x0` / `0x1`
-- front = slots `0x8` / `0x9`
+- back = slots `0x0` / `0x1` / `0x2` / `0x3`
+- front = slots `0x8` / `0x9` / `0xA` / `0xB`
 
 ### Export All Layer Artifacts
 
@@ -395,8 +463,8 @@ This command:
 
 1. loads the back layer PNG
 2. loads the front layer PNG
-3. checks that back uses only slots `0` / `1` or transparent `0xFF`
-4. checks that front uses only slots `8` / `9` or transparent `0xFF`
+3. checks that back uses only slots `0` / `1` / `2` / `3` or transparent `0xFF`
+4. checks that front uses only slots `8` / `9` / `A` / `B` or transparent `0xFF`
 5. overlays the front bytes directly
 6. writes a full `*.pixeldata.png`
 
@@ -404,21 +472,29 @@ The merge back into the runtime byte layout is:
 
 - merged back slot `0x0` = back slot `0x0`
 - merged back slot `0x1` = back slot `0x1`
+- merged back slot `0x2` = back slot `0x2`
+- merged back slot `0x3` = back slot `0x3`
 - merged front slot `0x8` = front slot `0x8`
 - merged front slot `0x9` = front slot `0x9`
+- merged front slot `0xA` = front slot `0xA`
+- merged front slot `0xB` = front slot `0xB`
 
 The merge script also rebuilds the full room palette table for the runtime PNG:
 
 - slot `0x0` from back slot `0x0`
 - slot `0x1` from back slot `0x1`
-- slot `0x2` from front slot `0x8`
-- slot `0x3` from front slot `0x9`
+- slot `0x2` from back slot `0x2`
+- slot `0x3` from back slot `0x3`
 - slot `0x8` from back slot `0x0`
 - slot `0x9` from:
   - back slot `0x0` for level 1
   - back slot `0x1` for the other levels
-- slot `0xA` from front slot `0x8`
-- slot `0xB` from front slot `0x9`
+- slot `0x8` may be overridden by front slot `0x8` when present
+- slot `0x9` may be overridden by front slot `0x9` when present
+- slot `0xA` from front slot `0xA`
+- slot `0xB` from front slot `0xB`
+- slot `0xC` from front slot `0xA`
+- slot `0xD` from front slot `0xB`
 
 This matches the runtime room-palette layout used by the current PNG loader.
 
@@ -441,7 +517,8 @@ This is the intended workflow:
 This split-layer workflow currently covers the room-layer bytes that end up in the room PNG:
 
 - back slots `0x0` / `0x1`
-- front slots `0x8` / `0x9`
+- back slots `0x2` / `0x3`
+- front slots `0x8` / `0x9` / `0xA` / `0xB`
 
 It does not separately preserve every possible palette slot in the runtime palette table as independent editable layers.
 

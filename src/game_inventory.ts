@@ -222,9 +222,9 @@ export async function gameHandleInventory(game: Game) {
                     if (items[item_it].icon_num === UINT8_MAX) {
                         break
                     }
-                    game.drawIcon(items[item_it].icon_num, icon_x_pos, 157, 0xA)
+                    game.drawIcon(items[item_it].icon_num, icon_x_pos, 157, 0xC)
                     if (current_item === item_it) {
-                        game.drawIcon(76, icon_x_pos, 157, 0xA)
+                        game.drawIcon(76, icon_x_pos, 157, 0xC)
                         selected_pge = items[item_it].live_pge
                         const txt_num = items[item_it].init_pge.text_num
                         const str = game._res.getTextString(game._currentLevel, txt_num)
@@ -237,10 +237,10 @@ export async function gameHandleInventory(game: Game) {
                     icon_x_pos += 32
                 }
                 if (current_line !== 0) {
-                    game.drawIcon(78, 120, 176, 0xA)
+                    game.drawIcon(78, 120, 176, 0xC)
                 }
                 if (current_line !== num_lines - 1) {
-                    game.drawIcon(77, 120, 143, 0xA)
+                    game.drawIcon(77, 120, 143, 0xC)
                 }
             } else {
                 let buf = "SCORE " + game._score.toString().padStart(8, "0")

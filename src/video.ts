@@ -584,7 +584,7 @@ pitch = 16
         if (await this.tryLoadRoomPaletteOffsetsFromJson(level, room)) {
             return
         }
-        console.warn(`Palette offsets source: none level=${level} room=${room} (JSON required; _lev fallback disabled)`)
+        console.warn(`Palette offsets source: none level=${level} room=${room} (JSON required)`)
     }
 
     private async AMIGA_tryLoadFrontLayerFromFile(level: number, room: number): Promise<boolean> {
@@ -680,6 +680,26 @@ pitch = 16
         return this._currentRoomPngPaletteColors[slot] || null
     }
 
+    private hasAnyNonBlackColor(colors: Color[] | null) {
+        if (!colors) {
+            return false
+        }
+        for (const color of colors) {
+            if (color.r !== 0 || color.g !== 0 || color.b !== 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private getActiveConradVisualFromPaletteHeader() {
+        // Conrad's palette selection is driven by paletteheader offsets.
+        // The room PNG provides room palette banks only; slot 0x4 must stay
+        // independent so Conrad remains decoupled from per-room PNG palettes.
+        const conradVariantId = this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
+        return this._res._loadedConradVisualsByVariantId.get(conradVariantId)
+    }
+
     PC_setLevelPalettes(level: number) {
         if (this._unkPalSlot2 === 0) {
             this._unkPalSlot2 = this._map_palette_offset_slot3
@@ -695,24 +715,29 @@ pitch = 16
         const pngSlot9 = this.getCurrentRoomPngPaletteColors(0x9)
         const pngSlotA = this.getCurrentRoomPngPaletteColors(0xA)
         const pngSlotB = this.getCurrentRoomPngPaletteColors(0xB)
-        if (pngSlot0 && pngSlot1 && pngSlot2 && pngSlot3 && pngSlot8 && pngSlot9 && pngSlotA && pngSlotB) {
+        const pngSlotC = this.getCurrentRoomPngPaletteColors(0xC)
+        const pngSlotD = this.getCurrentRoomPngPaletteColors(0xD)
+        const jsonColors = this._paletteHeaderColorsCache[level]
+        const inventoryColors = this.getJsonPaletteColorsForOffset(level, this._unkPalSlot2) || jsonColors?.slot3 || null
+        const uiSlotC = inventoryColors || (this.hasAnyNonBlackColor(pngSlotC) ? pngSlotC : pngSlotA)
+        const uiSlotD = jsonColors?.slot4 || (this.hasAnyNonBlackColor(pngSlotD) ? pngSlotD : pngSlotB)
+        if (pngSlot0 && pngSlot1 && pngSlot2 && pngSlot3 && pngSlot8 && pngSlot9 && pngSlotA && pngSlotB && uiSlotC && uiSlotD) {
             console.log(`Palette colors source: room-indexed-png level=${level}`)
             this.setPaletteColors(0x0, pngSlot0)
             this.setPaletteColors(0x1, pngSlot1)
             this.setPaletteColors(0x2, pngSlot2)
             this.setPaletteColors(0x3, pngSlot3)
-            const activeConradVisual = this._res._loadedConradVisualsByVariantId.get(
-                this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
-            )
+            const activeConradVisual = this.getActiveConradVisualFromPaletteHeader()
             this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
             this.setPaletteColors(0x8, pngSlot8)
             this.setPaletteColors(0x9, pngSlot9)
             this.setPaletteColors(0xA, pngSlotA)
             this.setPaletteColors(0xB, pngSlotB)
+            this.setPaletteColors(0xC, uiSlotC)
+            this.setPaletteColors(0xD, uiSlotD)
             this.setTextPalette()
             return
         }
-        const jsonColors = this._paletteHeaderColorsCache[level]
         if (jsonColors) {
             console.log(`Palette colors source: json-embedded level=${level}`)
             // background
@@ -724,14 +749,8 @@ pitch = 16
             // Conrad visuals are loaded from PERSO at startup and wrapped into
             // Resource._loadedConradVisualsByVariantId, which keeps the shared
             // resolved sprite set together with each palette variant for slot 4.
-            const activeConradVisual = this._res._loadedConradVisualsByVariantId.get(
-                this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
-            )
-            if (this._unkPalSlot1 === this._map_palette_offset_slot3) {
-                this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
-            } else {
-                this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
-            }
+            const activeConradVisual = this.getActiveConradVisualFromPaletteHeader()
+            this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
             // Slot 5 is the monster palette slot.
             // gameLoadMonsterSprites() in game_world.ts still builds a LoadedMonsterVisual
             // per monster script-node index so sprite data and palette data stay grouped,
@@ -739,10 +758,11 @@ pitch = 16
             // foreground
             this.setPaletteColors(0x8, jsonColors.slot1)
             this.setPaletteColors(0x9, level === 0 ? jsonColors.slot1 : jsonColors.slot2)
-            // inventory
-            const inventoryColors = this.getJsonPaletteColorsForOffset(level, this._unkPalSlot2) || jsonColors.slot3
-            this.setPaletteColors(0xA, inventoryColors)
+            this.setPaletteColors(0xA, jsonColors.slot3)
             this.setPaletteColors(0xB, jsonColors.slot4)
+            // inventory
+            this.setPaletteColors(0xC, inventoryColors || jsonColors.slot3)
+            this.setPaletteColors(0xD, jsonColors.slot4)
             this.setTextPalette()
             return
         }

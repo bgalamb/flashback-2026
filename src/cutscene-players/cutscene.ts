@@ -4,16 +4,16 @@ import { Video } from '../video'
 import { _cineSceneIdToCutPairsDOS, _namesTableDOS } from '../staticres'
 import { UINT16_MAX, UINT8_MAX, global_game_options } from '../game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
-import { LegacyCutscenePlayer, OpcodeStub } from './legacy-cutscene-player'
+import { OpcodeStub, ScriptedCutscenePlayer } from './scripted-cutscene-player'
 
 class Cutscene {
-    static _offsetsTableDOS = LegacyCutscenePlayer._offsetsTableDOS
-    static _musicTable = LegacyCutscenePlayer._musicTable
+    static _offsetsTableDOS = ScriptedCutscenePlayer._offsetsTableDOS
+    static _musicTable = ScriptedCutscenePlayer._musicTable
 
     private _res: Resource
     private _stub: SystemStub
     private _vid: Video
-    private _legacy: LegacyCutscenePlayer
+    private _scripted: ScriptedCutscenePlayer
     private _id: number = UINT16_MAX
     private _interrupted: boolean = false
     private _deathCutsceneId: number = UINT16_MAX
@@ -22,7 +22,7 @@ class Cutscene {
         this._res = res
         this._stub = stub
         this._vid = vid
-        this._legacy = new LegacyCutscenePlayer(res, stub, vid, () => this._interrupted, (interrupted: boolean) => {
+        this._scripted = new ScriptedCutscenePlayer(res, stub, vid, () => this._interrupted, (interrupted: boolean) => {
             this._interrupted = interrupted
         })
     }
@@ -47,14 +47,12 @@ class Cutscene {
         this._deathCutsceneId = cutSceneId
     }
 
-    /** @deprecated Delegates to LegacyCutscenePlayer. */
     prepare() {
-        this._legacy.prepare()
+        this._scripted.prepare()
     }
 
-    /** @deprecated Delegates to LegacyCutscenePlayer. */
     async mainLoop(num: number) {
-        await this._legacy.mainLoop(num, this._id)
+        await this._scripted.mainLoop(num, this._id)
     }
 
     async play(id = this.getId()) {
@@ -76,12 +74,12 @@ class Cutscene {
             const player = new Mp4CutscenePlayer(this._stub, this._res._fs)
             this._interrupted = !(await player.play(mappedVideo))
         } else if (cutName !== UINT16_MAX) {
-            ;(this._legacy as any)._textCurBuf = null
-            ;(this._legacy as any)._creditsSequence = false
+            ;(this._scripted as any)._textCurBuf = null
+            ;(this._scripted as any)._creditsSequence = false
             this.prepare()
-            if (await this._legacy.load(cutName)) {
-                await this._legacy.mainLoop(cutOff, id)
-                this._legacy.unload()
+            if (await this._scripted.load(cutName)) {
+                await this._scripted.mainLoop(cutOff, id)
+                this._scripted.unload()
             }
         }
 

@@ -75,6 +75,10 @@ const monsterListsByLevel: MonsterList[] = [
         createMonster(176,3,'glue',_monsterPals[3]),
         createMonster(215,3,'glue',_monsterPals[3]),
         createMonster(216,3,'glue',_monsterPals[3]),
+    ],
+    /*slot7 (level10)*/ [
+        createMonster(34,0,'junky',_monsterPals[0]),
+        createMonster(35,0,'junky',_monsterPals[0])
     ]
 
 ]

@@ -1,0 +1,30 @@
+{
+  "pgeNum": 1,
+  "pgeInit": [
+    {
+      "type": 99,
+      "pos_x": 208,
+      "pos_y": 70,
+      "obj_node_number": 1,
+      "life": 5,
+      "counter_values": [
+        1,
+        0,
+        0,
+        2
+      ],
+      "object_type": 1,
+      "init_room": 18,
+      "room_location": 1,
+      "init_flags": 2,
+      "colliding_icon_num": 0,
+      "icon_num": 0,
+      "object_id": 0,
+      "skill": 0,
+      "mirror_x": 0,
+      "flags": 0,
+      "number_of_collision_segments": 1,
+      "text_num": 0
+    }
+  ]
+}

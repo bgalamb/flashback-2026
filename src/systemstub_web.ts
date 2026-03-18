@@ -67,6 +67,8 @@ class SystemStub {
 	_audioContext: AudioContext
 	_audioPlayer: AudioWorkletNode
 	_sfxPlayer: AudioWorkletNode
+	_audioInitFailed: boolean
+	_audioUnavailableWarned: boolean
 	_events: Event[] = new Array()
 	_rgbPalette: Uint8ClampedArray = new Uint8ClampedArray(256*4)
 	_darkPalette: Uint8ClampedArray = new Uint8ClampedArray(256
@@ -80,8 +82,30 @@ class SystemStub {
 		// The exact value depends on the output device being used.
 		// You can check the actual sample rate for your AudioContext instance by accessing the property `sampleRate`
 		this._audioContext = new window.AudioContext()
+		this._audioInitFailed = false
+		this._audioUnavailableWarned = false
 		console.log(this._audioContext.sampleRate); //48000
 		this.resumeAudio()
+	}
+
+	private async loadAudioWorkletModule() {
+		const candidates = [
+			'js/processors.js',
+			'./js/processors.js',
+			'src/audio-processors.js',
+			'./src/audio-processors.js',
+		]
+		let lastError: unknown = null
+		for (const modulePath of candidates) {
+			try {
+				await this._audioContext.audioWorklet.addModule(modulePath)
+				console.log(`Loaded audio worklet module from '${modulePath}'`)
+				return
+			} catch (error) {
+				lastError = error
+			}
+		}
+		throw lastError || new Error('Unable to load audio worklet module')
 	}
 
 	initCanvas(w: number, h: number) {
@@ -112,6 +136,9 @@ class SystemStub {
 
 	async initAudio() {
 		try {
+			if (!this._audioContext?.audioWorklet) {
+				throw new Error('AudioWorklet is not available in this browser')
+			}
 
 			// et me search for the specific information about AudioContext's default sample rate:According to the MDN documentation
 			// [[1]](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/AudioContext),
@@ -122,7 +149,7 @@ class SystemStub {
 			// console.log(this._audioContext.sampleRate);
 			this._kAudioHz = this._audioContext.sampleRate
 
-			await this._audioContext.audioWorklet.addModule(`js/processors.js`)			
+			await this.loadAudioWorkletModule()
             const filterNode = this._audioContext.createBiquadFilter()
             filterNode.frequency.value = 22050
 
@@ -164,8 +191,10 @@ class SystemStub {
 				// 				mixingRate: this._kAudioHz,
 				// 			})
 				mixingRate: this._kAudioHz,
-			})			
+			})
+			this._audioInitFailed = false
 		} catch(e) {
+			this._audioInitFailed = true
 			console.error("error setting up audio");
 			console.dir(e)
 		}
@@ -191,7 +220,11 @@ class SystemStub {
 		if (this._audioPlayer) {
 			this._audioPlayer.port.postMessage(message)
 		} else {
-			console.warn('Cannot send message to sound processor: not available')
+			if (!this._audioUnavailableWarned) {
+				const suffix = this._audioInitFailed ? ' (audio init failed earlier)' : ''
+				console.warn(`Cannot send message to sound processor: not available${suffix}`)
+				this._audioUnavailableWarned = true
+			}
 		}
 	}
 
@@ -199,7 +232,11 @@ class SystemStub {
 		if (this._sfxPlayer) {
 			this._sfxPlayer.port.postMessage(message)
 		} else {
-			console.warn('Cannot send message to sound processor: not available')
+			if (!this._audioUnavailableWarned) {
+				const suffix = this._audioInitFailed ? ' (audio init failed earlier)' : ''
+				console.warn(`Cannot send message to sound processor: not available${suffix}`)
+				this._audioUnavailableWarned = true
+			}
 		}
 	}	
 

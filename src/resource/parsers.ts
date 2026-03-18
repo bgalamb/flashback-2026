@@ -52,6 +52,10 @@ interface ParsedObjFileData {
     objectNodesMap: ParsedObjectNodeData[]
 }
 
+interface ParsedTbnFileData {
+    texts: string[]
+}
+
 function hydrateParsedPGEData(parsed: ParsedPgeFileData, maxPges: number): { pgeNum: number, pgeInit: InitPGE[] } {
     if (!parsed || typeof parsed !== 'object') {
         throw new Error('Parsed PGE data is missing or invalid')
@@ -146,6 +150,22 @@ function hydrateParsedOBJData(parsed: ParsedObjFileData): { numObjectNodes: numb
     }
 }
 
+function hydrateParsedTbnData(parsed: ParsedTbnFileData): Uint8Array[] {
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.texts)) {
+        throw new Error('Parsed TBN data is missing or invalid')
+    }
+    const encoder = new TextEncoder()
+    return parsed.texts.map((text, index) => {
+        if (typeof text !== 'string') {
+            throw new Error(`Parsed TBN text ${index} is invalid`)
+        }
+        const raw = encoder.encode(text)
+        const out = new Uint8Array(raw.length + 1)
+        out.set(raw)
+        return out
+    })
+}
+
 function buildResolvedSpriteViewsByIndex(
     offDataForAMonster: Uint8Array,
     sprDataForAMonster: Uint8Array,
@@ -173,4 +193,4 @@ function buildResolvedSpriteViewsByIndex(
     return resolvedSpriteViewsByIndex
 }
 
-export { ParsedPgeEntryData, ParsedPgeFileData, ParsedObjData, ParsedObjectNodeData, ParsedObjFileData, hydrateParsedPGEData, hydrateParsedOBJData, buildResolvedSpriteViewsByIndex }
+export { ParsedPgeEntryData, ParsedPgeFileData, ParsedObjData, ParsedObjectNodeData, ParsedObjFileData, ParsedTbnFileData, hydrateParsedPGEData, hydrateParsedOBJData, hydrateParsedTbnData, buildResolvedSpriteViewsByIndex }

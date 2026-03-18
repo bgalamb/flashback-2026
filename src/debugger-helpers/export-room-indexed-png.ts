@@ -72,9 +72,17 @@ async function main() {
     const [pixelPath, palPath, paletteHeaderPath, outputPath] = args
     const fs = require("fs")
 
-    const pixels = new Uint8Array(fs.readFileSync(pixelPath))
-    if (pixels.length !== GAMESCREEN_W * GAMESCREEN_H) {
-        throw new Error(`Invalid room pixeldata size ${pixels.length}, expected ${GAMESCREEN_W * GAMESCREEN_H}`)
+    const sourcePixels = new Uint8Array(fs.readFileSync(pixelPath))
+    if (sourcePixels.length !== GAMESCREEN_W * GAMESCREEN_H) {
+        throw new Error(`Invalid room pixeldata size ${sourcePixels.length}, expected ${GAMESCREEN_W * GAMESCREEN_H}`)
+    }
+    const pixels = new Uint8Array(sourcePixels)
+    for (let i = 0; i < pixels.length; ++i) {
+        if ((pixels[i] >> 4) === 0x8) {
+            pixels[i] = (0xA << 4) | (pixels[i] & 0x0F)
+        } else if ((pixels[i] >> 4) === 0x9) {
+            pixels[i] = (0xB << 4) | (pixels[i] & 0x0F)
+        }
     }
 
     const palData = new Uint8Array(fs.readFileSync(palPath))
@@ -103,8 +111,10 @@ async function main() {
     copyPaletteBank(flattenedPalette, 0x3, legacyPaletteBanks, slotValues[3] as number)
     copyPaletteBank(flattenedPalette, 0x8, legacyPaletteBanks, slotValues[0] as number)
     copyPaletteBank(flattenedPalette, 0x9, legacyPaletteBanks, (levelIndex === 0 ? slotValues[0] : slotValues[1]) as number)
-    copyPaletteBank(flattenedPalette, 0xA, legacyPaletteBanks, slotValues[2] as number)
-    copyPaletteBank(flattenedPalette, 0xB, legacyPaletteBanks, slotValues[3] as number)
+    copyPaletteBank(flattenedPalette, 0xA, legacyPaletteBanks, slotValues[0] as number)
+    copyPaletteBank(flattenedPalette, 0xB, legacyPaletteBanks, (levelIndex === 0 ? slotValues[0] : slotValues[1]) as number)
+    copyPaletteBank(flattenedPalette, 0xC, legacyPaletteBanks, slotValues[2] as number)
+    copyPaletteBank(flattenedPalette, 0xD, legacyPaletteBanks, slotValues[3] as number)
 
     const encoded = encodeIndexedPng(GAMESCREEN_W, GAMESCREEN_H, pixels, flattenedPalette)
     fs.writeFileSync(outputPath, Buffer.from(encoded))
@@ -122,7 +132,7 @@ async function main() {
         }
     }
 
-    const expectedDisplaySlots = [0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB]
+    const expectedDisplaySlots = [0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD]
     for (let i = 0; i < expectedDisplaySlots.length; ++i) {
         const displaySlot = expectedDisplaySlots[i]
         for (let colorIndex = 0; colorIndex < 16; ++colorIndex) {

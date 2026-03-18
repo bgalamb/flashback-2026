@@ -31,7 +31,7 @@ export function gameDrawCurrentInventoryItem(game: Game) {
     const src = game.getCurrentInventoryItemIndex(game._livePgesByIndex[0])
     if (src !== UINT8_MAX) {
         game._currentIcon = game._res._pgeAllInitialStateFromFile[src].icon_num
-        game.drawIcon(game._currentIcon, 232, 8, 0xA)
+        game.drawIcon(game._currentIcon, 232, 8, 0xC)
     }
 }
 
@@ -47,7 +47,7 @@ export function gameDrawLevelTexts(game: Game) {
         game._printLevelCodeCounter = 0
         if (game._textToDisplay === UINT16_MAX) {
             const icon_num = obj - 1
-            game.drawIcon(icon_num, 80, 8, 0xA)
+            game.drawIcon(icon_num, 80, 8, 0xC)
             const txt_num = pge_out.init_PGE.text_num % PGE_NUM
             const str = game._res.getTextString(game._currentLevel, txt_num)
             game.drawString(str, 176, 26, 0xE6, true)
@@ -77,7 +77,7 @@ export async function gameDrawStoryTexts(game: Game) {
                 console.warn(`[story-text] missing inventory icon frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay}; skipping story icon draw`)
             } else {
                 console.log(`[story-text] draw icon frame=${game.renders} icon=${storyIconNum}`)
-                game.drawIcon(storyIconNum, 80, 8, 0xA)
+                game.drawIcon(storyIconNum, 80, 8, 0xC)
             }
             let yPos = 26
 

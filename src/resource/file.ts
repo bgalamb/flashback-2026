@@ -88,7 +88,7 @@ export class StdioFile implements File_impl {
         this._ioErr = false
         try {
             this._fp = await FILE.fopen(path, mode)
-            return true
+            return !!this._fp
         } catch(e) {
             return false
         }

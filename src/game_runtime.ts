@@ -68,17 +68,10 @@ export async function gameRun(game: Game) {
                 break
             }
             game._skillLevel = game._menu._skill
-            game._currentLevel = game._menu._level
             game._mix.stopMusic()
         }
         if (game._stub._pi.quit) {
             break
-        }
-        if (game._currentLevel === 7) {
-            await game._vid.fadeOut()
-            game._vid.setTextPalette()
-            await gamePlayCutscene(game, 0x3D)
-            continue
         }
         game._vid.setTextPalette()
         game._vid.setPalette0xF()

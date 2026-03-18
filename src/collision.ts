@@ -6,6 +6,44 @@ import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData
 import { assert } from "./assert"
 
 
+// Conrad standing-position reference for the runtime collision grid math:
+//
+// X mapping:
+// - Snapped/aligned X positions are 16-pixel multiples (`pos_x &= 0xFFF0` elsewhere).
+// - The collision column used here is `gridPosX = (pge.pos_x + 8) >> 4`.
+// - For snapped positions this means `gridX = pos_x / 16`.
+//
+// Y mapping:
+// - Canonical standing Y positions are 70, 142, and 214.
+// - The 3-lane grouping used here is `gridPosY = (pge.pos_y / 72) >> 0`,
+//   which maps those standing positions to lanes 0, 1, and 2 respectively.
+// - The static 16x7 room collision grid uses a different anchor:
+//   `gridYBase = (((pge.pos_y / 36) >> 0) & ~1)`, so standing Y values anchor
+//   Conrad to row windows 0..2, 2..4, and 4..6 respectively.
+//
+// Combined standing reference:
+// | gridX | snapped pos_x | top floor | middle floor | bottom floor |
+// |     0 |             0 |         70 |          142 |          214 |
+// |     1 |            16 |         70 |          142 |          214 |
+// |     2 |            32 |         70 |          142 |          214 |
+// |     3 |            48 |         70 |          142 |          214 |
+// |     4 |            64 |         70 |          142 |          214 |
+// |     5 |            80 |         70 |          142 |          214 |
+// |     6 |            96 |         70 |          142 |          214 |
+// |     7 |           112 |         70 |          142 |          214 |
+// |     8 |           128 |         70 |          142 |          214 |
+// |     9 |           144 |         70 |          142 |          214 |
+// |    10 |           160 |         70 |          142 |          214 |
+// |    11 |           176 |         70 |          142 |          214 |
+// |    12 |           192 |         70 |          142 |          214 |
+// |    13 |           208 |         70 |          142 |          214 |
+// |    14 |           224 |         70 |          142 |          214 |
+// |    15 |           240 |         70 |          142 |          214 |
+//
+// Practical room-grid interpretation:
+// - top floor    => pos_y 70  => lane 0 => static room-grid rows 0..2
+// - middle floor => pos_y 142 => lane 1 => static room-grid rows 2..4
+// - bottom floor => pos_y 214 => lane 2 => static room-grid rows 4..6
 const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
 	let stepX: number, stepY: number, verticalOffset: number, distanceStep: number
 	let collisionScore = 0

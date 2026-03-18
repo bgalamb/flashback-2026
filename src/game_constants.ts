@@ -43,7 +43,7 @@ const CONFIG_DEFAULTS = {
   // 'https://warpdesign.github.io/flashback-web/demo-data'
   datapath: "http://localhost:4445/DATA",
   savepath: "",
-  levelnum: 0,
+  levelnum: 7,
   fullscreen: false,
   scaler: "",
   language: "EN",

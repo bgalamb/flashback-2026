@@ -10,18 +10,23 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node fuse.ts",
-    "build": "rm -Rf dist && ts-node fuse-prod.ts && mkdir -p dist/js && cp src/audio-processors.js dist/js/processors.js",
+    "build:audio-worklet": "tsc src/audio-processors.ts --target es2019 --module esnext --outDir src",
+    "dev": "npm run build:audio-worklet && ts-node fuse.ts",
+    "build": "rm -Rf dist && npm run build:audio-worklet && ts-node fuse-prod.ts && mkdir -p dist/js && cp src/audio-processors.js dist/js/processors.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "export:ct-adj": "ts-node --transpile-only ./src/debugger-helpers/export-ct-adjacency-table.ts",
     "export:ct-adj:level": "ts-node --transpile-only ./src/debugger-helpers/export-ct-adjacency-level.ts",
     "export:ct-grid:level-room": "ts-node --transpile-only ./src/debugger-helpers/export-ct-grid-level-room.ts",
+    "check:room-grid": "ts-node --transpile-only ./src/level-generator/check-room-grid-validity.ts",
+    "generate:validated-room-collisions": "ts-node --transpile-only ./src/level-generator/generate-validated-room-collisions.ts",
+    "rebuild:adjacency:json:from-txt": "ts-node --transpile-only ./src/level-generator/rebuild-adjacency-json-from-txt.ts",
     "export:ct-grid:all": "ts-node --transpile-only ./src/debugger-helpers/export-ct-grid-all.ts",
     "export:ct:all": "ts-node --transpile-only ./src/debugger-helpers/export-ct-all.ts",
     "export:sprite:image": "ts-node --transpile-only ./src/debugger-helpers/export-sprite-image.ts",
-    "rebuild:ct:from-txt": "ts-node --transpile-only ./src/debugger-helpers/rebuild-ct-from-txt.ts",
+    "rebuild:ct:from-txt": "ts-node --transpile-only ./src/level-generator/rebuild-ct-from-txt.ts",
     "export:pge:json": "ts-node --transpile-only ./src/debugger-helpers/export-pge-json.ts",
-    "export:obj:json": "ts-node --transpile-only ./src/debugger-helpers/export-obj-json.ts"
+    "export:obj:json": "ts-node --transpile-only ./src/debugger-helpers/export-obj-json.ts",
+    "export:tbn:json": "ts-node --transpile-only ./src/debugger-helpers/export-tbn-json.ts"
   },
   "repository": {
     "type": "git",

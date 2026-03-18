@@ -33,6 +33,12 @@ Current runtime map rendering is driven by pre-generated assets in `DATA/levels/
 - Runtime no longer loads binary `.obj` files.
 - Runtime expects parsed JSON OBJ data under `DATA/levels/<levelName2>/`.
 
+## `_tbn` source (current behavior)
+
+- Legacy raw `.tbn` files are stored at the `DATA/` root as source assets only.
+- Runtime no longer loads binary `.tbn` files.
+- Runtime expects parsed JSON TBN data under `DATA/levels/<levelName2>/`.
+
 ## Notes
 
 - Export/rebuild helper scripts still support working with legacy data for tooling workflows.

@@ -6,7 +6,7 @@ import { _conradVisualVariants } from '../staticres'
 import { bytekiller_unpack } from '../unpack'
 import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './constants'
 import { createObjectTypeMapping } from './loaders'
-import { hydrateParsedOBJData, hydrateParsedPGEData, buildResolvedSpriteViewsByIndex } from './parsers'
+import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData, buildResolvedSpriteViewsByIndex } from './parsers'
 import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
 import { assert } from "../assert"
 
@@ -42,7 +42,7 @@ class Resource {
     _rp: Uint8Array = new Uint8Array(0x4A)
     _pal: Uint8Array
     _ani: Uint8Array
-    _tbn: Uint8Array
+    _tbn: Uint8Array[]
     _ctData: Int8Array = new Int8Array(CT_DATA_SIZE)
     _spr1: Uint8Array
     // This is the resolved runtime sprite lookup used by rendering.
@@ -58,7 +58,6 @@ class Resource {
     //the initial structure to which all PGEs are loaded from the file
     _pgeAllInitialStateFromFile: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
 
-    _lev: Uint8Array
     _bnq: Uint8Array
     _numObjectNodes: number
     _objectNodesMap: PgeScriptNode[] = new Array(255)
@@ -99,13 +98,12 @@ class Resource {
         this._numSpc = 0
         this._pal = null
         this._ani = null
-        this._tbn = null
+        this._tbn = []
         this._spr1 = null
         // this._resolvedSpriteSet = null
         // this._sprm = null
         this._pgeTotalNumInFile = 0
         // this._pgeInit = null
-        this._lev = null
         this._bnq = null
         this._readUint16 = READ_LE_UINT16
         this._readUint32 = READ_LE_UINT32
@@ -154,9 +152,11 @@ class Resource {
         }
 
         if (objType === ObjectType.OT_PGE) {
-            this._entryName = this.getParsedPgeOverridePath(objName)
+            this._entryName = this.getParsedPgePath(objName)
         } else if (objType === ObjectType.OT_OBJ) {
-            this._entryName = this.getParsedObjOverridePath(objName)
+            this._entryName = this.getParsedObjPath(objName)
+        } else if (objType === ObjectType.OT_TBN) {
+            this._entryName = this.getParsedTbnPath(objName)
         } else {
             // Use provided extension or default to mapped extension
             this._entryName = `${objName}.${ext || typeConfig.extension}`;
@@ -192,6 +192,8 @@ class Resource {
             throw new Error(`Missing parsed PGE file '${this._entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
         } else if (objType === ObjectType.OT_OBJ) {
             throw new Error(`Missing parsed OBJ file '${this._entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
+        } else if (objType === ObjectType.OT_TBN) {
+            throw new Error(`Missing parsed TBN file '${this._entryName}'. Regenerate TBN JSON assets from DATA root TBN files.`)
         }
     }
 
@@ -223,7 +225,7 @@ class Resource {
 // | unk1C             | uint8     | 1             | Unknown/reserved byte                      |
 // | text_num          | uint16    | 2             | Text/string number                         |
 // +--------------------------------------------------------------------------------------------+
-    load_PGE_JSON(f: File) {
+    loadParsedPGE(f: File) {
         const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
         this.decodeParsedPGE(parsedJson)
     }
@@ -234,14 +236,19 @@ class Resource {
         this._pgeAllInitialStateFromFile = parsed.pgeInit
     }
 
-    private getParsedPgeOverridePath(objName: string): string {
+    private getParsedPgePath(objName: string): string {
         const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
         return `levels/${objName}/${baseName}.pge.json`
     }
 
-    private getParsedObjOverridePath(objName: string): string {
+    private getParsedObjPath(objName: string): string {
         const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
         return `levels/${objName}/${baseName}.obj.json`
+    }
+
+    private getParsedTbnPath(objName: string): string {
+        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
+        return `levels/${objName}/${baseName}.tbn.json`
     }
 
 // +--------------------------------------------------------------------------------------------+
@@ -328,10 +335,6 @@ class Resource {
         this._ani = this.loadFileData(f)
     }
 
-    load_LEV(f: File) {
-        this._lev = this.loadFileData(f)
-    }
-
     load_BNQ(f: File) {
         this._bnq = this.loadFileData(f)
     }
@@ -371,8 +374,13 @@ class Resource {
         this._fnt = this.loadFileData(f)
     }
 
-    load_TBN(f: File) {
-        this._tbn = this.loadFileData(f)
+    loadParsedTBN(f: File) {
+        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        this.decodeParsedTBN(parsedJson)
+    }
+
+    decodeParsedTBN(json: string) {
+        this._tbn = hydrateParsedTbnData(JSON.parse(json))
     }
 
     load_CMD(f: File) {
@@ -688,7 +696,7 @@ class Resource {
     }
 
     getTextString(level: number, num: number) {
-		return this._tbn.subarray(READ_LE_UINT16(this._tbn, num * 2))
+        return this._tbn[num] || new Uint8Array(1)
 	}
 
 	getGameString(num: number) {
@@ -741,10 +749,9 @@ class Resource {
     }
 
     clearLevelAllResources() {
-        this._tbn = null
+        this._tbn = []
         this._mbk = null
         this._pal = null
-        this._lev = null
         this._bnq = null
         this._ani = null
         this.free_OBJ()
