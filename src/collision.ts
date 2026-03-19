@@ -114,7 +114,20 @@ const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) =
     assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
 	// assert(init_pge->script_node_index < _res._numObjectNodes);
 	const scriptNode: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+	const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
+	if (pge.first_script_entry_index < 0 || pge.first_script_entry_index > maxEntryIndex) {
+		console.warn(
+			`[collision] Invalid script entry index during hit detection: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${pge.first_script_entry_index} maxEntry=${maxEntryIndex} groupId=${groupId}`
+		)
+		return 0
+	}
 	let scriptEntry: PgeScriptEntry = scriptNode.objects[pge.first_script_entry_index]
+	if (!scriptEntry) {
+		console.warn(
+			`[collision] Missing script entry during hit detection: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${pge.first_script_entry_index} groupId=${groupId}`
+		)
+		return 0
+	}
 	let i = pge.first_script_entry_index
 	while (pge.script_state_type === scriptEntry.type && scriptNode.last_obj_number > i) {
 		if (scriptEntry.opcode2 === 0x6B) { // pge_op_isInGroupSlice
@@ -153,6 +166,12 @@ const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) =
 		// ++scriptEntry;
 		++i;
         scriptEntry = scriptNode.objects[i]
+		if (!scriptEntry) {
+			console.warn(
+				`[collision] Script walk ran past available entries: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${i} maxEntry=${maxEntryIndex} groupId=${groupId}`
+			)
+			return 0
+		}
 	}
 
 	return 0

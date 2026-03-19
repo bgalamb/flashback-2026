@@ -1,4 +1,4 @@
-import type { InitPGE, LivePGE } from './intern'
+import type { InitPGE, LivePGE, PgeScriptNode } from './intern'
 import { CreatePGE, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT32 } from './intern'
 import type { Game } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
@@ -9,8 +9,66 @@ import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from '.
 import { _gameLevels } from './staticres'
 import { monsterListsByLevel } from './staticres-monsters'
 import { assert } from "./assert"
+import { gameInitializePgeDefaultAnimation } from './game_pge'
 
 const MONSTER_PALETTE_SLOT = 5
+interface DirectLevelStartOverride {
+    room: number
+    posX?: number
+    posY?: number
+    stateType?: number
+}
+
+const DIRECT_LEVEL_START_OVERRIDES: Record<number, DirectLevelStartOverride> = {
+    // Inner-level direct starts need Conrad's post-intro grounded state.
+    // The cinematic entry states (99/103) fall back into state 1 without the
+    // original story-transition signals, which sends the player straight into
+    // the default fall/death path.
+    3: { room: 39, posX: 64, posY: 142, stateType: 57 },
+    4: { room: 52, posX: 64, posY: 142, stateType: 57 },
+    5: { room: 2, posX: 64, posY: 142, stateType: 57 },
+    6: { room: 29, posX: 16, posY: 142, stateType: 57 }
+}
+
+function getLevelStartRoom(game: Game) {
+    if (game._startedFromLevelSelect) {
+        const override = DIRECT_LEVEL_START_OVERRIDES[game._currentLevel]
+        if (override) {
+            return override.room
+        }
+    }
+    return game._res._pgeAllInitialStateFromFile[0].init_room
+}
+
+function applyDirectLevelStartOverride(game: Game) {
+    if (!game._startedFromLevelSelect) {
+        return
+    }
+    const override = DIRECT_LEVEL_START_OVERRIDES[game._currentLevel]
+    if (!override) {
+        return
+    }
+    const conrad = game._livePgesByIndex[0]
+    const conradScriptNode: PgeScriptNode = game._res._objectNodesMap[conrad.init_PGE.script_node_index]
+    conrad.room_location = override.room
+    if (typeof override.posX === 'number') {
+        conrad.pos_x = override.posX
+    }
+    if (typeof override.posY === 'number') {
+        conrad.pos_y = override.posY
+    }
+    if (typeof override.stateType === 'number') {
+        conrad.script_state_type = override.stateType
+        const nextIndex = conradScriptNode.objects.findIndex((entry) => entry.type === override.stateType)
+        if (nextIndex >= 0) {
+            conrad.first_script_entry_index = nextIndex
+        } else {
+            console.warn(`[direct-start] Missing Conrad script state ${override.stateType} for level ${game._currentLevel}`)
+        }
+        conrad.anim_seq = 0
+        gameInitializePgeDefaultAnimation(game, conrad)
+    }
+}
 
 function isMonsterPge(initPge: InitPGE): boolean {
     return initPge.script_node_index === 0x49 || initPge.object_type === 10
@@ -55,7 +113,7 @@ export function gameResetGameState(game: Game) {
     game._animBuffers._curPos[2] = UINT8_MAX
     game._animBuffers._states[3] = game._animBuffer3State
     game._animBuffers._curPos[3] = UINT8_MAX
-    game._currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
+    game._currentRoom = getLevelStartRoom(game)
     game._cut.setDeathCutSceneId(UINT16_MAX)
     game._opcodeTempVar2 = UINT16_MAX
     game._deathCutsceneCounter = 0
@@ -152,13 +210,16 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     const lvl = _gameLevels[game._currentLevel]
 
     await game._res.load(lvl.name, ObjectType.OT_MBK)
-    await game._res.load(lvl.name, ObjectType.OT_CT)
+    await game._res.loadCollisionData(lvl.name, lvl.name2)
     await game._res.load(lvl.name, ObjectType.OT_RP)
     await game._res.load(lvl.name, ObjectType.OT_BNQ)
     await game._res.load(lvl.name2, ObjectType.OT_PGE)
     await game._res.load(lvl.name2, ObjectType.OT_OBJ)
     await game._res.load(lvl.name2, ObjectType.OT_ANI)
     await game._res.load(lvl.name2, ObjectType.OT_TBN)
+    if (!game._res._ani) {
+        throw new Error(`Missing ANI data for ${lvl.name2}`)
+    }
 
     game._cut.setId(lvl.cutscene_id)
     game._loadedMonsterVisualsByScriptNodeIndex.clear()
@@ -169,13 +230,14 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
 
     gameClearLivePGETables(game)
     game._livePgeStore.initByIndex = game._res._pgeAllInitialStateFromFile
-    const currentRoom = game._res._pgeAllInitialStateFromFile[0].init_room
+    const currentRoom = getLevelStartRoom(game)
     game._currentRoom = currentRoom
 
     let n = game._res._pgeTotalNumInFile
     while (n--) {
         game.loadPgeForCurrentLevel(n, currentRoom)
     }
+    applyDirectLevelStartOverride(game)
     gameCreatePgeLiveTable1(game)
 
     game.resetPgeGroups()

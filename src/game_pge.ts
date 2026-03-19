@@ -44,7 +44,8 @@ import {
 } from './game_inventory'
 
 function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
-    return game.renders > game.debugStartFrame || game._currentRoom === 39 || pge?.room_location === 39 || game._textToDisplay !== UINT16_MAX
+    const isDirectStartStartup = game._startedFromLevelSelect && game.renders < 5 && (!pge || pge.index === 0)
+    return isDirectStartStartup || game.renders > game.debugStartFrame || game._currentRoom === 39 || pge?.room_location === 39 || game._textToDisplay !== UINT16_MAX
 }
 
 function logPgeInteraction(game: Game, scope: string, message: string, pge?: LivePGE) {
@@ -55,6 +56,13 @@ function logPgeInteraction(game: Game, scope: string, message: string, pge?: Liv
         ? `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} state=${pge.script_state_type}/${pge.first_script_entry_index}`
         : `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom}`
     console.log(`${prefix} ${message}`)
+}
+
+function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode: PgeScriptNode, scriptEntry: PgeScriptEntry) {
+    const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
+    console.warn(
+        `[pge-transition] frame=${game.renders} currentRoom=${game._currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} scriptNode=${pge.init_PGE.script_node_index} objectType=${pge.init_PGE.object_type} state=${pge.script_state_type} currentEntry=${pge.first_script_entry_index} nextEntry=${scriptEntry.next_script_entry_index} maxEntry=${maxEntryIndex} nextState=${scriptEntry.next_script_state_type}`
+    )
 }
 
 
@@ -112,6 +120,11 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
         ++scriptEntryIndex
     }
     assert(!(i >= on.num_objects), `Assertion failed: ${i} < ${on.num_objects}`)
+    if (!on.objects[scriptEntryIndex]) {
+        console.warn(
+            `[pge-load] Missing initial script entry: pge=${live_pge.index} scriptNode=${initial_pge_from_file.script_node_index} state=${live_pge.script_state_type} entry=${scriptEntryIndex} numObjects=${on.num_objects} lastObj=${on.last_obj_number}`
+        )
+    }
     live_pge.first_script_entry_index = i
     gameInitializePgeDefaultAnimation(game, live_pge)
 }
@@ -194,6 +207,10 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
         }
     }
     live_pge.script_state_type = scriptEntry.next_script_state_type
+    const nextScriptNode = game._res._objectNodesMap[live_pge.init_PGE.script_node_index]
+    if (scriptEntry.next_script_entry_index < 0 || scriptEntry.next_script_entry_index >= nextScriptNode.objects.length || scriptEntry.next_script_entry_index > nextScriptNode.last_obj_number) {
+        warnInvalidScriptEntryTransition(game, live_pge, nextScriptNode, scriptEntry)
+    }
     live_pge.first_script_entry_index = scriptEntry.next_script_entry_index
     live_pge.anim_seq = 0
     if (scriptEntry.flags & 0xF0) {

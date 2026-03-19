@@ -162,6 +162,8 @@ class Game {
     _deathCutsceneCounter: number
     _saveStateCompleted: boolean
     _endLoop: boolean
+    _skipNextLevelCutscene: boolean
+    _startedFromLevelSelect: boolean
     _frameTimestamp: number
     _autoSave: boolean
     _saveTimestamp: number
@@ -226,6 +228,8 @@ class Game {
         this._autoSave = autoSave
         this._rewindPtr = -1
         this._rewindLen = 0
+        this._skipNextLevelCutscene = false
+        this._startedFromLevelSelect = false
     }
 
     private setCurrentRoom(room: number) {

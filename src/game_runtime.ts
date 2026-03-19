@@ -68,6 +68,9 @@ export async function gameRun(game: Game) {
                 break
             }
             game._skillLevel = game._menu._skill
+            game._currentLevel = game._menu._level
+            game._skipNextLevelCutscene = true
+            game._startedFromLevelSelect = true
             game._mix.stopMusic()
         }
         if (game._stub._pi.quit) {
@@ -250,7 +253,11 @@ export function gameProcessActivePgesForFrame(game: Game, activeFramePges: LiveP
 }
 
 export async function gameMainLoop(game: Game) {
-    await gamePlayCutscene(game)
+    if (game._skipNextLevelCutscene) {
+        game._skipNextLevelCutscene = false
+    } else {
+        await gamePlayCutscene(game)
+    }
     if (await gameDidFinishAllLevels(game)) return
     if (await gameDidDie(game)) return
 
@@ -262,6 +269,12 @@ export async function gameMainLoop(game: Game) {
 
     const oldLevel = game._currentLevel
     gameProcessActivePgesForFrame(game, game._livePgeStore.activeFrameList, game._currentRoom)
+    if (game._startedFromLevelSelect && game.renders < 5) {
+        const conrad = game._livePgesByIndex[0]
+        console.log(
+            `[direct-start] frame=${game.renders} level=${game._currentLevel} currentRoom=${game._currentRoom} conradRoom=${conrad.room_location} pos=(${conrad.pos_x},${conrad.pos_y}) state=${conrad.script_state_type}/${conrad.first_script_entry_index} anim=${conrad.anim_number} deathCounter=${game._deathCutsceneCounter} loadMap=${game._loadMap}`
+        )
+    }
 
     if (oldLevel !== game._currentLevel) {
         await gameChangeLevel(game)
@@ -271,6 +284,10 @@ export async function gameMainLoop(game: Game) {
 
     if (game._loadMap) {
         if (game._currentRoom === UINT8_MAX || !gameHasLevelMap(game, game._livePgesByIndex[0].room_location)) {
+            const conrad = game._livePgesByIndex[0]
+            console.warn(
+                `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${game._currentLevel} currentRoom=${game._currentRoom} conradRoom=${conrad.room_location} pos=(${conrad.pos_x},${conrad.pos_y}) state=${conrad.script_state_type}/${conrad.first_script_entry_index} anim=${conrad.anim_number}`
+            )
             game._cut.setId(6)
             game._deathCutsceneCounter = 1
         } else {

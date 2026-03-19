@@ -144,6 +144,38 @@ class Resource {
     private readonly OBJECT_TYPE_MAPPING = createObjectTypeMapping(this);
 
     // MAIN LOADER
+    private async tryLoadCollisionOverride(dirName: string, fileBaseName: string) {
+        const overridePath = `levels/${dirName}/${fileBaseName}.ct.bin`
+        const overrideFile = new File()
+        if (!await overrideFile.open(overridePath, "rb", this._fs)) {
+            return false
+        }
+        const overrideSize = overrideFile.size()
+        if (overrideSize !== this._ctData.byteLength) {
+            console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
+            overrideFile.close()
+            return false
+        }
+        overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
+        const hasIoErr = overrideFile.ioErr()
+        overrideFile.close()
+        if (hasIoErr) {
+            return false
+        }
+        this._entryName = overridePath
+        console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
+        return true
+    }
+
+    async loadCollisionData(baseName: string, parsedLevelName: string) {
+        if (parsedLevelName && parsedLevelName !== baseName) {
+            if (await this.tryLoadCollisionOverride(parsedLevelName, baseName)) {
+                return
+            }
+        }
+        await this.load(baseName, ObjectType.OT_CT)
+    }
+
     async load(objName: string, objType: number, ext?: string) {
         const typeConfig = this.OBJECT_TYPE_MAPPING[objType];
 
@@ -163,21 +195,8 @@ class Resource {
         }
 
         if (objType === ObjectType.OT_CT) {
-            const overridePath = `levels/${objName}/${objName}.ct.bin`
-            const overrideFile = new File()
-            if (await overrideFile.open(overridePath, "rb", this._fs)) {
-                const overrideSize = overrideFile.size()
-                if (overrideSize === this._ctData.byteLength) {
-                    overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
-                    if (!overrideFile.ioErr()) {
-                        this._entryName = overridePath
-                        console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
-                        return
-                    }
-                } else {
-                    console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
-                }
-                overrideFile.close()
+            if (await this.tryLoadCollisionOverride(objName, objName)) {
+                return
             }
         }
 

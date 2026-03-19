@@ -3,9 +3,11 @@ import { LocaleData, Resource } from "./resource/resource"
 import { DIR_DOWN, DIR_UP, SystemStub } from "./systemstub_web"
 import {GAMESCREEN_H, GAMESCREEN_W, Video} from "./video"
 import { CHAR_W, CHAR_H, UINT8_MAX } from './game_constants'
+import { _gameLevels } from './staticres'
 
 
 const SCREEN_TITLE = 0
+const SCREEN_LEVEL = 1
 const SCREEN_INFO = 4
 
 const EVENTS_DELAY = 80
@@ -18,7 +20,6 @@ interface Item {
 class Menu {
 
     static MENU_OPTION_ITEM_START = 0
-    static MENU_OPTION_ITEM_LEVEL = 3
     static MENU_OPTION_ITEM_INFO = 4
     static MENU_OPTION_ITEM_QUIT = 6
 
@@ -38,6 +39,7 @@ class Menu {
     _charVar3: number
     _charVar4: number
     _charVar5: number
+    _levelItems: Item[]
 
     constructor(res: Resource, stub: SystemStub, vid: Video) {
         this._res = res
@@ -45,6 +47,10 @@ class Menu {
         this._vid = vid
         this._skill = Skill.kSkillNormal
         this._level = 0
+        this._levelItems = _gameLevels.map((_, index) => ({
+            str: index,
+            opt: index
+        }))
     }
 
     initMenuItems() {
@@ -67,6 +73,112 @@ class Menu {
             menuItems: MENU_ITEMS,
             menuItemsCount: MENU_ITEMS.length
         };
+    }
+
+    private getLevelLabel(levelIndex: number) {
+        const level = _gameLevels[levelIndex]
+        const label = level.name2.replace('level', '')
+        if (label.includes('_')) {
+            return `LEVEL ${label.replace('_', '-')}`
+        }
+        return `LEVEL ${label}`
+    }
+
+    private drawPane(x: number, y: number, w: number, h: number) {
+        const prevFrontColor = this._vid._charFrontColor
+        const prevTransparentColor = this._vid._charTransparentColor
+        const prevShadowColor = this._vid._charShadowColor
+
+        this._vid._charShadowColor = 0xE2
+        this._vid._charFrontColor = 0xEE
+        this._vid._charTransparentColor = UINT8_MAX
+
+        this._vid.PC_drawChar(0x81, y, x)
+        this._vid.PC_drawChar(0x82, y, x + w)
+        this._vid.PC_drawChar(0x83, y + h, x)
+        this._vid.PC_drawChar(0x84, y + h, x + w)
+
+        for (let i = 1; i < w; ++i) {
+            this._vid.PC_drawChar(0x85, y, x + i)
+            this._vid.PC_drawChar(0x88, y + h, x + i)
+        }
+
+        for (let j = 1; j < h; ++j) {
+            this._vid._charTransparentColor = UINT8_MAX
+            this._vid.PC_drawChar(0x86, y + j, x)
+            this._vid.PC_drawChar(0x87, y + j, x + w)
+            this._vid._charTransparentColor = 0xE2
+            for (let i = 1; i < w; ++i) {
+                this._vid.PC_drawChar(0x20, y + j, x + i)
+            }
+        }
+
+        this._vid.markBlockAsDirty(x * CHAR_W, y * CHAR_H, (w + 1) * CHAR_W, (h + 1) * CHAR_H, 1)
+
+        this._vid._charFrontColor = prevFrontColor
+        this._vid._charTransparentColor = prevTransparentColor
+        this._vid._charShadowColor = prevShadowColor
+    }
+
+    async handleLevelScreen() {
+        let currentEntry = Math.min(this._level, this._levelItems.length - 1)
+        const paneX = 9
+        const paneY = 3
+        const paneW = 21
+        const paneH = 24
+
+        while (!this._stub._pi.quit) {
+            if (this._nextScreen === SCREEN_LEVEL) {
+                this._currentScreen = SCREEN_LEVEL
+                this._nextScreen = -1
+            }
+
+            if (this._stub._pi.dirMask & DIR_UP) {
+                this._stub._pi.dirMask &= ~DIR_UP
+                if (currentEntry !== 0) {
+                    --currentEntry
+                } else {
+                    currentEntry = this._levelItems.length - 1
+                }
+            }
+            if (this._stub._pi.dirMask & DIR_DOWN) {
+                this._stub._pi.dirMask &= ~DIR_DOWN
+                if (currentEntry !== this._levelItems.length - 1) {
+                    ++currentEntry
+                } else {
+                    currentEntry = 0
+                }
+            }
+            if (this._stub._pi.escape) {
+                this._stub._pi.escape = false
+                return false
+            }
+            if (this._stub._pi.enter) {
+                this._stub._pi.enter = false
+                this._level = this._levelItems[currentEntry].opt
+                return true
+            }
+
+            this.drawPane(paneX, paneY, paneW, paneH)
+
+            const title = 'SELECT LEVEL'
+            this.drawString(title, paneY + 2, paneX + (((paneW + 1) - title.length) / 2 >> 0), 2)
+
+            const yPos = paneY + 5
+            for (let i = 0; i < this._levelItems.length; ++i) {
+                const label = this.getLevelLabel(i)
+                this.drawString(label, yPos + i * 2, paneX + (((paneW + 1) - label.length) / 2 >> 0), (i === currentEntry) ? 2 : 3)
+            }
+
+            const hint = 'ESC TO RETURN'
+            this.drawString(hint, paneY + 22, paneX + (((paneW + 1) - hint.length) / 2 >> 0), 4)
+
+            await this._vid.updateScreen()
+            await this._stub.sleep(EVENTS_DELAY)
+            await this._stub.processEvents()
+        }
+
+        return false
     }
 
 
@@ -126,7 +238,11 @@ class Menu {
                 this._selectedOption = menuItems[selectedItem].opt
                 switch (this._selectedOption) {
                 case Menu.MENU_OPTION_ITEM_START:
-                    quitLoop = true
+                    this._currentScreen = SCREEN_LEVEL
+                    this._nextScreen = SCREEN_LEVEL
+                    if (await this.handleLevelScreen()) {
+                        quitLoop = true
+                    }
                     break
                 case Menu.MENU_OPTION_ITEM_INFO:
                     this._currentScreen = SCREEN_INFO
