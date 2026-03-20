@@ -1,5 +1,5 @@
 {
-  "pgeNum": 1,
+  "pgeNum": 5,
   "pgeInit": [
     {
       "type": 99,
@@ -24,6 +24,106 @@
       "mirror_x": 0,
       "flags": 0,
       "number_of_collision_segments": 1,
+      "text_num": 0
+    },
+    {
+      "type": 289,
+      "pos_x": 160,
+      "pos_y": 214,
+      "obj_node_number": 10,
+      "life": 0,
+      "counter_values": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "object_type": 6,
+      "init_room": 17,
+      "room_location": 1,
+      "init_flags": 0,
+      "colliding_icon_num": 0,
+      "icon_num": 0,
+      "object_id": 0,
+      "skill": 0,
+      "mirror_x": 0,
+      "flags": 1,
+      "number_of_collision_segments": 2,
+      "text_num": 0
+    },
+    {
+      "type": 307,
+      "pos_x": 96,
+      "pos_y": 214,
+      "obj_node_number": 2,
+      "life": 1,
+      "counter_values": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "object_type": 7,
+      "init_room": 17,
+      "room_location": 0,
+      "init_flags": 10,
+      "colliding_icon_num": 0,
+      "icon_num": 0,
+      "object_id": 0,
+      "skill": 0,
+      "mirror_x": 0,
+      "flags": 2,
+      "number_of_collision_segments": 2,
+      "text_num": 0
+    },
+    {
+      "type": 352,
+      "pos_x": 0,
+      "pos_y": 70,
+      "obj_node_number": 12,
+      "life": 1,
+      "counter_values": [
+        72,
+        0,
+        0,
+        0
+      ],
+      "object_type": 8,
+      "init_room": 18,
+      "room_location": 1,
+      "init_flags": 0,
+      "colliding_icon_num": 0,
+      "icon_num": 0,
+      "object_id": 0,
+      "skill": 0,
+      "mirror_x": 0,
+      "flags": 3,
+      "number_of_collision_segments": 4,
+      "text_num": 0
+    },
+    {
+      "type": 307,
+      "pos_x": 96,
+      "pos_y": 214,
+      "obj_node_number": 11,
+      "life": 1,
+      "counter_values": [
+        3,
+        0,
+        0,
+        0
+      ],
+      "object_type": 7,
+      "init_room": 18,
+      "room_location": 0,
+      "init_flags": 10,
+      "colliding_icon_num": 0,
+      "icon_num": 0,
+      "object_id": 0,
+      "skill": 0,
+      "mirror_x": 0,
+      "flags": 2,
+      "number_of_collision_segments": 2,
       "text_num": 0
     }
   ]

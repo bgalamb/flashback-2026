@@ -35,6 +35,14 @@ export function gameDrawCurrentInventoryItem(game: Game) {
     }
 }
 
+export function gameDrawCurrentRoomOverlay(game: Game) {
+    if (game._currentRoomOverlayCounter <= 0 || game._currentRoom < 0 || game._currentRoom >= 0x40) {
+        return
+    }
+    game._vid.drawString(`ROOM ${game._currentRoom}`, 8, 8, 0xE6)
+    --game._currentRoomOverlayCounter
+}
+
 export function gameDrawLevelTexts(game: Game) {
     const pge: LivePGE = game._livePgesByIndex[0]
     let { obj, pge_out } = gameFindFirstMatchingCollidingObject(game, pge, 3, UINT8_MAX, UINT8_MAX)
@@ -200,10 +208,11 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
 
 export function gameDrawPge(game: Game, state: AnimBufferState) {
     const pge: LivePGE = state.pge
-    game.drawObject(state.dataPtr, state.x, state.y, pge.flags)
+    const paletteColorMaskOverride = (pge.init_PGE.object_type === 6 || pge.init_PGE.object_type === 7 || pge.init_PGE.object_type === 8) ? 0x60 : -1
+    game.drawObject(state.dataPtr, state.x, state.y, pge.flags, paletteColorMaskOverride)
 }
 
-export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number) {
+export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
     assert(!(dataPtr[0] >= 0x4A), `Assertion failed: ${dataPtr[0]} < 0x4A`)
     const slot = game._res._rp[dataPtr[0]]
     let data = game._res.findBankData(slot)
@@ -221,12 +230,12 @@ export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: nu
     dataPtr = dataPtr.subarray(6)
 
     for (let i = 0; i < count; ++i) {
-        game.drawObjectFrame(data, dataPtr, posx, posy, flags)
+        game.drawObjectFrame(data, dataPtr, posx, posy, flags, paletteColorMaskOverride)
         dataPtr = dataPtr.subarray(4)
     }
 }
 
-export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr: Uint8Array, x: number, y: number, flags: number) {
+export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
     let src = bankDataPtr.byteOffset + dataPtr[0] * 32
 
     let sprite_y = y + dataPtr[2]
@@ -298,7 +307,7 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
     }
 
     const dst_offset = GAMESCREEN_W * sprite_y + sprite_x
-    const sprite_col_mask = (flags & 0x60) >> 1
+    const sprite_col_mask = paletteColorMaskOverride >= 0 ? paletteColorMaskOverride : ((flags & 0x60) >> 1)
 
     if (game._eraseBackground) {
         if (!(sprite_flags & 0x10)) {

@@ -12,6 +12,7 @@ import { assert } from "./assert"
 import { gameInitializePgeDefaultAnimation } from './game_pge'
 
 const MONSTER_PALETTE_SLOT = 5
+const ROOM_OVERLAY_DURATION_FRAMES = 90
 interface DirectLevelStartOverride {
     room: number
     posX?: number
@@ -95,6 +96,7 @@ export async function gameChangeLevel(game: Game) {
     game.clearStateRewind()
     await game.loadLevelData()
     await game.loadLevelMap(game._currentRoom)
+    game._currentRoomOverlayCounter = ROOM_OVERLAY_DURATION_FRAMES
     game._vid.setPalette0xF()
     game._vid.setTextPalette()
     game._vid.fullRefresh()
@@ -123,6 +125,7 @@ export function gameResetGameState(game: Game) {
     game.resetPgeGroups()
     game._inventoryItemIndicesByOwner.clear()
     game._blinkingConradCounter = 0
+    game._currentRoomOverlayCounter = 0
     game._shouldProcessCurrentPgeObjectNode = false
     game._opcodeTempVar1 = 0
     game._textToDisplay = UINT16_MAX
@@ -279,6 +282,21 @@ export function gameIsRightRoomPge(_game: Game, pge: LivePGE): boolean {
     return pge.pos_x <= 32
 }
 
+function getPaletteColorMaskOverrideForPge(game: Game, pge: LivePGE) {
+    if (pge.index !== 0) {
+        const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
+        if (loadedMonsterVisual) {
+            return loadedMonsterVisual.paletteSlot << 4
+        }
+    }
+    // Doors/barriers, switches, and elevators should not share the room
+    // front-layer banks.
+    if (pge.init_PGE.object_type === 6 || pge.init_PGE.object_type === 7 || pge.init_PGE.object_type === 8) {
+        return 0x60
+    }
+    return -1
+}
+
 export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: number, dy: number, currentRoom: number) {
     if (!(pge.flags & PGE_FLAG_SPECIAL_ANIM)) {
         if (pge.index !== 0 && await game.loadMonsterSprites(pge, currentRoom) === 0) {
@@ -291,7 +309,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         assert(!(pge.anim_number >= 1287), `Assertion failed: ${pge.anim_number} < 1287`)
         const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
         const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res._resolvedSpriteSet
-        const paletteColorMaskOverride = loadedMonsterVisual ? (loadedMonsterVisual.paletteSlot << 4) : -1
+        const paletteColorMaskOverride = getPaletteColorMaskOverrideForPge(game, pge)
         dataPtr = resolvedSpriteSet.spritesByIndex[pge.anim_number]
         if (dataPtr === null) {
             return

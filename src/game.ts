@@ -110,6 +110,7 @@ class Game {
     _score: number
     _credits: number
     _currentRoom: number
+    _currentRoomOverlayCounter: number
     _currentIcon: number
     _loadMap: boolean
     _printLevelCodeCounter: number
@@ -226,6 +227,7 @@ class Game {
         this._currentLevel = this._menu._level = level
         this._credits = 0
         this._autoSave = autoSave
+        this._currentRoomOverlayCounter = 0
         this._rewindPtr = -1
         this._rewindLen = 0
         this._skipNextLevelCutscene = false
@@ -312,12 +314,12 @@ class Game {
         return gameDrawPge(this, state)
     }
     
-    drawObject(dataPtr: Uint8Array, x: number, y: number, flags: number) {
-        return gameDrawObject(this, dataPtr, x, y, flags)
+    drawObject(dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
+        return gameDrawObject(this, dataPtr, x, y, flags, paletteColorMaskOverride)
     }
     
-    drawObjectFrame(bankDataPtr: Uint8Array, dataPtr: Uint8Array, x: number, y: number, flags: number) {
-        return gameDrawObjectFrame(this, bankDataPtr, dataPtr, x, y, flags)
+    drawObjectFrame(bankDataPtr: Uint8Array, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
+        return gameDrawObjectFrame(this, bankDataPtr, dataPtr, x, y, flags, paletteColorMaskOverride)
     }
     
     drawCharacter(dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {

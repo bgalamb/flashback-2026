@@ -718,23 +718,42 @@ pitch = 16
         const pngSlotC = this.getCurrentRoomPngPaletteColors(0xC)
         const pngSlotD = this.getCurrentRoomPngPaletteColors(0xD)
         const jsonColors = this._paletteHeaderColorsCache[level]
+        // Slot 0x6 is reserved for runtime switch/door sprites. Resolve it from
+        // the level header's slot1 offset instead of aliasing another live slot.
+        const headerSlot1Colors = this.getJsonPaletteColorsForOffset(level, this._map_palette_offset_slot1) || jsonColors?.slot1 || null
+        const dedicatedDoorSwitchColors = headerSlot1Colors || pngSlot8 || pngSlot9 || null
         const inventoryColors = this.getJsonPaletteColorsForOffset(level, this._unkPalSlot2) || jsonColors?.slot3 || null
         const uiSlotC = inventoryColors || (this.hasAnyNonBlackColor(pngSlotC) ? pngSlotC : pngSlotA)
         const uiSlotD = jsonColors?.slot4 || (this.hasAnyNonBlackColor(pngSlotD) ? pngSlotD : pngSlotB)
-        if (pngSlot0 && pngSlot1 && pngSlot2 && pngSlot3 && pngSlot8 && pngSlot9 && pngSlotA && pngSlotB && uiSlotC && uiSlotD) {
-            console.log(`Palette colors source: room-indexed-png level=${level}`)
-            this.setPaletteColors(0x0, pngSlot0)
-            this.setPaletteColors(0x1, pngSlot1)
-            this.setPaletteColors(0x2, pngSlot2)
-            this.setPaletteColors(0x3, pngSlot3)
+        const pickPaletteColors = (pngColors: Color[] | null, fallbackColors: Color[] | null) => {
+            return this.hasAnyNonBlackColor(pngColors) ? pngColors : fallbackColors
+        }
+        const resolvedSlot0 = pngSlot0
+        const resolvedSlot1 = pngSlot1
+        const resolvedSlot2 = pngSlot2
+        const resolvedSlot3 = pngSlot3
+        const resolvedSlot6 = dedicatedDoorSwitchColors
+        const resolvedSlot8 = pickPaletteColors(pngSlot8, headerSlot1Colors)
+        const resolvedSlot9 = pickPaletteColors(pngSlot9, level === 0 ? headerSlot1Colors : (jsonColors?.slot2 || null))
+        const resolvedSlotA = pickPaletteColors(pngSlotA, jsonColors?.slot3 || null)
+        const resolvedSlotB = pickPaletteColors(pngSlotB, jsonColors?.slot4 || null)
+        const resolvedSlotC = uiSlotC
+        const resolvedSlotD = uiSlotD
+        if (resolvedSlot0 && resolvedSlot1 && resolvedSlot2 && resolvedSlot3 && resolvedSlot6 && resolvedSlot8 && resolvedSlot9 && resolvedSlotA && resolvedSlotB && resolvedSlotC && resolvedSlotD) {
+            console.log(`Palette colors source: png-with-header-fallback level=${level}`)
+            this.setPaletteColors(0x0, resolvedSlot0)
+            this.setPaletteColors(0x1, resolvedSlot1)
+            this.setPaletteColors(0x2, resolvedSlot2)
+            this.setPaletteColors(0x3, resolvedSlot3)
             const activeConradVisual = this.getActiveConradVisualFromPaletteHeader()
             this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
-            this.setPaletteColors(0x8, pngSlot8)
-            this.setPaletteColors(0x9, pngSlot9)
-            this.setPaletteColors(0xA, pngSlotA)
-            this.setPaletteColors(0xB, pngSlotB)
-            this.setPaletteColors(0xC, uiSlotC)
-            this.setPaletteColors(0xD, uiSlotD)
+            this.setPaletteColors(0x6, resolvedSlot6)
+            this.setPaletteColors(0x8, resolvedSlot8)
+            this.setPaletteColors(0x9, resolvedSlot9)
+            this.setPaletteColors(0xA, resolvedSlotA)
+            this.setPaletteColors(0xB, resolvedSlotB)
+            this.setPaletteColors(0xC, resolvedSlotC)
+            this.setPaletteColors(0xD, resolvedSlotD)
             this.setTextPalette()
             return
         }
@@ -742,10 +761,12 @@ pitch = 16
             console.log(`Palette colors source: json-embedded level=${level}`)
             // background
             this.setPaletteColors(0x0, jsonColors.slot1)
-            // objects
+            // Legacy object banks.
             this.setPaletteColors(0x1, jsonColors.slot2)
             this.setPaletteColors(0x2, jsonColors.slot3)
             this.setPaletteColors(0x3, jsonColors.slot4)
+            // Dedicated runtime switch/door bank resolved from the header slot1 mapping.
+            this.setPaletteColors(0x6, headerSlot1Colors || jsonColors.slot1)
             // Conrad visuals are loaded from PERSO at startup and wrapped into
             // Resource._loadedConradVisualsByVariantId, which keeps the shared
             // resolved sprite set together with each palette variant for slot 4.
@@ -755,9 +776,9 @@ pitch = 16
             // gameLoadMonsterSprites() in game_world.ts still builds a LoadedMonsterVisual
             // per monster script-node index so sprite data and palette data stay grouped,
             // but monster rendering currently applies all monster palettes through slot 5.
-            // foreground
-            this.setPaletteColors(0x8, jsonColors.slot1)
-            this.setPaletteColors(0x9, level === 0 ? jsonColors.slot1 : jsonColors.slot2)
+            // Foreground room image banks.
+            this.setPaletteColors(0x8, headerSlot1Colors || jsonColors.slot1)
+            this.setPaletteColors(0x9, level === 0 ? (headerSlot1Colors || jsonColors.slot1) : jsonColors.slot2)
             this.setPaletteColors(0xA, jsonColors.slot3)
             this.setPaletteColors(0xB, jsonColors.slot4)
             // inventory

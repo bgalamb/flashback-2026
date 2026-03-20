@@ -7,11 +7,13 @@ import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP } from './systemstub_web'
 import { CHAR_W, GAMESCREEN_W } from './game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { UINT8_MAX } from './game_constants'
-import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
+import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
 import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
 import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
 import { gameChangeLevel, gameHasLevelMap, gameLoadLevelMap, gamePrepareAnimationsInRooms } from './game_world'
+
+const ROOM_OVERLAY_DURATION_FRAMES = 90
 
 export async function gamePlayCutscene(game: Game, id: number = -1) {
     if (id !== -1) {
@@ -294,6 +296,7 @@ export async function gameMainLoop(game: Game) {
             game._currentRoom = game._livePgesByIndex[0].room_location
             await gameLoadLevelMap(game, game._currentRoom)
             game._loadMap = false
+            game._currentRoomOverlayCounter = ROOM_OVERLAY_DURATION_FRAMES
             game._vid.fullRefresh()
         }
     }
@@ -301,6 +304,7 @@ export async function gameMainLoop(game: Game) {
     await gameDrawAnims(game)
     game.renders++
     gameDrawCurrentInventoryItem(game)
+    gameDrawCurrentRoomOverlay(game)
     gameDrawLevelTexts(game)
 
     if (game._blinkingConradCounter !== 0) {
