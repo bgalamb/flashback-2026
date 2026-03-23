@@ -168,6 +168,36 @@ Example:
 npm run export:ct-grid:level-room -- ./DATA level1 29 ./out/level1-room29-grid.txt
 ```
 
+### `export:ct-grid:merged-png`
+Render one merged black/white PNG for a level by stitching the exported `room-XX-grid.txt` files according to the rendered adjacency text layout.
+
+```bash
+npm run export:ct-grid:merged-png -- <adjacency.txt> <gridDir> <output.png> [cellSize]
+```
+
+Example:
+
+```bash
+npm run export:ct-grid:merged-png -- \
+  ./DATA/levels/generated/level10-collisions/level10-ct-adjacency.txt \
+  ./DATA/levels/generated/level10-collisions \
+  ./DATA/levels/generated/level10-collisions/level10-merged-grid.png \
+  16
+```
+
+Output:
+
+- `<output.png>`
+
+Notes:
+
+- This command uses the room placement from `<level>-ct-adjacency.txt`.
+- It reads the per-room collision grids from `room-XX-grid.txt`.
+- Neighboring rooms overlap by one collision cell on shared borders:
+  left/right neighbors share the last/first column and up/down neighbors share the last/first row.
+- The output is an RGB PNG with white background and black filled collision cells.
+- `cellSize` is optional and defaults to `16`.
+
 ## Generated Collision Dataset Commands
 
 ### `generate:validated-room-collisions`

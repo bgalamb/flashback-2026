@@ -17,6 +17,7 @@
     "export:ct-adj": "ts-node --transpile-only ./src/debugger-helpers/export-ct-adjacency-table.ts",
     "export:ct-adj:level": "ts-node --transpile-only ./src/debugger-helpers/export-ct-adjacency-level.ts",
     "export:ct-grid:level-room": "ts-node --transpile-only ./src/debugger-helpers/export-ct-grid-level-room.ts",
+    "export:ct-grid:merged-png": "ts-node --transpile-only ./src/debugger-helpers/export-level-grid-merged-png.ts",
     "check:room-grid": "ts-node --transpile-only ./src/level-generator/check-room-grid-validity.ts",
     "generate:validated-room-collisions": "ts-node --transpile-only ./src/level-generator/generate-validated-room-collisions.ts",
     "rebuild:adjacency:json:from-txt": "ts-node --transpile-only ./src/level-generator/rebuild-adjacency-json-from-txt.ts",

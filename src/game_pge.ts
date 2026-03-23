@@ -79,7 +79,7 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
 
     // Conrad is PGE index 0. Override his starting shield count here instead of
     // changing the inventory counter item, which only mirrors Conrad's real life.
-    live_pge.life = idx === 0 ? 10 : initial_pge_from_file.life
+    live_pge.life = idx === 0 ? 20 : initial_pge_from_file.life
     if (game._skillLevel >= 2 && initial_pge_from_file.object_type === 10) {
         live_pge.life *= 2
     }

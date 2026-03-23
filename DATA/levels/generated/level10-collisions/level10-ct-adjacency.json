@@ -235,7 +235,7 @@
     {
       "room": 33,
       "up": 25,
-      "down": 41,
+      "down": -1,
       "left": 0,
       "right": 34
     },
@@ -265,13 +265,6 @@
       "up": 29,
       "down": 45,
       "left": 36,
-      "right": 38
-    },
-    {
-      "room": 38,
-      "up": 0,
-      "down": 0,
-      "left": 37,
       "right": 0
     },
     {
@@ -284,13 +277,6 @@
     {
       "room": 40,
       "up": 0,
-      "down": 0,
-      "left": 0,
-      "right": 0
-    },
-    {
-      "room": 41,
-      "up": 33,
       "down": 0,
       "left": 0,
       "right": 0
