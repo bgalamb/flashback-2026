@@ -649,4 +649,141 @@ If you'd like, I can also give you a **SUPER PROMPT used by professional studios
 
 
 
+=========
 
+**Task**
+
+Transform the provided level layout image into a **2D pixel-art cave mineshaft environment** while **strictly preserving the level geometry** so the result remains usable as a game level background.
+
+**"Treat the input image as a strict gameplay mask."**
+
+---
+
+# 1. Layout Preservation (CRITICAL)
+
+The original image defines the **gameplay geometry** and must remain unchanged.
+
+Rules:
+
+• **Do NOT move platforms**
+• **Do NOT change the grid structure**
+• **Do NOT extend platforms into empty space**
+• **Do NOT alter the position of any platform**
+
+The **exact horizontal top edge of every platform must remain identical to the source image.**
+
+This ensures the level stays playable.
+
+---
+
+## Allowed Platform Modifications
+
+The following modifications are allowed to improve realism:
+
+• Lower edges of platforms can be **irregular and rocky**
+• Vertical edges can be **rough and chipped**
+• Platforms may appear **slightly narrower beneath the top edge**
+• Undersides may include **broken rock layers and natural erosion**
+
+However:
+
+• The **top collision surface must remain perfectly unchanged**
+• The **corner where the top edge meets the vertical edge must not move**
+
+Think of it as **sculpting the underside of the rock**, not moving the platform.
+
+---
+
+# 2. Lighting Preservation
+
+The **brightness pattern of the original image must remain intact**.
+
+Rules:
+
+• Dark areas remain dark
+• Light areas remain light
+• Maintain the same contrast structure
+• Do not relocate light sources
+
+Lighting style:
+
+• Warm **lantern illumination**
+• Subtle orange **amber glow**
+• Deep cave shadows
+• Soft falloff around lamps
+
+The original brightness map acts as a **lighting guide**.
+
+---
+
+# 3. Visual Style — Underground Mine
+
+Convert the environment into a **realistic underground mine shaft**.
+
+### Platforms
+
+Platforms should look like:
+
+• Layered natural rock
+• Rough fractured stone
+• Slight cracks and mineral variations
+• Broken rock edges
+
+Avoid:
+
+• Smooth cartoon stone
+• Rounded shapes
+• Plastic-looking rock
+
+---
+
+### Background (Important for Depth)
+
+Create **multiple depth layers** in the cave wall.
+
+Background should include:
+
+• Dark distant cave walls
+• Subtle rock formations
+• Recessed cavern pockets
+• Layered stone silhouettes
+• Slight atmospheric fading for depth
+
+Background must remain **less detailed than the platforms** to preserve readability.
+
+---
+
+### Environmental Storytelling
+
+Add subtle mine details:
+
+• Hanging lanterns
+• Chains and ropes
+• Wooden support beams
+• Mine ladders
+• Crates and barrels
+• Wooden planks
+• Broken mine rails
+• Rock debris
+
+These elements must **not obstruct gameplay paths**.
+
+---
+
+# 4. Gameplay Readability
+
+Maintain strong platform clarity.
+
+Rules:
+
+• Platform tops must be visually distinct
+• Edges clearly readable
+• Player path obvious
+• Avoid clutter on the playable surfaces
+
+Foreground = readable
+Background = atmospheric
+
+---
+
+Preserve the exact platform layout of the source image. Only enhance visual detail without modifying gameplay geometry.

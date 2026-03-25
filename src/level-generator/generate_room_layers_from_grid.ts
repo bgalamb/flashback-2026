@@ -9,6 +9,7 @@ const CELL_W = 16
 const CELL_H = 36
 const TRANSPARENT = 0xFF
 const EXPOSED_EDGE_SHADE_PX = 10
+const TOP_EDGE_OVERHANG_PX = 4
 const BACK_FILL = 1
 const BACK_SHADE = 2
 const FRONT_SHADE = 129
@@ -133,45 +134,16 @@ function renderRoom(grid: number[][]) {
             const cell = getVisibleCellRect(grid, cx, cy)
             const topOpen = isWhiteNeighbor(grid, cx, cy, 0, -1)
             const leftOpen = isWhiteNeighbor(grid, cx, cy, -1, 0)
-            const rightOpen = isWhiteNeighbor(grid, cx, cy, 1, 0)
-            const bottomOpen = isWhiteNeighbor(grid, cx, cy, 0, 1)
 
             rect(backPixels, cell.x, cell.y, cell.w, cell.h, BACK_FILL)
 
-            if (topOpen) {
-                rect(backPixels, cell.x, cell.y, cell.w, Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), BACK_SHADE)
-                rect(frontPixels, cell.x, cell.y, cell.w, Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), FRONT_SHADE)
+            if (topOpen && cell.y > 0) {
+                const topEdgeHeight = Math.min(TOP_EDGE_OVERHANG_PX, cell.y)
+                rect(backPixels, cell.x, cell.y - topEdgeHeight, cell.w, topEdgeHeight, BACK_SHADE)
+                rect(frontPixels, cell.x, cell.y - topEdgeHeight, cell.w, topEdgeHeight, FRONT_SHADE)
             }
             if (leftOpen) {
                 rect(backPixels, cell.x, cell.y, Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.h, BACK_SHADE)
-                rect(frontPixels, cell.x, cell.y, Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.h, FRONT_SHADE)
-            }
-            if (rightOpen) {
-                rect(backPixels, cell.x + cell.w - Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.y, Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.h, BACK_SHADE)
-                rect(frontPixels, cell.x + cell.w - Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.y, Math.min(EXPOSED_EDGE_SHADE_PX, cell.w), cell.h, FRONT_SHADE)
-            }
-            if (bottomOpen) {
-                rect(backPixels, cell.x, cell.y + cell.h - Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), cell.w, Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), BACK_SHADE)
-                rect(frontPixels, cell.x, cell.y + cell.h - Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), cell.w, Math.min(EXPOSED_EDGE_SHADE_PX, cell.h), FRONT_SHADE)
-            }
-
-            const cornerSize = Math.min(EXPOSED_EDGE_SHADE_PX, cell.w, cell.h)
-
-            if (!topOpen && !leftOpen && isWhiteNeighbor(grid, cx, cy, -1, -1)) {
-                rect(backPixels, cell.x, cell.y, cornerSize, cornerSize, BACK_SHADE)
-                rect(frontPixels, cell.x, cell.y, cornerSize, cornerSize, FRONT_SHADE)
-            }
-            if (!topOpen && !rightOpen && isWhiteNeighbor(grid, cx, cy, 1, -1)) {
-                rect(backPixels, cell.x + cell.w - cornerSize, cell.y, cornerSize, cornerSize, BACK_SHADE)
-                rect(frontPixels, cell.x + cell.w - cornerSize, cell.y, cornerSize, cornerSize, FRONT_SHADE)
-            }
-            if (!bottomOpen && !leftOpen && isWhiteNeighbor(grid, cx, cy, -1, 1)) {
-                rect(backPixels, cell.x, cell.y + cell.h - cornerSize, cornerSize, cornerSize, BACK_SHADE)
-                rect(frontPixels, cell.x, cell.y + cell.h - cornerSize, cornerSize, cornerSize, FRONT_SHADE)
-            }
-            if (!bottomOpen && !rightOpen && isWhiteNeighbor(grid, cx, cy, 1, 1)) {
-                rect(backPixels, cell.x + cell.w - cornerSize, cell.y + cell.h - cornerSize, cornerSize, cornerSize, BACK_SHADE)
-                rect(frontPixels, cell.x + cell.w - cornerSize, cell.y + cell.h - cornerSize, cornerSize, cornerSize, FRONT_SHADE)
             }
         }
     }
