@@ -1,4 +1,5 @@
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
+import { getLevelAssetPathCandidates } from "../level-asset-paths"
 import { bytekiller_unpack } from "../unpack"
 import { _gameLevels } from "../staticres"
 
@@ -32,14 +33,13 @@ class CtAdjacencyTableExporter {
         const blocks: string[] = []
 
         for (const levelName of levelNames) {
-            const ctPath = path.join(dataDir, `${levelName}.ct`)
-            if (!fs.existsSync(ctPath)) {
-                blocks.push(`=== ${levelName} ===\nMissing file: ${ctPath}\n`)
-                continue
+            try {
+                const ctData = CtAdjacencyTableExporter.decodeCtFile(CtAdjacencyTableExporter.resolveCtPath(dataDir, levelName))
+                blocks.push(CtAdjacencyTableExporter.renderLevelTable(levelName, ctData))
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error)
+                blocks.push(`=== ${levelName} ===\n${message}\n`)
             }
-
-            const ctData = CtAdjacencyTableExporter.decodeCtFile(ctPath)
-            blocks.push(CtAdjacencyTableExporter.renderLevelTable(levelName, ctData))
         }
 
         const out = blocks.join("\n")
@@ -53,11 +53,9 @@ class CtAdjacencyTableExporter {
         const fs = require("fs")
         const path = require("path")
 
-        const ctPath = path.join(dataDir, `${levelName}.ct`)
         let out: string
-        if (!fs.existsSync(ctPath)) {
-            out = `=== ${levelName} ===\nMissing file: ${ctPath}\n`
-        } else {
+        try {
+            const ctPath = CtAdjacencyTableExporter.resolveCtPath(dataDir, levelName)
             const ctData = CtAdjacencyTableExporter.decodeCtFile(ctPath)
             out = CtAdjacencyTableExporter.renderLevelTable(levelName, ctData)
             if (outputPath) {
@@ -69,6 +67,9 @@ class CtAdjacencyTableExporter {
                     rooms: rows
                 }, null, 2), "utf8")
             }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            out = `=== ${levelName} ===\n${message}\n`
         }
         if (outputPath) {
             fs.writeFileSync(outputPath, out, "utf8")
@@ -97,6 +98,19 @@ class CtAdjacencyTableExporter {
             throw new Error(`Failed to decode CT data from '${ctPath}'`)
         }
         return new Int8Array(dst.buffer)
+    }
+
+    private static resolveCtPath(dataDir: string, levelName: string): string {
+        const fs = require("fs")
+        const path = require("path")
+
+        for (const relativePath of getLevelAssetPathCandidates(levelName, "ct")) {
+            const candidatePath = path.join(dataDir, relativePath)
+            if (fs.existsSync(candidatePath)) {
+                return candidatePath
+            }
+        }
+        throw new Error(`Missing CT file for '${levelName}' under '${dataDir}'`)
     }
 
     private static renderLevelTable(levelName: string, ctData: Int8Array): string {

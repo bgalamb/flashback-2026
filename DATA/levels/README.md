@@ -187,7 +187,7 @@ For the custom level10 room17-style bottom-floor switch, use:
 
 These states were added in:
 
-- [DATA/level10.ani](/Users/balazsgalambos/git/flashback-web/DATA/level10.ani)
+- [DATA/levels/level10/level10.ani](/Users/balazsgalambos/git/flashback-web/DATA/levels/level10/level10.ani)
 
 Current behavior of the custom level10 pair:
 
@@ -360,7 +360,7 @@ Important note:
 
 ### Elevator sound gotcha
 
-The rapid chirping we hit was not the switch chirp. It came from elevator movement states in `level10.ani`.
+The rapid chirping we hit was not the switch chirp. It came from elevator movement states in `DATA/levels/level10/level10.ani`.
 
 Movement states can carry their own sound bytes, for example:
 

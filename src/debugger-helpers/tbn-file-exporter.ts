@@ -1,5 +1,6 @@
 const fs = require("fs")
 const path = require("path")
+import { getLevelAssetPathCandidates } from "../level-asset-paths"
 
 interface ParsedTbnFileData {
     texts: string[]
@@ -23,7 +24,7 @@ class TbnFileExporter {
     }
 
     static exportLevel(dataDir: string, levelName: string, outputFilePath?: string): string {
-        const inputPath = path.join(dataDir, `${levelName}.tbn`)
+        const inputPath = TbnFileExporter.resolveInputPath(dataDir, levelName)
         const resolvedOutputPath = outputFilePath || path.join(dataDir, TbnFileExporter.getOutputRelativePath(levelName))
         const source = fs.readFileSync(inputPath)
         const parsed = TbnFileExporter.decodeLegacyTbnData(source)
@@ -58,6 +59,16 @@ class TbnFileExporter {
         if (changed) {
             fs.writeFileSync(filesIndexPath, JSON.stringify(filesIndex, null, 2) + "\n", "utf8")
         }
+    }
+
+    static resolveInputPath(dataDir: string, levelName: string): string {
+        for (const relativePath of getLevelAssetPathCandidates(levelName, "tbn")) {
+            const candidatePath = path.join(dataDir, relativePath)
+            if (fs.existsSync(candidatePath)) {
+                return candidatePath
+            }
+        }
+        throw new Error(`Missing TBN source for '${levelName}' in '${dataDir}'`)
     }
 
     static decodeLegacyTbnData(source: Buffer): ParsedTbnFileData {

@@ -1,7 +1,7 @@
 import * as path from "path"
 
 const DEFAULT_LEVEL_DATA_ROOT = path.join("DATA", "levels")
-const DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT = path.join("DATA", "levels", "generated")
+const DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT = path.join("DATA", "levels", "tmp_generated")
 
 function resolveDefaultCollisionDir(levelName: string) {
     return path.resolve(DEFAULT_LEVEL_DATA_ROOT, levelName, "collisions")
@@ -11,8 +11,4 @@ function resolveDefaultGeneratedLevelDir(levelName: string) {
     return path.resolve(DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT, levelName)
 }
 
-function resolveDefaultValidatedCollisionDir(levelName: string) {
-    return path.resolve(DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT, `${levelName}-collisions`)
-}
-
-export { DEFAULT_LEVEL_DATA_ROOT, DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT, resolveDefaultCollisionDir, resolveDefaultGeneratedLevelDir, resolveDefaultValidatedCollisionDir }
+export { DEFAULT_LEVEL_DATA_ROOT, DEFAULT_LEVEL_GENERATOR_OUTPUT_ROOT, resolveDefaultCollisionDir, resolveDefaultGeneratedLevelDir }

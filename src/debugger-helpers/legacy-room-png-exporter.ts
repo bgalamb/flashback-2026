@@ -7,6 +7,7 @@ import { _gameLevels } from "../staticres"
 import { Color } from "../intern"
 import { encodeIndexedPng } from "../indexed-png"
 import { encodeRgbPng } from "../png-rgb"
+import { getLevelAssetBaseName, getLevelAssetPathCandidates } from "../level-asset-paths"
 
 // Loads a room from LEV/MBK-or-BNQ/PAL/SGD assets, decodes the Amiga front layer,
 // applies the room palettes, and writes rendered PNG artifacts.
@@ -66,7 +67,7 @@ class AmigaLevelImageExporter {
 
         for (let levelIndex = 0; levelIndex < _gameLevels.length; ++levelIndex) {
             const level = _gameLevels[levelIndex]
-            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name)
+            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name2)
 
             if (!resolved) {
                 continue
@@ -147,7 +148,7 @@ class AmigaLevelImageExporter {
 
         for (let levelIndex = 0; levelIndex < _gameLevels.length; ++levelIndex) {
             const level = _gameLevels[levelIndex]
-            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name)
+            const resolved = AmigaLevelImageExporter.resolveLevelAssetPaths(dataDir, level.name2)
 
             if (!resolved) {
                 continue
@@ -233,18 +234,24 @@ class AmigaLevelImageExporter {
     }
 
     private static resolveOptionalDataFile(dataDir: string, baseName: string, ext: string): string | null {
-        return AmigaLevelImageExporter.resolveDataFileInDirectories(baseName, ext, [dataDir])
+        const path = require("path")
+        for (const relativePath of getLevelAssetPathCandidates(baseName, ext, getLevelAssetBaseName(baseName))) {
+            const candidatePath = path.join(dataDir, relativePath)
+            if (require("fs").existsSync(candidatePath)) {
+                return candidatePath
+            }
+        }
+        return null
     }
 
-    private static resolveLevelAssetPaths(dataDir: string, baseName: string) {
+    private static resolveLevelAssetPaths(dataDir: string, levelName: string) {
         const path = require("path")
+        const baseName = getLevelAssetBaseName(levelName)
         const levPath = AmigaLevelImageExporter.resolveDataFileInDirectories(baseName, "lev", [
             dataDir,
             path.join(dataDir, "levels", "legacy-level-data")
         ])
-        const mbkPath = AmigaLevelImageExporter.resolveDataFileInDirectories(baseName, "mbk", [
-            dataDir
-        ])
+        const mbkPath = AmigaLevelImageExporter.resolveRelativeCandidates(dataDir, getLevelAssetPathCandidates(levelName, "mbk", baseName))
         const palPath = AmigaLevelImageExporter.resolveDataFileInDirectories(baseName, "pal", [
             dataDir,
             path.join(dataDir, "levels", "legacy-level-data"),
@@ -256,7 +263,20 @@ class AmigaLevelImageExporter {
                 levPath,
                 mbkPath,
                 palPath,
-                sgdPath: AmigaLevelImageExporter.resolveOptionalDataFile(dataDir, baseName, "sgd")
+                sgdPath: AmigaLevelImageExporter.resolveOptionalDataFile(dataDir, levelName, "sgd")
+            }
+        }
+        return null
+    }
+
+    private static resolveRelativeCandidates(dataDir: string, relativePaths: string[]): string | null {
+        const fs = require("fs")
+        const path = require("path")
+
+        for (const relativePath of relativePaths) {
+            const candidatePath = path.join(dataDir, relativePath)
+            if (fs.existsSync(candidatePath)) {
+                return candidatePath
             }
         }
         return null

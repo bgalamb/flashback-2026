@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="16" height="7" tilewidth="64" tileheight="144" infinite="0" backgroundcolor="#200708" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" source="fb-level10-tiles.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="16" height="7">
+  <data encoding="csv">
+34,34,0,0,1073741863,38,33,34,39,33,34,3221225483,38,34,34,38,
+33,34,0,0,13,28,39,38,34,0,0,0,38,34,38,33,
+38,34,0,0,16,35,1073741863,34,32,0,0,0,34,38,34,33,
+37,38,0,0,31,13,39,33,38,0,0,0,2147483669,13,13,29,
+34,37,0,0,16,35,1073741863,32,33,0,0,0,35,16,35,35,
+34,33,0,0,13,13,13,13,13,13,13,13,39,34,0,0,
+38,33,0,0,25,8,18,7,7,18,27,18,8,2147483651,0,0
+</data>
+ </layer>
+</map>

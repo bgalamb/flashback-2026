@@ -212,10 +212,10 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game._res.clearLevelAllResources()
     const lvl = _gameLevels[game._currentLevel]
 
-    await game._res.load(lvl.name, ObjectType.OT_MBK)
-    await game._res.loadCollisionData(lvl.name, lvl.name2)
-    await game._res.load(lvl.name, ObjectType.OT_RP)
-    await game._res.load(lvl.name, ObjectType.OT_BNQ)
+    await game._res.load(lvl.name2, ObjectType.OT_MBK)
+    await game._res.loadCollisionData(lvl.name2)
+    await game._res.load(lvl.name2, ObjectType.OT_RP)
+    await game._res.load(lvl.name2, ObjectType.OT_BNQ)
     await game._res.load(lvl.name2, ObjectType.OT_PGE)
     await game._res.load(lvl.name2, ObjectType.OT_OBJ)
     await game._res.load(lvl.name2, ObjectType.OT_ANI)

@@ -1,4 +1,5 @@
 import { CT_DATA_SIZE, CT_DOWN_ROOM, CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
+import { getLevelAssetPathCandidates } from "../level-asset-paths"
 import { _gameLevels } from "../staticres"
 import { bytekiller_unpack } from "../unpack"
 
@@ -24,10 +25,7 @@ class CtGridTableExporter {
         const fs = require("fs")
         const path = require("path")
 
-        const ctPath = path.join(dataDir, `${levelName}.ct`)
-        if (!fs.existsSync(ctPath)) {
-            throw new Error(`Missing file: ${ctPath}`)
-        }
+        const ctPath = CtGridTableExporter.resolveCtPath(dataDir, levelName)
 
         const ctData = CtGridTableExporter.decodeCtFile(ctPath)
         fs.mkdirSync(outputDir, { recursive: true })
@@ -43,10 +41,7 @@ class CtGridTableExporter {
         const fs = require("fs")
         const path = require("path")
 
-        const ctPath = path.join(dataDir, `${levelName}.ct`)
-        if (!fs.existsSync(ctPath)) {
-            throw new Error(`Missing file: ${ctPath}`)
-        }
+        const ctPath = CtGridTableExporter.resolveCtPath(dataDir, levelName)
         const ctData = CtGridTableExporter.decodeCtFile(ctPath)
         const existingRooms = CtGridTableExporter.getExistingRooms(ctData)
         if (!existingRooms.includes(room)) {
@@ -134,6 +129,19 @@ class CtGridTableExporter {
             throw new Error(`Failed to decode CT data from '${ctPath}'`)
         }
         return new Int8Array(dst.buffer)
+    }
+
+    private static resolveCtPath(dataDir: string, levelName: string): string {
+        const fs = require("fs")
+        const path = require("path")
+
+        for (const relativePath of getLevelAssetPathCandidates(levelName, "ct")) {
+            const candidatePath = path.join(dataDir, relativePath)
+            if (fs.existsSync(candidatePath)) {
+                return candidatePath
+            }
+        }
+        throw new Error(`Missing CT file for '${levelName}' under '${dataDir}'`)
     }
 }
 

@@ -179,9 +179,9 @@ Example:
 
 ```bash
 npm run export:ct-grid:merged-png -- \
-  ./DATA/levels/generated/level10-collisions/level10-ct-adjacency.txt \
-  ./DATA/levels/generated/level10-collisions \
-  ./DATA/levels/generated/level10-collisions/level10-merged-grid.png \
+  ./DATA/levels/tmp_generated/level10-collisions/level10-ct-adjacency.txt \
+  ./DATA/levels/tmp_generated/level10-collisions \
+  ./DATA/levels/tmp_generated/level10-collisions/level10-merged-grid.png \
   16
 ```
 
@@ -198,46 +198,25 @@ Notes:
 - The output is an RGB PNG with white background and black filled collision cells.
 - `cellSize` is optional and defaults to `16`.
 
-## Generated Collision Dataset Commands
+## Manual Collision Dataset Preparation
 
-### `generate:validated-room-collisions`
-Generate a fresh collision dataset in a new folder using:
+Collision datasets must now be prepared manually.
 
-- a source room-id set
-- source adjacency when available, otherwise a random room-transition graph
-- validated room grid data
-- the current room-grid validity rules for Conrad walkability
+Author these files in your target collisions folder:
 
-Usage:
+- `<levelName>-ct-adjacency.txt`
+- `<levelName>-ct-adjacency.json`
+- `room-XX-grid.txt`
 
-```bash
-npm run generate:validated-room-collisions -- <inputRoomGridDir> <outputDir> [seed]
-```
+Recommended workflow:
 
-Examples:
+1. Copy an existing collisions folder as a starting point.
+2. Edit `<levelName>-ct-adjacency.txt` by hand.
+3. Rebuild the matching JSON with `npm run rebuild:adjacency:json:from-txt -- <input-adjacency.txt> <output-adjacency.json>`.
+4. Edit the `room-XX-grid.txt` files manually.
+5. Review the resulting dataset manually before rebuilding CT and PNG assets.
 
-```bash
-# generate a new random dataset; seed is derived from the output folder name + room ids
-npm run generate:validated-room-collisions -- ./DATA/levels/generated/level10-collisions ./DATA/levels/generated/level11-collisions
-
-# generate a reproducible random dataset with an explicit seed
-npm run generate:validated-room-collisions -- ./DATA/levels/generated/level10-collisions ./DATA/levels/generated/level11-collisions 123456
-```
-
-Output:
-
-- `<outputDir>/<levelName>-ct-adjacency.json`
-- `<outputDir>/<levelName>-ct-adjacency.txt`
-- `<outputDir>/room-XX-grid.txt`
-
-Notes:
-
-- The generator reuses the source adjacency graph when the input level already has a `<level>-ct-adjacency.json`. Otherwise it falls back to random adjacency generation.
-- When no explicit seed is passed, the generator derives one from the output folder name and room id list, so the same inputs are reproducible.
-- When an explicit seed is passed, you can rerun the command with the same seed to reproduce the exact same random graph and room layouts.
-- The generator runs the in-memory validator and bounded repair pipeline before accepting output.
-- For authored levels, if bounded synthesis cannot reach a clean result, it can fall back to copying a validator-clean source dataset.
-- The implementation lives in [`src/level-generator`](/Users/balazsgalambos/git/flashback-web/src/level-generator).
+The remaining scripts in [`src/level-generator`](/Users/balazsgalambos/git/flashback-web/src/level-generator) assume this manual preparation step has already been completed.
 
 ## CT Rebuild Command
 
@@ -286,13 +265,13 @@ Examples:
 
 ```bash
 # one Conrad sprite using Conrad palette variant 1
-npm run export:sprite:image -- ./DATA/PERSO.SPR ./DATA/PERSO.OFF 0 conrad:1 ./out/conrad-0000.png
+npm run export:sprite:image -- ./DATA/me_and_monsters/perso.spr ./DATA/me_and_monsters/perso.off 0 conrad:1 ./out/conrad-0000.png
 
 # all sprites from PERSO using Conrad palette variant 1
-npm run export:sprite:image -- ./DATA/PERSO.SPR ./DATA/PERSO.OFF all conrad:1 ./out/perso-sprites
+npm run export:sprite:image -- ./DATA/me_and_monsters/perso.spr ./DATA/me_and_monsters/perso.off all conrad:1 ./out/perso-sprites
 
 # all sprites from JUNKY using the monster palette defined for level 1, script-node 34
-npm run export:sprite:image -- ./DATA/JUNKY.SPR ./DATA/JUNKY.OFF all monster:1:34 ./out/junky-sprites
+npm run export:sprite:image -- ./DATA/me_and_monsters/junky.spr ./DATA/me_and_monsters/junky.off all monster:1:34 ./out/junky-sprites
 ```
 
 Output:
@@ -431,8 +410,8 @@ npx ts-node --transpile-only ./src/debugger-helpers/export-all-level-layer-artif
 
 This command reads the legacy sources from:
 
-- `DATA/*.mbk`
-- `DATA/*.sgd` when present
+- `DATA/levels/<levelDir>/*.mbk`
+- `DATA/levels/<levelDir>/*.sgd` when present
 - `DATA/levels/legacy-level-data/*.lev`
 - `DATA/levels/legacy-level-data/palettes/*.pal`
 
@@ -454,9 +433,9 @@ Generate the three PNGs for one room:
 ```bash
 npx ts-node --transpile-only ./src/debugger-helpers/export-room-layer-artifacts.ts \
   DATA/levels/legacy-level-data/level1.lev \
-  DATA/level1.mbk \
+  DATA/levels/level1/level1.mbk \
   DATA/levels/legacy-level-data/palettes/level1.pal \
-  DATA/level1.sgd \
+  DATA/levels/level1/level1.sgd \
   0 \
   26 \
   /tmp/level1-room26

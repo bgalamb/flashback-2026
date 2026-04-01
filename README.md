@@ -1,30 +1,32 @@
-# Flashback for modern Web Browsers
-This project is a TypeScript rewrite of [REminiscence](http://cyxdown.free.fr/reminiscence/) which is a reimplementation of the engine of [Flashback](https://en.wikipedia.org/wiki/Flashback_(1992_video_game)), a game released in 1992 for the Commodore-Amiga & DOS.
+# flashback-web
 
-![Flashback title screen](flashback.png "Flashback title screen")
+This repository contains the web/TypeScript version of *Flashback*, along with the game data, build scripts, and debugging/export helpers used to inspect and regenerate runtime assets.
 
-I converted by hand most of the C++ code to TypeScript.
+## Quick Start
 
-SDL functions have been mapped to their Canvas/WebAudio equivalent functions.
+Install dependencies if needed, then use the common scripts from the repository root:
 
-## Requirements
+```bash
+npm run dev
+npm run build
+npm run check
+```
 
- - a modern browser (Chrome/FF/Safari 15+)
- - a keyboard (no touch support yet)
- 
-## What's implemented:
+## Project Areas
 
-- DOS demo version only is supported
-- Cutscenes (most opcodes implemented, a few gfx glitches)
-- Gameplay (rolling demo, as well as user-controlled demo work)
-- Sound (including "sfx" in-game music)
-- Keyboard-based controls
+- `src/` contains the TypeScript runtime, gameplay logic, and helper tooling.
+- `DATA/` contains level data, generated runtime assets, and legacy source assets used by exporters/rebuilders.
+- `dist/` contains build output.
+- `out/` contains generated inspection/export output.
 
-## What's missing:
+## Documentation Index
 
-- Some opcodes (very few for cutscenes, about 25 for the game)
-- Savegame support
-- Joystick support
-- Scalers (flashback-web uses CSS-based blurry scaling)
-- Module/OGG sound
-- Loading your own data (only the freely distributable demo was tested)
+The following README files already exist in this repository and are linked here as the main documentation landing page:
+
+- [Object and PGE notes](./src/README.md)
+- [PGE type and OBJ node notes](./src/README_PGE_TYPES.md)
+- [Inventory item notes](./src/README_INVENTORY.md)
+- [Level generator scripts](./src/level-generator/!README.md)
+- [Debugger helper scripts](./src/debugger-helpers/README.md)
+- [Level format and room notes](./DATA/levels/README.md)
+- [Legacy level data notes](./DATA/legacy/legacy-level-data/README.md)

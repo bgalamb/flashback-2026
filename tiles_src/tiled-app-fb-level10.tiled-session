@@ -1,0 +1,220 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "exportAsImage.includeBackgroundColor": true,
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "fb-level10-tiles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.7121,
+            "scaleInEditor": 1
+        },
+        "level10-room17-tile-map.tmx": {
+            "scale": 0.4606,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 363.65610073816765,
+                "y": 760.963960052106
+            }
+        },
+        "level10-room17.tmx": {
+            "scale": 0.5326,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 449.6808111152835,
+                "y": 408.3740142696207
+            }
+        },
+        "level10-room18-tile-map.tmx": {
+            "scale": 1.0031,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 570.2322799322101,
+                "y": 536.8358089921244
+            }
+        },
+        "level10-room18.tmx": {
+            "scale": 0.5045,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 512.3885034687811,
+                "y": 504.4598612487612
+            }
+        },
+        "level10-room19.tmx": {
+            "scale": 0.9699,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 247.9637075987215,
+                "y": 337.6636766676977
+            }
+        },
+        "level10-room25.tmx": {
+            "scale": 0.59,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 550,
+                "y": 482.2033898305085
+            }
+        },
+        "level10-room26.tmx": {
+            "scale": 0.5032,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 571.3434022257552,
+                "y": 479.92845786963437
+            }
+        },
+        "level10-room27.tmx": {
+            "scale": 0.6811,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 448.5391278813684,
+                "y": 320.8045808251358
+            }
+        },
+        "level10-room28.tmx": {
+            "scale": 0.6410644531249999,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 512.4289740269633,
+                "y": 504.6294462639958
+            }
+        },
+        "level10-room29.tmx": {
+            "scale": 0.6410644531249999,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 707.4171681011502,
+                "y": 440.6733186076624
+            }
+        },
+        "level10-room33.tmx": {
+            "scale": 0.504,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 645.8333333333334,
+                "y": 592.2619047619048
+            }
+        },
+        "level10-room34.tmx": {
+            "scale": 0.42026367187499997,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 458.04577669338903,
+                "y": 662.6792145927734
+            }
+        },
+        "level10-room35.tmx": {
+            "scale": 0.39,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 778.2051282051282,
+                "y": 639.7435897435897
+            }
+        },
+        "level10-room36.tmx": {
+            "scale": 0.4851,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 572.0470006184291,
+                "y": 363.84250669964956
+            }
+        },
+        "level10-room37.tmx": {
+            "scale": 0.5862,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 574.0361651313544,
+                "y": 435.85806891845783
+            }
+        },
+        "level10-room45.tmx": {
+            "scale": 0.441,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 599.7732426303854,
+                "y": 395.6916099773242
+            }
+        },
+        "level10-room53-tilemap.tmx": {
+            "scale": 0.441,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 391.156462585034,
+                "y": 323.1292517006802
+            }
+        },
+        "level10-room53.tmx": {
+            "scale": 0.441,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.33786848072566,
+                "y": 504.5351473922903
+            }
+        },
+        "level10-room59-tilemap.tmx": {
+            "scale": 0.5929,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 415.7530780907404,
+                "y": 376.96070163602633
+            }
+        },
+        "level10-room59.tmx": {
+            "scale": 0.5929,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.8907066959015,
+                "y": 503.4575813796593
+            }
+        },
+        "level10-room60.tmx": {
+            "scale": 0.449951171875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 512.2778079218665,
+                "y": 503.38795442213774
+            }
+        },
+        "level10-room61.tmx": {
+            "scale": 0.449951171875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 512.2778079218665,
+                "y": 503.38795442213774
+            }
+        }
+    },
+    "last.imagePath": "/Users/balazsgalambos/git/flashback-web/tiles/png",
+    "map.height": 7,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 144,
+    "map.tileWidth": 64,
+    "map.width": 16,
+    "openFiles": [
+    ],
+    "project": "tiled-app-fb-level10.tiled-project",
+    "recentFiles": [
+        "level10-room26.tmx",
+        "level10-room27.tmx",
+        "level10-room29.tmx",
+        "level10-room33.tmx",
+        "level10-room61.tmx",
+        "level10-room60.tmx",
+        "level10-room59.tmx",
+        "level10-room53.tmx",
+        "level10-room45.tmx",
+        "level10-room37.tmx",
+        "level10-room36.tmx",
+        "level10-room35.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 1
+}

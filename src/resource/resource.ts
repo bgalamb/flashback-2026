@@ -9,6 +9,7 @@ import { createObjectTypeMapping } from './loaders'
 import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData, buildResolvedSpriteViewsByIndex } from './parsers'
 import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
 import { assert } from "../assert"
+import { getLevelAssetBaseName, getLevelAssetPathCandidates, getSharedAssetPathCandidates } from "../level-asset-paths"
 
 
 class Resource {
@@ -140,40 +141,88 @@ class Resource {
         }
     }
 
+    private async loadFileDataByCandidateNames(filenames: string[]): Promise<{ data: Uint8Array, filename: string }> {
+        for (const filename of filenames) {
+            const file = new File()
+            if (await file.open(filename, "rb", this._fs)) {
+                return {
+                    data: this.loadFileData(file),
+                    filename
+                }
+            }
+        }
+        throw(`Failed to open '${filenames[0]}'`)
+    }
+
     // MAIN LOADER table
     private readonly OBJECT_TYPE_MAPPING = createObjectTypeMapping(this);
 
     // MAIN LOADER
     private async tryLoadCollisionOverride(dirName: string, fileBaseName: string) {
-        const overridePath = `levels/${dirName}/${fileBaseName}.ct.bin`
-        const overrideFile = new File()
-        if (!await overrideFile.open(overridePath, "rb", this._fs)) {
-            return false
-        }
-        const overrideSize = overrideFile.size()
-        if (overrideSize !== this._ctData.byteLength) {
-            console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
+        const dirCandidates = getLevelAssetPathCandidates(dirName, "ct.bin", fileBaseName)
+        for (const overridePath of dirCandidates) {
+            const overrideFile = new File()
+            if (!await overrideFile.open(overridePath, "rb", this._fs)) {
+                continue
+            }
+            const overrideSize = overrideFile.size()
+            if (overrideSize !== this._ctData.byteLength) {
+                console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
+                overrideFile.close()
+                continue
+            }
+            overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
+            const hasIoErr = overrideFile.ioErr()
             overrideFile.close()
-            return false
+            if (hasIoErr) {
+                continue
+            }
+            this._entryName = overridePath
+            console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
+            return true
         }
-        overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
-        const hasIoErr = overrideFile.ioErr()
-        overrideFile.close()
-        if (hasIoErr) {
-            return false
-        }
-        this._entryName = overridePath
-        console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
-        return true
+        return false
     }
 
-    async loadCollisionData(baseName: string, parsedLevelName: string) {
-        if (parsedLevelName && parsedLevelName !== baseName) {
-            if (await this.tryLoadCollisionOverride(parsedLevelName, baseName)) {
-                return
-            }
+    async loadCollisionData(levelName: string) {
+        const fileBaseName = getLevelAssetBaseName(levelName)
+        if (await this.tryLoadCollisionOverride(levelName, fileBaseName)) {
+            return
         }
-        await this.load(baseName, ObjectType.OT_CT)
+        await this.load(levelName, ObjectType.OT_CT)
+    }
+
+    private getRawLevelEntryNames(levelName: string, extension: string, useBaseName: boolean): string[] {
+        return getLevelAssetPathCandidates(levelName, extension, useBaseName ? getLevelAssetBaseName(levelName) : levelName)
+    }
+
+    private getSharedSpriteEntryNames(fileName: string, extension: string): string[] {
+        return getSharedAssetPathCandidates(fileName, extension, "me_and_monsters")
+    }
+
+    private getCandidateEntryNames(objName: string, objType: number, ext?: string): string[] {
+        const typeConfig = this.OBJECT_TYPE_MAPPING[objType]
+        const resolvedExtension = (ext || typeConfig.extension).toLowerCase()
+
+        if (objType === ObjectType.OT_PGE) {
+            return [this.getParsedPgePath(objName)]
+        }
+        if (objType === ObjectType.OT_OBJ) {
+            return [this.getParsedObjPath(objName)]
+        }
+        if (objType === ObjectType.OT_TBN) {
+            return [this.getParsedTbnPath(objName)]
+        }
+        if (objType === ObjectType.OT_CT || objType === ObjectType.OT_MBK || objType === ObjectType.OT_RP || objType === ObjectType.OT_BNQ) {
+            return this.getRawLevelEntryNames(objName, resolvedExtension, true)
+        }
+        if (objType === ObjectType.OT_ANI) {
+            return this.getRawLevelEntryNames(objName, resolvedExtension, false)
+        }
+        if (objType === ObjectType.OT_SPR || objType === ObjectType.OT_OFF) {
+            return this.getSharedSpriteEntryNames(objName, resolvedExtension)
+        }
+        return [`${objName}.${resolvedExtension}`]
     }
 
     async load(objName: string, objType: number, ext?: string) {
@@ -183,36 +232,35 @@ class Resource {
             throw new Error(`Load not implemented for object type: ${objType}`);
         }
 
-        if (objType === ObjectType.OT_PGE) {
-            this._entryName = this.getParsedPgePath(objName)
-        } else if (objType === ObjectType.OT_OBJ) {
-            this._entryName = this.getParsedObjPath(objName)
-        } else if (objType === ObjectType.OT_TBN) {
-            this._entryName = this.getParsedTbnPath(objName)
-        } else {
-            // Use provided extension or default to mapped extension
-            this._entryName = `${objName}.${ext || typeConfig.extension}`;
-        }
+        const entryNames = this.getCandidateEntryNames(objName, objType, ext)
 
         if (objType === ObjectType.OT_CT) {
-            if (await this.tryLoadCollisionOverride(objName, objName)) {
+            const fileBaseName = getLevelAssetBaseName(objName)
+            if (await this.tryLoadCollisionOverride(objName, fileBaseName)) {
                 return
             }
         }
 
-        const file = new File();
-        if (await file.open(this._entryName, "rb", this._fs)) {
-            try {
-                typeConfig.loader.call(this, file);
-            } catch (error) {
-                throw new Error(`Failed to load ${this._entryName}: ${error.message}`);
+        for (const entryName of entryNames) {
+            this._entryName = entryName
+            const file = new File()
+            if (await file.open(this._entryName, "rb", this._fs)) {
+                try {
+                    typeConfig.loader.call(this, file)
+                    return
+                } catch (error) {
+                    throw new Error(`Failed to load ${this._entryName}: ${error.message}`)
+                }
             }
-        } else if (objType === ObjectType.OT_PGE) {
+        }
+
+        this._entryName = entryNames[0]
+        if (objType === ObjectType.OT_PGE) {
             throw new Error(`Missing parsed PGE file '${this._entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
         } else if (objType === ObjectType.OT_OBJ) {
             throw new Error(`Missing parsed OBJ file '${this._entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
         } else if (objType === ObjectType.OT_TBN) {
-            throw new Error(`Missing parsed TBN file '${this._entryName}'. Regenerate TBN JSON assets from DATA root TBN files.`)
+            throw new Error(`Missing parsed TBN file '${this._entryName}'. Regenerate TBN JSON assets from level-scoped TBN files.`)
         }
     }
 
@@ -550,8 +598,10 @@ class Resource {
     private readonly ENTRY_SIZE = 6; // 2 bytes for pos + 4 bytes for offset
 
     async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
-        this._entryName = `${fileName}.OFF`;
-        const offData = await this.loadFileDataByFileName(this._entryName)
+        const candidates = this.getSharedSpriteEntryNames(fileName, "OFF")
+        this._entryName = candidates[0]
+        const { data: offData, filename } = await this.loadFileDataByCandidateNames(candidates)
+        this._entryName = filename
         if (!offData) {
             throw new Error(`Cannot load '${this._entryName}'`);
         }
@@ -570,13 +620,22 @@ class Resource {
     }
 
     async loadMonsterResolvedSpriteSet(fileName: string): Promise<ResolvedSpriteSet> {
+        const monsterSpriteCandidates = this.getSharedSpriteEntryNames(fileName, "SPR")
         const monsterSpriteFile = new File()
-        const monsterSpriteEntryName = `${fileName}.SPR`
-        if (!await monsterSpriteFile.open(monsterSpriteEntryName, "rb", this._fs)) {
+        let monsterSpriteEntryName = monsterSpriteCandidates[0]
+        let opened = false
+        for (const candidate of monsterSpriteCandidates) {
+            if (await monsterSpriteFile.open(candidate, "rb", this._fs)) {
+                monsterSpriteEntryName = candidate
+                opened = true
+                break
+            }
+        }
+        if (!opened) {
             throw new Error(`Cannot load '${monsterSpriteEntryName}'`)
         }
         const monsterSpriteBlob = this.loadFileData(monsterSpriteFile, 12)
-        const offData = await this.loadFileDataByFileName(`${fileName}.OFF`)
+        const { data: offData } = await this.loadFileDataByCandidateNames(this.getSharedSpriteEntryNames(fileName, "OFF"))
         return {
             spritesByIndex: buildResolvedSpriteViewsByIndex(
                 offData,
