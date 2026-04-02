@@ -12,6 +12,29 @@ npm run build
 npm run check
 ```
 
+## Recording Input For Tests
+
+While the game is running in the browser, you can capture keyboard input and turn it into a replay fixture:
+
+```js
+window.__flashbackInputRecording.start()
+window.__flashbackInputRecording.stop()
+window.__flashbackInputRecording.get()
+```
+
+Typical flow:
+
+- start recording in the browser console before you begin playing
+- play through the sequence you want to preserve
+- call `window.__flashbackInputRecording.stop()` and copy the returned JSON into `test/fixtures/` without renaming it
+- replay that fixture from a Node test with `replayInputRecording()`
+
+New recordings now include:
+
+- `events`: the recorded key presses/releases
+
+The smoke test runner automatically turns every `flashback-input-recording-*.json` fixture in `test/fixtures/` into its own replay and smoke test.
+
 ## Project Areas
 
 - `src/` contains the TypeScript runtime, gameplay logic, and helper tooling.
