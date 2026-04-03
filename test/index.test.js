@@ -30,7 +30,7 @@ test('main loads the game with the configured boot sequence', async () => {
 
     class FakeGame {
         constructor(stub, fs, savePath, levelNum, autoSave) {
-            this._vid = { _w: 320, _h: 200 }
+            this._vid = { layers: { w: 320, h: 200 } }
             calls.gameConstructor = { stub, fs, savePath, levelNum, autoSave }
         }
 

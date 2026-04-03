@@ -74,9 +74,7 @@ export async function gameHandleConfigPanel(game: Game) {
     const w = 17
     const h = 12
 
-    game._vid._charShadowColor = 0xE2
-    game._vid._charFrontColor = 0xEE
-    game._vid._charTransparentColor = UINT8_MAX
+    game._vid.setTextColors(0xEE, UINT8_MAX, 0xE2)
 
     // the panel background is drawn using special characters from FB_TXT.FNT
     // top-left rounded corner
@@ -93,12 +91,12 @@ export async function gameHandleConfigPanel(game: Game) {
         game._vid.PC_drawChar(0x88, y + h, x + i)
     }
     for (let j = 1; j < h; ++j) {
-        game._vid._charTransparentColor = UINT8_MAX
+        game._vid.setTextTransparentColor(UINT8_MAX)
         // left vertical line
         game._vid.PC_drawChar(0x86, y + j, x)
         // right vertical line
         game._vid.PC_drawChar(0x87, y + j, x + w)
-        game._vid._charTransparentColor = 0xE2
+        game._vid.setTextTransparentColor(0xE2)
         for (let i = 1; i < w; ++i) {
             game._vid.PC_drawChar(0x20, y + j, x + i)
         }

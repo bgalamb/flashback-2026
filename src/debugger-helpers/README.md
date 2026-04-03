@@ -367,7 +367,7 @@ For room rendering, the important runtime slots are:
 
 The room loader reads this PNG directly and uses:
 
-- the indexed pixel bytes as `_frontLayer`
+- the indexed pixel bytes as `layers.frontLayer`
 - the PNG palette table as the source for room palette colors
 
 ### Split Layer PNG Semantics

@@ -81,8 +81,7 @@ export async function gameRun(game: Game) {
         game._vid.setTextPalette()
         game._vid.setPalette0xF()
         game._stub.setOverscanColor(0xE0)
-        game._vid._unkPalSlot1 = 0
-        game._vid._unkPalSlot2 = 0
+        game._vid.clearLevelPaletteState()
         game._score = 0
         game.clearStateRewind()
         await game.loadLevelData()
@@ -112,7 +111,7 @@ export async function gameShowFinalScore(game: Game) {
     const buf = game._score.toString().padStart(8, '0')
     game._vid.drawString(buf, (GAMESCREEN_W - buf.length * CHAR_W) / 2, 40, 0xE5)
     while (!game._stub._pi.quit) {
-        game._stub.copyRect(0, 0, game._vid._w, game._vid._h, game._vid._frontLayer, game._vid._w)
+        game._vid.presentFrontLayer()
         await game._stub.updateScreen(0)
         await game._stub.processEvents()
         if (game._stub._pi.enter) {
@@ -149,7 +148,7 @@ export async function gameHandleContinueAbort(game: Game) {
     let color_inc = UINT8_MAX
     const col: Color = { r: 0, g: 0, b: 0 }
     game._stub.getPaletteEntry(0xE4, col)
-    game._vid._tempLayer.set(game._vid._frontLayer.subarray(0, game._vid._layerSize))
+    game._vid.copyFrontLayerToTemp()
     while (timeout >= 0 && !game._stub._pi.quit) {
         let str = game._res.getMenuString(LocaleData.Id.LI_01_CONTINUE_OR_ABORT)
         game._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 64, 0xE3)
@@ -184,7 +183,7 @@ export async function gameHandleContinueAbort(game: Game) {
             game._stub._pi.enter = false
             return current_color === 0
         }
-        game._stub.copyRect(0, 0, game._vid._w, game._vid._h, game._vid._frontLayer, game._vid._w)
+        game._vid.presentFrontLayer()
         await game._stub.updateScreen(0)
         const COLOR_STEP = 8
         const COLOR_MIN = 16
@@ -205,7 +204,7 @@ export async function gameHandleContinueAbort(game: Game) {
         await game._stub.processEvents()
         await game._stub.sleep(100)
         --timeout
-        game._vid._frontLayer.set(game._vid._tempLayer.subarray(0, game._vid._layerSize))
+        game._vid.restoreFrontLayerFromTemp()
     }
     return false
 }
@@ -263,7 +262,7 @@ export async function gameMainLoop(game: Game) {
     if (await gameDidFinishAllLevels(game)) return
     if (await gameDidDie(game)) return
 
-    game._vid._frontLayer.set(game._vid._backLayer.subarray(0, game._vid._layerSize))
+    game._vid.restoreFrontLayerFromBack()
     await gameUpdatePgeDirectionalInputState(game)
     gameRebuildPgeCollisionStateForCurrentRoom(game, game._currentRoom)
     gameRebuildActiveRoomCollisionSlotLookup(game, game._currentRoom)

@@ -23,7 +23,7 @@ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, 
 
     game._vid.PC_decodeIcn(game._res.ui.icn, iconNum, buf)
 
-    game._vid.drawSpriteSub1(buf, game._vid._frontLayer.subarray(x + y * game._vid._w), 16, 16, 16, colMask << 4)
+    game._vid.drawSpriteSub1ToFrontLayer(buf, x + y * game._vid.layers.w, 16, 16, 16, colMask << 4)
     game._vid.markBlockAsDirty(x, y, 16, 16, 1)
 }
 
@@ -76,7 +76,7 @@ export async function gameDrawStoryTexts(game: Game) {
         let textColor = 0xE8
         let str = game._res.getGameString(game._textToDisplay)
         let index = 0
-        game._vid._tempLayer.set(game._vid._frontLayer.subarray(0, game._vid._layerSize))
+        game._vid.copyFrontLayerToTemp()
         let textSpeechSegment = 0
         while (!game._stub._pi.quit) {
             console.log(`[story-text] segment frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
@@ -146,7 +146,7 @@ export async function gameDrawStoryTexts(game: Game) {
             }
             index++
 
-            game._vid._frontLayer.set(game._vid._tempLayer.subarray(0, game._vid._layerSize))
+            game._vid.restoreFrontLayerFromTemp()
         }
         console.log(`[story-text] end frame=${game.renders} currentRoom=${game._currentRoom} text=${game._textToDisplay}`)
         game._textToDisplay = UINT16_MAX
@@ -311,15 +311,15 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
 
     if (game._eraseBackground) {
         if (!(sprite_flags & 0x10)) {
-            game._vid.drawSpriteSub1(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub1ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub2(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub2ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     } else {
         if (!(sprite_flags & 0x10)) {
-            game._vid.drawSpriteSub3(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub4(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     }
     game._vid.markBlockAsDirty(sprite_x, sprite_y, sprite_clipped_w, sprite_clipped_h, 1)
@@ -414,15 +414,15 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, pos_x: number
 
     if (!(flags & PGE_FLAG_FLIP_X)) {
         if (var16) {
-            game._vid.drawSpriteSub5(new Uint8Array(dataPtr.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_h, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub5ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dst_offset, sprite_h, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub3(new Uint8Array(dataPtr.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     } else {
         if (var16) {
-            game._vid.drawSpriteSub6(new Uint8Array(dataPtr.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_h, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub6ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dst_offset, sprite_h, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub4(new Uint8Array(dataPtr.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     }
     game._vid.markBlockAsDirty(pos_x, pos_y, sprite_clipped_w, sprite_clipped_h, 1)

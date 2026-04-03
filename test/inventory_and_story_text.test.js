@@ -61,9 +61,24 @@ function createInventoryGame(overrides = {}) {
             async sleep() {},
         },
         _vid: {
-            _frontLayer: frontLayer,
-            _tempLayer: tempLayer,
-            _layerSize: frontLayer.length,
+            layers: {
+                frontLayer,
+                tempLayer,
+                layerSize: frontLayer.length,
+            },
+            text: {
+                charFrontColor: 0,
+                charTransparentColor: 0,
+                charShadowColor: 0,
+            },
+            setTextColors(frontColor, transparentColor, shadowColor) {
+                this.text.charFrontColor = frontColor
+                this.text.charTransparentColor = transparentColor
+                this.text.charShadowColor = shadowColor
+            },
+            setTextTransparentColor(color) {
+                this.text.charTransparentColor = color
+            },
             async updateScreen() {},
             fullRefreshCalls: 0,
             fullRefresh() {
@@ -139,9 +154,17 @@ function createStoryGame(overrides = {}) {
         },
         _textToDisplay: 33,
         _vid: {
-            _frontLayer: frontLayer,
-            _tempLayer: tempLayer,
-            _layerSize: frontLayer.length,
+            layers: {
+                frontLayer,
+                tempLayer,
+                layerSize: frontLayer.length,
+            },
+            copyFrontLayerToTemp() {
+                this.layers.tempLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
+            },
+            restoreFrontLayerFromTemp() {
+                this.layers.frontLayer.set(this.layers.tempLayer.subarray(0, this.layers.layerSize))
+            },
             async updateScreen() {},
             drawString(...args) {
                 videoDrawStringCalls.push(args)
@@ -263,7 +286,7 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
         }
         iteration += 1
     }
-    game._vid._frontLayer.fill(9)
+    game._vid.layers.frontLayer.fill(9)
 
     await gameDrawStoryTexts(game)
 
@@ -274,5 +297,5 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     assert.deepEqual(game.voiceLoads, [[33, 0], [33, 1]])
     assert.deepEqual(game.playCalls, [[voiceBuffer, 3, 32000, 64]])
     assert.deepEqual(game.stopAllCalls, ['stopAll'])
-    assert.deepEqual(Array.from(game._vid._frontLayer), Array.from(game._vid._tempLayer))
+    assert.deepEqual(Array.from(game._vid.layers.frontLayer), Array.from(game._vid.layers.tempLayer))
 })

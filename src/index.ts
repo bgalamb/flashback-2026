@@ -59,7 +59,7 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
 
     const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave)
     stub._game = game
-    await stub.init(g_caption, game._vid._w, game._vid._h, fullscreen, scalerParameters)
+    await stub.init(g_caption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
     await game.run()
 }
 

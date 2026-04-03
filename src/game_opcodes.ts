@@ -1766,7 +1766,7 @@ const pge_op_changeLevel = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_shakeScreen = (args: PgeOpcodeArgs, game: Game) => {
-	game._vid._shakeOffset = game.getRandomNumber() & 7
+	game._vid.setShakeOffset(game.getRandomNumber() & 7)
 	return UINT16_MAX
 }
 

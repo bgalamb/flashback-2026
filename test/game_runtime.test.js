@@ -167,14 +167,34 @@ function createBaseGame(overrides = {}) {
         },
         _validSaveState: false,
         _vid: {
-            _backLayer: backLayer,
-            _frontLayer: frontLayer,
-            _layerSize: frontLayer.length,
-            _tempLayer: tempLayer,
-            _unkPalSlot1: 0,
-            _unkPalSlot2: 0,
-            _w: 320,
-            _h: 200,
+            layers: {
+                backLayer,
+                frontLayer,
+                layerSize: frontLayer.length,
+                tempLayer,
+                w: 320,
+                h: 200,
+            },
+            palette: {
+                unkPalSlot1: 0,
+                unkPalSlot2: 0,
+            },
+            clearLevelPaletteState() {
+                this.palette.unkPalSlot1 = 0
+                this.palette.unkPalSlot2 = 0
+            },
+            presentFrontLayer() {
+                game._stub.copyRect(0, 0, this.layers.w, this.layers.h, this.layers.frontLayer, this.layers.w)
+            },
+            copyFrontLayerToTemp() {
+                this.layers.tempLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
+            },
+            restoreFrontLayerFromTemp() {
+                this.layers.frontLayer.set(this.layers.tempLayer.subarray(0, this.layers.layerSize))
+            },
+            restoreFrontLayerFromBack() {
+                this.layers.frontLayer.set(this.layers.backLayer.subarray(0, this.layers.layerSize))
+            },
             drawString(...args) {
                 drawCalls.push(args)
             },

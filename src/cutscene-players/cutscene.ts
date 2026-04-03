@@ -1,19 +1,17 @@
 import { Resource } from '../resource/resource'
 import { SystemStub } from '../systemstub_web'
 import { Video } from '../video'
-import { _cineSceneIdToCutPairsDOS, _namesTableDOS } from '../staticres'
+import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../staticres'
 import { UINT16_MAX, UINT8_MAX, global_game_options } from '../game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
-import { OpcodeStub, ScriptedCutscenePlayer } from './scripted-cutscene-player'
 
 class Cutscene {
-    static _offsetsTableDOS = ScriptedCutscenePlayer._offsetsTableDOS
-    static _musicTable = ScriptedCutscenePlayer._musicTable
+    static _offsetsTableDOS = _offsetsTableDOS
+    static _musicTable = _musicTable
 
     private _res: Resource
     private _stub: SystemStub
     private _vid: Video
-    private _scripted: ScriptedCutscenePlayer
     private _id: number = UINT16_MAX
     private _interrupted: boolean = false
     private _deathCutsceneId: number = UINT16_MAX
@@ -22,9 +20,6 @@ class Cutscene {
         this._res = res
         this._stub = stub
         this._vid = vid
-        this._scripted = new ScriptedCutscenePlayer(res, stub, vid, () => this._interrupted, (interrupted: boolean) => {
-            this._interrupted = interrupted
-        })
     }
 
     setId(cutId: number) {
@@ -47,14 +42,6 @@ class Cutscene {
         this._deathCutsceneId = cutSceneId
     }
 
-    prepare() {
-        this._scripted.prepare()
-    }
-
-    async mainLoop(num: number) {
-        await this._scripted.mainLoop(num, this._id)
-    }
-
     async play(id = this.getId()) {
         this.setId(id)
         if (id === UINT16_MAX) {
@@ -74,13 +61,7 @@ class Cutscene {
             const player = new Mp4CutscenePlayer(this._stub, this._res.fileSystem)
             this._interrupted = !(await player.play(mappedVideo))
         } else if (cutName !== UINT16_MAX) {
-            ;(this._scripted as any)._textCurBuf = null
-            ;(this._scripted as any)._creditsSequence = false
-            this.prepare()
-            if (await this._scripted.load(cutName)) {
-                await this._scripted.mainLoop(cutOff, id)
-                this._scripted.unload()
-            }
+            throw new Error(`Missing MP4 cutscene mapping for scene ${id} (cutName=${cutName}, cutOffset=${cutOff})`)
         }
 
         this._vid.fullRefresh()
@@ -136,4 +117,4 @@ class Cutscene {
     }
 }
 
-export { Cutscene, OpcodeStub }
+export { Cutscene }

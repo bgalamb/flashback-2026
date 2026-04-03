@@ -85,13 +85,9 @@ class Menu {
     }
 
     private drawPane(x: number, y: number, w: number, h: number) {
-        const prevFrontColor = this._vid._charFrontColor
-        const prevTransparentColor = this._vid._charTransparentColor
-        const prevShadowColor = this._vid._charShadowColor
+        const previousColors = this._vid.getTextColors()
 
-        this._vid._charShadowColor = 0xE2
-        this._vid._charFrontColor = 0xEE
-        this._vid._charTransparentColor = UINT8_MAX
+        this._vid.setTextColors(0xEE, UINT8_MAX, 0xE2)
 
         this._vid.PC_drawChar(0x81, y, x)
         this._vid.PC_drawChar(0x82, y, x + w)
@@ -104,10 +100,10 @@ class Menu {
         }
 
         for (let j = 1; j < h; ++j) {
-            this._vid._charTransparentColor = UINT8_MAX
+            this._vid.setTextTransparentColor(UINT8_MAX)
             this._vid.PC_drawChar(0x86, y + j, x)
             this._vid.PC_drawChar(0x87, y + j, x + w)
-            this._vid._charTransparentColor = 0xE2
+            this._vid.setTextTransparentColor(0xE2)
             for (let i = 1; i < w; ++i) {
                 this._vid.PC_drawChar(0x20, y + j, x + i)
             }
@@ -115,9 +111,7 @@ class Menu {
 
         this._vid.markBlockAsDirty(x * CHAR_W, y * CHAR_H, (w + 1) * CHAR_W, (h + 1) * CHAR_H, 1)
 
-        this._vid._charFrontColor = prevFrontColor
-        this._vid._charTransparentColor = prevTransparentColor
-        this._vid._charShadowColor = prevShadowColor
+        this._vid.setTextColors(previousColors.frontColor, previousColors.transparentColor, previousColors.shadowColor)
     }
 
     async handleLevelScreen() {
@@ -290,48 +284,32 @@ class Menu {
     }
 
     drawString(str: string, y: number, x: number, color: number) {
-        const v1b = this._vid._charFrontColor
-        const v2b = this._vid._charTransparentColor
-        const v3b = this._vid._charShadowColor
+        const previousColors = this._vid.getTextColors()
 
         switch (color) {
         case 0:
-            this._vid._charFrontColor = this._charVar1
-            this._vid._charTransparentColor = this._charVar2
-            this._vid._charShadowColor = this._charVar2
+            this._vid.setTextColors(this._charVar1, this._charVar2, this._charVar2)
             break;
         case 1:
-            this._vid._charFrontColor = this._charVar2
-            this._vid._charTransparentColor = this._charVar1
-            this._vid._charShadowColor = this._charVar1
+            this._vid.setTextColors(this._charVar2, this._charVar1, this._charVar1)
             break;
         case 2:
-            this._vid._charFrontColor = this._charVar3
-            this._vid._charTransparentColor = UINT8_MAX
-            this._vid._charShadowColor = this._charVar1
+            this._vid.setTextColors(this._charVar3, UINT8_MAX, this._charVar1)
             break;
         case 3:
-            this._vid._charFrontColor = this._charVar4
-            this._vid._charTransparentColor = UINT8_MAX
-            this._vid._charShadowColor = this._charVar1
+            this._vid.setTextColors(this._charVar4, UINT8_MAX, this._charVar1)
             break;
         case 4:
-            this._vid._charFrontColor = this._charVar2
-            this._vid._charTransparentColor = UINT8_MAX
-            this._vid._charShadowColor = this._charVar1
+            this._vid.setTextColors(this._charVar2, UINT8_MAX, this._charVar1)
             break;
         case 5:
-            this._vid._charFrontColor = this._charVar2
-            this._vid._charTransparentColor = UINT8_MAX
-            this._vid._charShadowColor = this._charVar5
+            this._vid.setTextColors(this._charVar2, UINT8_MAX, this._charVar5)
             break;
         }
     
         this.drawString2(str, y, x)
     
-        this._vid._charFrontColor = v1b
-        this._vid._charTransparentColor = v2b
-        this._vid._charShadowColor = v3b
+        this._vid.setTextColors(previousColors.frontColor, previousColors.transparentColor, previousColors.shadowColor)
     }
     
     drawString2(str: string, y: number, x: number) {
@@ -353,11 +331,11 @@ class Menu {
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {
                 for (let x = 0; x < kPictureW / 4; ++x) {
-                    this._vid._frontLayer[i + x * 4 + kPictureW * y] = this._res.scratchBuffer[0x3800 * i + x + 64 * y]
+                    this._vid.layers.frontLayer[i + x * 4 + kPictureW * y] = this._res.scratchBuffer[0x3800 * i + x + 64 * y]
                 }
             }
         }
-        this._vid._backLayer.set(this._vid._frontLayer.subarray(0, this._vid._layerSize))
+        this._vid.copyFrontLayerToBack()
         await this._res.load_PAL_menu(prefix, this._res.scratchBuffer)
         this._stub.setPalette(this._res.scratchBuffer, 256)
     }

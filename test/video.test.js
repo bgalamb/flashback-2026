@@ -102,8 +102,8 @@ function createVideoFixture(overrides = {}) {
 
     Object.assign(res, overrides.res)
     const video = new Video(res, stub)
-    video._unkPalSlot1 = 0
-    video._unkPalSlot2 = 0
+    video.palette.unkPalSlot1 = 0
+    video.palette.unkPalSlot2 = 0
     Object.assign(video, overrides.video)
     return { video, stub, res, paletteEntries, conradPaletteWords }
 }
@@ -131,12 +131,12 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
         fetch.restore()
     }
 
-    assert.deepEqual(Array.from(video._frontLayer.slice(0, 4)), [0x8F, 0x21, 0x8F, 0x8F])
-    assert.deepEqual(Array.from(video._backLayer.slice(0, 4)), [0x8F, 0x21, 0x8F, 0x8F])
-    assert.deepEqual(video._paletteHeaderOffsetsCache[level], headerOffsets)
-    assert.equal(video._unkPalSlot1, 30)
-    assert.equal(video._unkPalSlot2, 30)
-    assert.deepEqual(video._currentRoomPngPaletteColors[8][15], roomPalette[8 * 16 + 15])
+    assert.deepEqual(Array.from(video.layers.frontLayer.slice(0, 4)), [0x8F, 0x21, 0x8F, 0x8F])
+    assert.deepEqual(Array.from(video.layers.backLayer.slice(0, 4)), [0x8F, 0x21, 0x8F, 0x8F])
+    assert.deepEqual(video.palette.paletteHeaderOffsetsCache[level], headerOffsets)
+    assert.equal(video.palette.unkPalSlot1, 30)
+    assert.equal(video.palette.unkPalSlot2, 30)
+    assert.deepEqual(video.palette.currentRoomPngPaletteColors[8][15], roomPalette[8 * 16 + 15])
     assert.deepEqual(paletteEntries.get(0x00), roomPalette[0])
     assert.deepEqual(paletteEntries.get(0x60), headerSlotColors[0][0])
     assert.deepEqual(paletteEntries.get(0x80), roomPalette[8 * 16 + 0])
@@ -164,8 +164,8 @@ test('PC_decodeMap falls back to a blank front layer when the room png is missin
         fetch.restore()
     }
 
-    assert.equal(video._frontLayer.every((value) => value === 0), true)
-    assert.equal(video._backLayer.every((value) => value === 0), true)
+    assert.equal(video.layers.frontLayer.every((value) => value === 0), true)
+    assert.equal(video.layers.backLayer.every((value) => value === 0), true)
 })
 
 test('palette-header JSON is cached across room decodes for the same level', async () => {
@@ -197,17 +197,17 @@ test('palette-header JSON is cached across room decodes for the same level', asy
 test('markBlockAsDirty and updateScreen refresh only the touched screen blocks', async () => {
     const { video, stub } = createVideoFixture()
 
-    video._fullRefresh = false
+    video.screen.fullRefresh = false
     video.markBlockAsDirty(0, 0, SCREENBLOCK_W * 2, SCREENBLOCK_H, 1)
 
     await video.updateScreen()
 
     assert.deepEqual(stub.copyRectCalls, [
-        [0, 0, SCREENBLOCK_W * 2, SCREENBLOCK_H, video._frontLayer, video._w],
+        [0, 0, SCREENBLOCK_W * 2, SCREENBLOCK_H, video.layers.frontLayer, video.layers.w],
     ])
     assert.deepEqual(stub.updateScreenCalls, [0])
-    assert.equal(video._screenBlocks[0], 1)
-    assert.equal(video._screenBlocks[1], 1)
+    assert.equal(video.screen.screenBlocks[0], 1)
+    assert.equal(video.screen.screenBlocks[1], 1)
 })
 
 test('PC_drawTile respects x/y flips and color-key transparency', () => {

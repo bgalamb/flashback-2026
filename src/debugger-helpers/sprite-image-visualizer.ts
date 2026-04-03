@@ -27,18 +27,14 @@ class SpriteImageVisualizer {
         const paletteColorMaskOverride = paletteSlot << 4
 
         const offscreenLayer = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
-        const originalFrontLayer = this._game._vid._frontLayer
-        this._game._vid._frontLayer = offscreenLayer
-        try {
+        this._game._vid.withFrontLayer(offscreenLayer, () => {
             let renderData = spritePayload
             if (!(encodedWidth & 0x80)) {
                 this._game._vid.PC_decodeSpm(spritePayload, this._game._res.scratchBuffer)
                 renderData = this._game._res.scratchBuffer
             }
             this._game.drawCharacter(renderData, 0, 0, encodedHeight, encodedWidth, flags, paletteColorMaskOverride)
-        } finally {
-            this._game._vid._frontLayer = originalFrontLayer
-        }
+        })
 
         return this.buildImageFromIndexedLayer(offscreenLayer, palette)
     }

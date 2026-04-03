@@ -41,12 +41,16 @@ function createMenuFixture(overrides = {}) {
         },
     }
     const vid = {
-        _charFrontColor: 10,
-        _charTransparentColor: 11,
-        _charShadowColor: 12,
-        _frontLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
-        _backLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
-        _layerSize: GAMESCREEN_W * GAMESCREEN_H,
+        text: {
+            charFrontColor: 10,
+            charTransparentColor: 11,
+            charShadowColor: 12,
+        },
+        layers: {
+            frontLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
+            backLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
+            layerSize: GAMESCREEN_W * GAMESCREEN_H,
+        },
         drawCalls: [],
         dirtyCalls: [],
         fullRefreshCalls: 0,
@@ -54,6 +58,24 @@ function createMenuFixture(overrides = {}) {
         updateScreenCalls: 0,
         PC_drawChar(...args) {
             this.drawCalls.push(args)
+        },
+        getTextColors() {
+            return {
+                frontColor: this.text.charFrontColor,
+                transparentColor: this.text.charTransparentColor,
+                shadowColor: this.text.charShadowColor,
+            }
+        },
+        setTextColors(frontColor, transparentColor, shadowColor) {
+            this.text.charFrontColor = frontColor
+            this.text.charTransparentColor = transparentColor
+            this.text.charShadowColor = shadowColor
+        },
+        setTextTransparentColor(color) {
+            this.text.charTransparentColor = color
+        },
+        copyFrontLayerToBack() {
+            this.layers.backLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
         },
         markBlockAsDirty(...args) {
             this.dirtyCalls.push(args)
@@ -97,9 +119,9 @@ test('loadPicture copies the packed menu image into the front and back layers an
 
     await menu.loadPicture('menu1')
 
-    assert.deepEqual(Array.from(vid._frontLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
-    assert.deepEqual(Array.from(vid._frontLayer.slice(GAMESCREEN_W, GAMESCREEN_W + 4)), [21, 22, 23, 24])
-    assert.deepEqual(Array.from(vid._backLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
+    assert.deepEqual(Array.from(vid.layers.frontLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
+    assert.deepEqual(Array.from(vid.layers.frontLayer.slice(GAMESCREEN_W, GAMESCREEN_W + 4)), [21, 22, 23, 24])
+    assert.deepEqual(Array.from(vid.layers.backLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
     assert.deepEqual(stub.paletteCalls, [[res.scratchBuffer, 256]])
 })
 
@@ -118,9 +140,9 @@ test('drawString switches menu colors for the requested style and restores previ
         [66, 6, 8],
     ])
     assert.deepEqual(vid.dirtyCalls, [[56, 48, 16, 8, 1]])
-    assert.equal(vid._charFrontColor, 10)
-    assert.equal(vid._charTransparentColor, 11)
-    assert.equal(vid._charShadowColor, 12)
+    assert.equal(vid.text.charFrontColor, 10)
+    assert.equal(vid.text.charTransparentColor, 11)
+    assert.equal(vid.text.charShadowColor, 12)
 })
 
 test('handleLevelScreen cycles entries, updates the selected level, and exits on enter', async () => {
