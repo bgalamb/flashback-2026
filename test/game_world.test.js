@@ -43,6 +43,94 @@ const {
     gamePrepareAnimationsInRooms,
 } = require('../src/game/game_world.ts')
 
+function attachGroupedGameState(game) {
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+        get vid() { return game._vid },
+        set vid(value) { game._vid = value },
+        get mix() { return game._mix },
+        set mix(value) { game._mix = value },
+        get cut() { return game._cut },
+        set cut(value) { game._cut = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+    }
+    game.world = {
+        get currentIcon() { return game._currentIcon },
+        set currentIcon(value) { game._currentIcon = value },
+        get currentLevel() { return game._currentLevel },
+        set currentLevel(value) { game._currentLevel = value },
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get loadMap() { return game._loadMap },
+        set loadMap(value) { game._loadMap = value },
+        get printLevelCodeCounter() { return game._printLevelCodeCounter },
+        set printLevelCodeCounter(value) { game._printLevelCodeCounter = value },
+        get credits() { return game._credits },
+        set credits(value) { game._credits = value },
+        get blinkingConradCounter() { return game._blinkingConradCounter },
+        set blinkingConradCounter(value) { game._blinkingConradCounter = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+        get deathCutsceneCounter() { return game._deathCutsceneCounter },
+        set deathCutsceneCounter(value) { game._deathCutsceneCounter = value },
+    }
+    game.ui = {
+        get currentRoomOverlayCounter() { return game._currentRoomOverlayCounter },
+        set currentRoomOverlayCounter(value) { game._currentRoomOverlayCounter = value },
+        get saveStateCompleted() { return game._saveStateCompleted },
+        set saveStateCompleted(value) { game._saveStateCompleted = value },
+        get skillLevel() { return game._skillLevel },
+        set skillLevel(value) { game._skillLevel = value },
+    }
+    game.session = {
+        get randSeed() { return game._randSeed },
+        set randSeed(value) { game._randSeed = value },
+        get startedFromLevelSelect() { return game._startedFromLevelSelect },
+        set startedFromLevelSelect(value) { game._startedFromLevelSelect = value },
+        get validSaveState() { return game._validSaveState },
+        set validSaveState(value) { game._validSaveState = value },
+    }
+    game.pge = {
+        get shouldProcessCurrentPgeObjectNode() { return game._shouldProcessCurrentPgeObjectNode },
+        set shouldProcessCurrentPgeObjectNode(value) { game._shouldProcessCurrentPgeObjectNode = value },
+        get opcodeTempVar1() { return game._opcodeTempVar1 },
+        set opcodeTempVar1(value) { game._opcodeTempVar1 = value },
+        get opcodeTempVar2() { return game._opcodeTempVar2 },
+        set opcodeTempVar2(value) { game._opcodeTempVar2 = value },
+    }
+    game.collision = {
+        get roomCollisionGridPatchRestoreSlotPool() { return game._roomCollisionGridPatchRestoreSlotPool },
+        set roomCollisionGridPatchRestoreSlotPool(value) { game._roomCollisionGridPatchRestoreSlotPool = value },
+        get nextFreeRoomCollisionGridPatchRestoreSlot() { return game._nextFreeRoomCollisionGridPatchRestoreSlot },
+        set nextFreeRoomCollisionGridPatchRestoreSlot(value) { game._nextFreeRoomCollisionGridPatchRestoreSlot = value },
+        get activeRoomCollisionGridPatchRestoreSlots() { return game._activeRoomCollisionGridPatchRestoreSlots },
+        set activeRoomCollisionGridPatchRestoreSlots(value) { game._activeRoomCollisionGridPatchRestoreSlots = value },
+    }
+    game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
+        get livePgeStore() { return game._livePgeStore },
+        set livePgeStore(value) { game._livePgeStore = value },
+        get inventoryItemIndicesByOwner() { return game._inventoryItemIndicesByOwner },
+        set inventoryItemIndicesByOwner(value) { game._inventoryItemIndicesByOwner = value },
+    }
+    game.renderData = {
+        get animBuffer0State() { return game._animBuffer0State },
+        set animBuffer0State(value) { game._animBuffer0State = value },
+        get animBuffer1State() { return game._animBuffer1State },
+        set animBuffer1State(value) { game._animBuffer1State = value },
+        get animBuffer2State() { return game._animBuffer2State },
+        set animBuffer2State(value) { game._animBuffer2State = value },
+        get animBuffer3State() { return game._animBuffer3State },
+        set animBuffer3State(value) { game._animBuffer3State = value },
+        get animBuffers() { return game._animBuffers },
+        set animBuffers(value) { game._animBuffers = value },
+    }
+    return game
+}
+
 function createWorldGame(overrides = {}) {
     const loadCalls = []
     const roomCollisionPool = [{ id: 'slot-0' }, { id: 'slot-1' }]
@@ -223,7 +311,7 @@ function createWorldGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return game
+    return attachGroupedGameState(game)
 }
 
 test('gameGetRandomNumber advances the seed and returns the low 16 bits', () => {
@@ -629,4 +717,21 @@ test('animation preparation walks current and adjacent rooms with the correct fi
         [0, 57, 90, 10],
         [0, 31, 100, 11],
     ])
+})
+
+test('animation preparation tolerates missing room buckets', async () => {
+    const game = createWorldGame()
+    game._res.level.ctData[ctLeftRoom + 4] = 5
+    game._res.level.ctData[ctRightRoom + 4] = 6
+    game._res.level.ctData[ctUpRoom + 4] = uint8Max
+    game._res.level.ctData[ctDownRoom + 4] = uint8Max
+    game._livePgeStore.liveByRoom[4] = undefined
+    game._livePgeStore.liveByRoom[5] = undefined
+    game._livePgeStore.liveByRoom[6] = undefined
+
+    await gamePrepareCurrentRoomAnims(game, 4)
+    await gamePrepareAdjacentRoomAnims(game, ctLeftRoom, -gamescreenW, 0, gameIsLeftRoomPge, 4)
+    await gamePrepareAnimationsInRooms(game, 4)
+
+    assert.deepEqual(game._animBuffers.addStateCalls, [])
 })

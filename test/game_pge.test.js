@@ -19,14 +19,74 @@ const { ctLeftRoom, ctRightRoom } = require('../src/game/game.ts')
 const gameCollision = require('../src/game/game_collision.ts')
 const gamePge = require('../src/game/game_pge.ts')
 
+function attachGroupedGameState(game) {
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+    }
+    game.world = {
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get loadMap() { return game._loadMap },
+        set loadMap(value) { game._loadMap = value },
+        get blinkingConradCounter() { return game._blinkingConradCounter },
+        set blinkingConradCounter(value) { game._blinkingConradCounter = value },
+    }
+    game.ui = {
+        get skillLevel() { return game._skillLevel },
+        set skillLevel(value) { game._skillLevel = value },
+        get score() { return game._score },
+        set score(value) { game._score = value },
+    }
+    game.session = {
+        get startedFromLevelSelect() { return game._startedFromLevelSelect },
+        set startedFromLevelSelect(value) { game._startedFromLevelSelect = value },
+    }
+    game.pge = {
+        get currentPgeInputMask() { return game._currentPgeInputMask },
+        set currentPgeInputMask(value) { game._currentPgeInputMask = value },
+        get currentPgeRoom() { return game._currentPgeRoom },
+        set currentPgeRoom(value) { game._currentPgeRoom = value },
+        get shouldProcessCurrentPgeObjectNode() { return game._shouldProcessCurrentPgeObjectNode },
+        set shouldProcessCurrentPgeObjectNode(value) { game._shouldProcessCurrentPgeObjectNode = value },
+        get currentPgeFacingIsMirrored() { return game._currentPgeFacingIsMirrored },
+        set currentPgeFacingIsMirrored(value) { game._currentPgeFacingIsMirrored = value },
+    }
+    game.collision = {
+        get currentPgeCollisionGridX() { return game._currentPgeCollisionGridX },
+        set currentPgeCollisionGridX(value) { game._currentPgeCollisionGridX = value },
+        get currentPgeCollisionGridY() { return game._currentPgeCollisionGridY },
+        set currentPgeCollisionGridY(value) { game._currentPgeCollisionGridY = value },
+        get nextFreeDynamicPgeCollisionSlotPoolIndex() { return game._nextFreeDynamicPgeCollisionSlotPoolIndex },
+        set nextFreeDynamicPgeCollisionSlotPoolIndex(value) { game._nextFreeDynamicPgeCollisionSlotPoolIndex = value },
+        get dynamicPgeCollisionSlotsByPosition() { return game._dynamicPgeCollisionSlotsByPosition },
+        set dynamicPgeCollisionSlotsByPosition(value) { game._dynamicPgeCollisionSlotsByPosition = value },
+        get dynamicPgeCollisionSlotObjectPool() { return game._dynamicPgeCollisionSlotObjectPool },
+        set dynamicPgeCollisionSlotObjectPool(value) { game._dynamicPgeCollisionSlotObjectPool = value },
+    }
+    game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
+        get livePgeStore() { return game._livePgeStore },
+        set livePgeStore(value) { game._livePgeStore = value },
+        get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
+        set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
+    }
+    return game
+}
+
 function createPgeGame() {
-    return {
+    return attachGroupedGameState({
         _blinkingConradCounter: 0,
         _currentPgeCollisionGridX: 0,
         _currentPgeCollisionGridY: 0,
         _currentPgeInputMask: 0,
         _currentPgeRoom: 1,
         _currentRoom: 1,
+        _dynamicPgeCollisionSlotObjectPool: [],
+        _dynamicPgeCollisionSlotsByPosition: new Map(),
         _inpLastkeyshit: 0,
         _inpLastkeyshitleftright: 8,
         _livePgesByIndex: [],
@@ -35,6 +95,7 @@ function createPgeGame() {
             liveByRoom: Array.from({ length: 0x40 }, () => []),
         },
         _loadMap: false,
+        _nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
         _pendingSignalsByTargetPgeIndex: new Map(),
         _res: {
             level: {
@@ -73,7 +134,7 @@ function createPgeGame() {
             this.inpCalls += 1
         },
         renders: 0,
-    }
+    })
 }
 
 test('gameUpdatePgeDirectionalInputState preserves the last left/right direction when vertical input is also pressed', async () => {
@@ -269,6 +330,35 @@ test('gameHandlePgeRoomTransitionAndActivation updates Conrad room changes and a
     assert.equal((roomMate.flags & pgeFlagActive) !== 0, true)
 })
 
+test('gameHandlePgeRoomTransitionAndActivation tolerates missing destination room buckets', () => {
+    const originalRebuild = gameCollision.gameRebuildActiveRoomCollisionSlotLookup
+    const game = createPgeGame()
+    const conrad = {
+        index: 0,
+        roomLocation: 1,
+        posX: -10,
+        posY: 80,
+        flags: 0,
+        initPge: { objectType: 1 },
+    }
+
+    game._res.level.ctData[ctLeftRoom + 1] = 2
+    game._livePgeStore.liveByRoom[1] = [conrad]
+    game._livePgeStore.liveByRoom[2] = undefined
+    gameCollision.gameRebuildActiveRoomCollisionSlotLookup = () => {}
+
+    try {
+        assert.doesNotThrow(() => {
+            gamePge.gameHandlePgeRoomTransitionAndActivation(game, conrad, conrad.initPge)
+        })
+    } finally {
+        gameCollision.gameRebuildActiveRoomCollisionSlotLookup = originalRebuild
+    }
+
+    assert.equal(conrad.roomLocation, 2)
+    assert.equal(game._currentRoom, 2)
+})
+
 test('gameRunPgeFrameLogic moves Conrad into the next room and advances his next animation frame', () => {
     const originalRebuild = gameCollision.gameRebuildActiveRoomCollisionSlotLookup
     const rebuildCalls = []
@@ -359,6 +449,17 @@ test('gameRunPgeFrameLogic moves Conrad into the next room and advances his next
     assert.deepEqual(game._livePgeStore.liveByRoom[2], [roomMate, conrad])
     assert.equal(game._livePgeStore.activeFrameByIndex[2], roomMate)
     assert.equal((roomMate.flags & pgeFlagActive) !== 0, true)
+})
+
+test('gameRebuildPgeCollisionStateForCurrentRoom tolerates missing room buckets', () => {
+    const game = createPgeGame()
+    game._livePgeStore.liveByRoom[1] = undefined
+
+    assert.doesNotThrow(() => {
+        gamePge.gameRebuildPgeCollisionStateForCurrentRoom(game, 1)
+    })
+
+    assert.equal(game._nextFreeDynamicPgeCollisionSlotPoolIndex, 0)
 })
 
 test('gameRunPgeFrameLogic moves monsters between room lists without changing the current room', () => {

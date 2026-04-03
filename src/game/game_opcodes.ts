@@ -4,12 +4,58 @@ import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot, PgeZOrderCom
 import { colDetecthit, colDetecthitcallback3, colDetecthitcallback1, colDetecthitcallback2, colDetectgunhitcallback2, colDetectgunhitcallback1, colDetectgunhit, colDetectgunhitcallback3, colDetecthitcallback4, colDetecthitcallback5, colDetecthitcallback6 } from '../core/collision'
 import { uint8Max, uint16Max, ctRoomSize, ctGridStride, ctGridWidth, ctHeaderSize, globalGameOptions, kIngameSaveSlot } from "../core/game_constants"
 import { gameFindFirstMatchingCollidingObject, gameFindOverlappingPgeByObjectType, gameGetRoomCollisionGridData } from './game_collision'
+import { gameDebugLog } from './game_debug'
 import { gameInitializePgeDefaultAnimation } from './game_pge'
 import { assert } from "../core/assert"
 import { gameMarkSaveStateCompleted, gameQueueDeathCutscene, gameRequestMapReload, gameSetCurrentLevel } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
 import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameGetRandomNumber } from './game_world'
+
+type OpcodeDebugSnapshot = Record<string, string | number | boolean>
+type OpcodeDebugConfig = {
+	before?: (args: PgeOpcodeArgs, game: Game) => OpcodeDebugSnapshot | null
+	after?: (args: PgeOpcodeArgs, game: Game, result: number) => OpcodeDebugSnapshot | null
+}
+
+type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
+
+const formatOpcodeResult = (result: number) => result === uint16Max ? 'uint16Max' : String(result)
+
+const formatOpcodeSnapshotDiff = (before: OpcodeDebugSnapshot | null | undefined, after: OpcodeDebugSnapshot | null | undefined) => {
+	if (!after) {
+		return ''
+	}
+	if (!before) {
+		return Object.entries(after).map(([key, value]) => `${key}=${value}`).join(' ')
+	}
+	const keys = new Set([...Object.keys(before), ...Object.keys(after)])
+	const changes: string[] = []
+	for (const key of keys) {
+		const beforeValue = before[key]
+		const afterValue = after[key]
+		if (beforeValue !== afterValue) {
+			changes.push(`${key}:${beforeValue}->${afterValue}`)
+		}
+	}
+	return changes.join(' ')
+}
+
+const withOpcodeDebug = (id: string, name: string, handler: PgeOpcodeHandler, config: OpcodeDebugConfig = {}): PgeOpcodeHandler => {
+	return (args: PgeOpcodeArgs, game: Game) => {
+		const before = config.before?.(args, game)
+		const result = handler(args, game)
+		const after = config.after?.(args, game, result)
+		const diff = formatOpcodeSnapshotDiff(before, after)
+		const world = getGameWorldState(game)
+		gameDebugLog(
+			game,
+			'opcode',
+			`[opcode] id=${id} name=${name} frame=${game.renders} currentRoom=${world.currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.roomLocation} a=${args.a} b=${args.b} result=${formatOpcodeResult(result)}${diff ? ` ${diff}` : ''}`
+		)
+		return result
+	}
+}
 
 const pgeOpIsinpup = (args: PgeOpcodeArgs, game: Game) => {
 	if (1 === game.pge.currentPgeInputMask) {
@@ -836,7 +882,6 @@ const pgeOpCollides2u1u = (args: PgeOpcodeArgs, game: Game) => {
 
 const pgeOpDisplaytext = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
-	console.log(`[pge-text] frame=${game.renders} currentRoom=${world.currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.roomLocation} text=${args.a} previousText=${world.textToDisplay}`)
 	world.textToDisplay = args.a
 	return uint16Max
 }
@@ -1827,6 +1872,75 @@ const pgeOpIstempvar1set = (args: PgeOpcodeArgs, game: Game) => {
 	}
 }
 
+const opcodeInventoryItemSnapshot = (args: PgeOpcodeArgs, game: Game) => ({
+	currentInventoryItem: game.getCurrentInventoryItemIndex(args.pge)
+})
+
+const opcodeCounterSnapshot = (args: PgeOpcodeArgs) => ({
+	counter: args.pge.counterValue
+})
+
+const opcodeLifeSnapshot = (args: PgeOpcodeArgs) => ({
+	life: args.pge.life
+})
+
+const opcodeRoomPosSnapshot = (args: PgeOpcodeArgs) => ({
+	room: args.pge.roomLocation,
+	posX: args.pge.posX,
+	posY: args.pge.posY,
+})
+
+const opcodePgeStateSnapshot = (args: PgeOpcodeArgs) => ({
+	room: args.pge.roomLocation,
+	posX: args.pge.posX,
+	posY: args.pge.posY,
+	life: args.pge.life,
+	flags: args.pge.flags,
+	collision: args.pge.collisionSlot,
+	state: args.pge.scriptStateType,
+	entry: args.pge.firstScriptEntryIndex,
+	anim: args.pge.animSeq,
+})
+
+const opcodeCreditsSnapshot = (_args: PgeOpcodeArgs, game: Game) => {
+	const world = getGameWorldState(game)
+	return { credits: world.credits }
+}
+
+const opcodeTempVarSnapshot = (_args: PgeOpcodeArgs, game: Game) => ({
+	tempVar1: getGamePgeState(game).opcodeTempVar1
+})
+
+const opcodeCutsceneSnapshot = (_args: PgeOpcodeArgs, game: Game) => {
+	const world = getGameWorldState(game)
+	const cutsceneId = typeof game._cut.getId === 'function' ? game._cut.getId() : -1
+	return {
+		cutsceneId,
+		deathCutsceneCounter: world.deathCutsceneCounter,
+	}
+}
+
+const opcodeTargetActiveSnapshot = (counterIndex: number) => (args: PgeOpcodeArgs, game: Game) => {
+	const runtime = getRuntimeRegistryState(game)
+	const targetIndex = args.pge.initPge.counterValues[counterIndex]
+	const targetPge = targetIndex >= 0 ? runtime.livePgesByIndex[targetIndex] : null
+	return {
+		target: targetIndex,
+		targetFlags: targetPge?.flags ?? -1,
+		targetActive: Boolean(targetPge && (targetPge.flags & 4)),
+	}
+}
+
+const opcodeGroupSignalSnapshot = (counterIndex: number) => (args: PgeOpcodeArgs) => ({
+	target: args.pge.initPge.counterValues[counterIndex],
+	signal: args.a,
+})
+
+const opcodeSoundSnapshot = (sfxId: number, softVol: number) => ({
+	sfxId,
+	softVol,
+})
+
 const _pgeOpcodetable = [
     null,
     pgeOpIsinpup, // this.pge_op_isInpUp.bind(this),
@@ -1871,11 +1985,11 @@ const _pgeOpcodetable = [
     pgeOpCollides2o2u, // this.pge_op_collides2o2u.bind(this),
     pgeOpCollides2u2o, // this.pge_op_collides2u2o.bind(this),
     pgeOpIsingroup, // this.pge_op_isInGroup.bind(this),
-    pgeOpUpdategroup0, // this.pge_op_updateGroup0.bind(this),
+    withOpcodeDebug('0x23', 'updateGroup0', pgeOpUpdategroup0, { after: opcodeGroupSignalSnapshot(0) }), // this.pge_op_updateGroup0.bind(this),
     // /* 0x24 */
-    pgeOpUpdategroup1, // this.pge_op_updateGroup1.bind(this),
-    pgeOpUpdategroup2, // this.pge_op_updateGroup2.bind(this),
-    pgeOpUpdategroup3, // this.pge_op_updateGroup3.bind(this),
+    withOpcodeDebug('0x24', 'updateGroup1', pgeOpUpdategroup1, { after: opcodeGroupSignalSnapshot(1) }), // this.pge_op_updateGroup1.bind(this),
+    withOpcodeDebug('0x25', 'updateGroup2', pgeOpUpdategroup2, { after: opcodeGroupSignalSnapshot(2) }), // this.pge_op_updateGroup2.bind(this),
+    withOpcodeDebug('0x26', 'updateGroup3', pgeOpUpdategroup3, { after: opcodeGroupSignalSnapshot(3) }), // this.pge_op_updateGroup3.bind(this),
     pgeOpIspgedead, // this.pge_op_isPgeDead.bind(this),
     // /* 0x28 */
     pgeOpCollides1u2o, // this.pge_op_collides1u2o.bind(this),
@@ -1886,17 +2000,17 @@ const _pgeOpcodetable = [
     pgeOUnk0x2c, // this.pge_o_unk0x2C.bind(this),
     pgeOUnk0x2d, // this.pge_o_unk0x2D.bind(this),
     pgeOpNop, // this.pge_op_nop.bind(this),
-    pgeOpPickupobject, // this.pge_op_pickupObject.bind(this),
+    withOpcodeDebug('0x2F', 'pickupObject', pgeOpPickupobject, { after: opcodeGroupSignalSnapshot(0) }), // this.pge_op_pickupObject.bind(this),
     // /* 0x30 */
-    pgeOpAdditemtoinventory, // this.pge_op_addItemToInventory.bind(this),
+    withOpcodeDebug('0x30', 'addItemToInventory', pgeOpAdditemtoinventory, { before: opcodeRoomPosSnapshot, after: opcodeRoomPosSnapshot }), // this.pge_op_addItemToInventory.bind(this),
     pgeOpCopypge, // this.pge_op_copyPge.bind(this),
     pgeOpCanusecurrentinventoryitem, // this.pge_op_canUseCurrentInventoryItem.bind(this),
-    pgeOpRemoveitemfrominventory, // this.pge_op_removeItemFromInventory.bind(this),
+    withOpcodeDebug('0x33', 'removeItemFromInventory', pgeOpRemoveitemfrominventory, { before: opcodeInventoryItemSnapshot, after: opcodeInventoryItemSnapshot }), // this.pge_op_removeItemFromInventory.bind(this),
     // /* 0x34 */
     pgeOUnk0x34, // this.pge_o_unk0x34.bind(this),
     pgeOpIsinpmod, // this.pge_op_isInpMod.bind(this),
-    pgeOpSetcollisionstate1, // this.pge_op_setCollisionState1.bind(this),
-    pgeOpSetcollisionstate0, // this.pge_op_setCollisionState0.bind(this),
+    withOpcodeDebug('0x36', 'setCollisionState1', pgeOpSetcollisionstate1, { after: (args) => ({ patchValue: 1, dy: args.a, room: args.pge.roomLocation }) }), // this.pge_op_setCollisionState1.bind(this),
+    withOpcodeDebug('0x37', 'setCollisionState0', pgeOpSetcollisionstate0, { after: (args) => ({ patchValue: 0, dy: args.a, room: args.pge.roomLocation }) }), // this.pge_op_setCollisionState0.bind(this),
     // /* 0x38 */
     pgeOpIsingroup1, // this.pge_op_isInGroup1.bind(this),
     pgeOpIsingroup2, // this.pge_op_isInGroup2.bind(this),
@@ -1905,15 +2019,15 @@ const _pgeOpcodetable = [
     // /* 0x3C */
     pgeOUnk0x3c, // this.pge_o_unk0x3C.bind(this),
     pgeOUnk0x3d, // this.pge_o_unk0x3D.bind(this),
-    pgeOpSetpgecounter, // this.pge_op_setPgeCounter.bind(this),
-    pgeOpDecpgecounter, // this.pge_op_decPgeCounter.bind(this),
+    withOpcodeDebug('0x3E', 'setPgeCounter', pgeOpSetpgecounter, { before: opcodeCounterSnapshot, after: opcodeCounterSnapshot }), // this.pge_op_setPgeCounter.bind(this),
+    withOpcodeDebug('0x3F', 'decPgeCounter', pgeOpDecpgecounter, { before: opcodeCounterSnapshot, after: opcodeCounterSnapshot }), // this.pge_op_decPgeCounter.bind(this),
     // /* 0x40 */
     pgeOUnk0x40, // this.pge_o_unk0x40.bind(this),
-    pgeOpWakeuppge, // this.pge_op_wakeUpPge.bind(this),
-    pgeOpRemovepge, // this.pge_op_removePge.bind(this),
-    pgeOpRemovepgeifnotnear, // this.pge_op_removePgeIfNotNear.bind(this),
+    withOpcodeDebug('0x41', 'wakeUpPge', pgeOpWakeuppge, { before: opcodeTargetActiveSnapshot(0), after: opcodeTargetActiveSnapshot(0) }), // this.pge_op_wakeUpPge.bind(this),
+    withOpcodeDebug('0x42', 'removePge', pgeOpRemovepge, { before: opcodeTargetActiveSnapshot(0), after: opcodeTargetActiveSnapshot(0) }), // this.pge_op_removePge.bind(this),
+    withOpcodeDebug('0x43', 'removePgeIfNotNear', pgeOpRemovepgeifnotnear, { before: opcodePgeStateSnapshot, after: opcodePgeStateSnapshot }), // this.pge_op_removePgeIfNotNear.bind(this),
     // /* 0x44 */
-    pgeOpLoadpgecounter, // this.pge_op_loadPgeCounter.bind(this),
+    withOpcodeDebug('0x44', 'loadPgeCounter', pgeOpLoadpgecounter, { before: opcodeCounterSnapshot, after: opcodeCounterSnapshot }), // this.pge_op_loadPgeCounter.bind(this),
     pgeOUnk0x45, // this.pge_o_unk0x45.bind(this),
     pgeOUnk0x46, // this.pge_o_unk0x46.bind(this),
     pgeOUnk0x47, // this.pge_o_unk0x47.bind(this),
@@ -1921,12 +2035,12 @@ const _pgeOpcodetable = [
     pgeOUnk0x48, // this.pge_o_unk0x48.bind(this),
     pgeOUnk0x49, // this.pge_o_unk0x49.bind(this),
     pgeOUnk0x4a, // this.pge_o_unk0x4A.bind(this),
-    pgeOpKillpge, // this.pge_op_killPge.bind(this),
+    withOpcodeDebug('0x4B', 'killPge', pgeOpKillpge, { before: opcodePgeStateSnapshot, after: opcodePgeStateSnapshot }), // this.pge_op_killPge.bind(this),
     // /* 0x4C */
     pgeOpIsincurrentroom, // this.pge_op_isInCurrentRoom.bind(this),
     pgeOpIsnotincurrentroom, // this.pge_op_isNotInCurrentRoom.bind(this),
     pgeOpScrollposy, // this.pge_op_scrollPosY.bind(this),
-    pgeOpPlaydefaultdeathcutscene, // this.pge_op_playDefaultDeathCutscene.bind(this),
+    withOpcodeDebug('0x4F', 'playDefaultDeathCutscene', pgeOpPlaydefaultdeathcutscene, { before: opcodeCutsceneSnapshot, after: opcodeCutsceneSnapshot }), // this.pge_op_playDefaultDeathCutscene.bind(this),
     // /* 0x50 */
     pgeOUnk0x50, // this.pge_o_unk0x50.bind(this),
     null,
@@ -1934,32 +2048,32 @@ const _pgeOpcodetable = [
     pgeOUnk0x53, // this.pge_o_unk0x53.bind(this),
     // /* 0x54 */
     pgeOpIspgenear, // this.pge_op_isPgeNear.bind(this),
-    pgeOpSetlife, // this.pge_op_setLife.bind(this),
-    pgeOpInclife, // this.pge_op_incLife.bind(this),
-    pgeOpSetpgedefaultanim, // this.pge_op_setPgeDefaultAnim.bind(this),
+    withOpcodeDebug('0x55', 'setLife', pgeOpSetlife, { before: opcodeLifeSnapshot, after: opcodeLifeSnapshot }), // this.pge_op_setLife.bind(this),
+    withOpcodeDebug('0x56', 'incLife', pgeOpInclife, { before: opcodeLifeSnapshot, after: opcodeLifeSnapshot }), // this.pge_op_incLife.bind(this),
+    withOpcodeDebug('0x57', 'setPgeDefaultAnim', pgeOpSetpgedefaultanim, { before: opcodePgeStateSnapshot, after: opcodePgeStateSnapshot }), // this.pge_op_setPgeDefaultAnim.bind(this),
     // /* 0x58 */
     pgeOpSetlifecounter, // this.pge_op_setLifeCounter.bind(this),
     pgeOpDeclifecounter, // this.pge_op_decLifeCounter.bind(this),
-    pgeOpPlaycutscene, // this.pge_op_playCutscene.bind(this),
+    withOpcodeDebug('0x5A', 'playCutscene', pgeOpPlaycutscene, { before: opcodeCutsceneSnapshot, after: opcodeCutsceneSnapshot }), // this.pge_op_playCutscene.bind(this),
     pgeOpCompareunkvar, // this.pge_op_compareUnkVar.bind(this),
     // /* 0x5C */
-    pgeOpPlaydeathcutscene, // this.pge_op_playDeathCutscene.bind(this),
+    withOpcodeDebug('0x5C', 'playDeathCutscene', pgeOpPlaydeathcutscene, { before: opcodeCutsceneSnapshot, after: opcodeCutsceneSnapshot }), // this.pge_op_playDeathCutscene.bind(this),
     pgeOUnk0x5d, // this.pge_o_unk0x5D.bind(this),
     pgeOUnk0x5e, // this.pge_o_unk0x5E.bind(this),
     pgeOUnk0x5f, // this.pge_o_unk0x5F.bind(this),
     // /* 0x60 */
-    pgeOpFindandcopypge, // this.pge_op_findAndCopyPge.bind(this),
+    withOpcodeDebug('0x60', 'findAndCopyPge', pgeOpFindandcopypge, { before: opcodePgeStateSnapshot, after: opcodePgeStateSnapshot }), // this.pge_op_findAndCopyPge.bind(this),
     pgeOpIsinrandomrange, // this.pge_op_isInRandomRange.bind(this),
     pgeOUnk0x62, // this.pge_o_unk0x62.bind(this),
     pgeOUnk0x63, // this.pge_o_unk0x63.bind(this),
     // /* 0x64 */
     pgeOUnk0x64, // this.pge_o_unk0x64.bind(this),
-	pgeOpAddtocredits, // this.pge_op_addToCredits.bind(this),
-	pgeOpSubfromcredits, // this.pge_op_subFromCredits.bind(this),
+	withOpcodeDebug('0x65', 'addToCredits', pgeOpAddtocredits, { before: opcodeCreditsSnapshot, after: opcodeCreditsSnapshot }), // this.pge_op_addToCredits.bind(this),
+	withOpcodeDebug('0x66', 'subFromCredits', pgeOpSubfromcredits, { before: opcodeCreditsSnapshot, after: opcodeCreditsSnapshot }), // this.pge_op_subFromCredits.bind(this),
     pgeOUnk0x67, // this.pge_o_unk0x67.bind(this),
     // /* 0x68 */
-    pgeOpSetcollisionstate2, // this.pge_op_setCollisionState2.bind(this),
-    pgeOpSavestate, // this.pge_op_saveState.bind(this),
+    withOpcodeDebug('0x68', 'setCollisionState2', pgeOpSetcollisionstate2, { after: (args) => ({ patchValue: 2, dy: args.a, room: args.pge.roomLocation }) }), // this.pge_op_setCollisionState2.bind(this),
+    withOpcodeDebug('0x69', 'saveState', pgeOpSavestate, { after: (_args, game) => ({ validSaveState: getGameSessionState(game).validSaveState, slot: kIngameSaveSlot }) }), // this.pge_op_saveState.bind(this),
     pgeOUnk0x6a, // this.pge_o_unk0x6A.bind(this),
     pgeIstoggleable, // this.pge_isToggleable.bind(this),
     // /* 0x6C */
@@ -1981,27 +2095,30 @@ const _pgeOpcodetable = [
     pgeOpIsnotfacingconrad, // this.pge_op_isNotFacingConrad.bind(this),
     pgeOpIsfacingconrad, // this.pge_op_isFacingConrad.bind(this),
     pgeOpCollides2u1u, // this.pge_op_collides2u1u.bind(this),
-    pgeOpDisplaytext, // this.pge_op_displayText.bind(this),
+    withOpcodeDebug('0x7B', 'displayText', pgeOpDisplaytext, { after: (_args, game) => ({ textToDisplay: getGameWorldState(game).textToDisplay }) }), // this.pge_op_displayText.bind(this),
     // /* 0x7C */
     pgeOUnk0x7c, // this.pge_o_unk0x7C.bind(this),
-    pgeOpPlaysound, // this.pge_op_playSound.bind(this),
+    withOpcodeDebug('0x7D', 'playSound', pgeOpPlaysound, { after: (args) => opcodeSoundSnapshot(args.a & uint8Max, args.a >> 8) }), // this.pge_op_playSound.bind(this),
     pgeOUnk0x7e, // this.pge_o_unk0x7E.bind(this),
     pgeOUnk0x7f, // this.pge_o_unk0x7F.bind(this),
     // /* 0x80 */
-    pgeOpSetpgeposx, // this.pge_op_setPgePosX.bind(this),
-    pgeOpSetpgeposmodx, // this.pge_op_setPgePosModX.bind(this),
-    pgeOpChangeroom, // this.pge_op_changeRoom.bind(this),
+    withOpcodeDebug('0x80', 'setPgePosX', pgeOpSetpgeposx, { before: opcodeRoomPosSnapshot, after: opcodeRoomPosSnapshot }), // this.pge_op_setPgePosX.bind(this),
+    withOpcodeDebug('0x81', 'setPgePosModX', pgeOpSetpgeposmodx, { before: opcodeRoomPosSnapshot, after: opcodeRoomPosSnapshot }), // this.pge_op_setPgePosModX.bind(this),
+    withOpcodeDebug('0x82', 'changeRoom', pgeOpChangeroom, { after: (args) => ({ destinationIndex: args.pge.initPge.counterValues[args.a], sourceIndex: args.pge.initPge.counterValues[args.a + 1] }) }), // this.pge_op_changeRoom.bind(this),
     pgeOpHasinventoryitem, // this.pge_op_hasInventoryItem.bind(this),
     // /* 0x84 */
-    pgeOpChangelevel, // this.pge_op_changeLevel.bind(this),
-    pgeOpShakescreen, // this.pge_op_shakeScreen.bind(this),
+    withOpcodeDebug('0x84', 'changeLevel', pgeOpChangelevel, { before: (_args, game) => ({ level: getGameWorldState(game).currentLevel }), after: (_args, game) => ({ level: getGameWorldState(game).currentLevel }) }), // this.pge_op_changeLevel.bind(this),
+    withOpcodeDebug('0x85', 'shakeScreen', pgeOpShakescreen), // this.pge_op_shakeScreen.bind(this),
     pgeOUnk0x86, // this.pge_o_unk0x86.bind(this),
-    pgeOpPlaysoundgroup, // this.pge_op_playSoundGroup.bind(this),
+    withOpcodeDebug('0x87', 'playSoundGroup', pgeOpPlaysoundgroup, { after: (args) => {
+		const c = args.pge.initPge.counterValues[args.a] & uint16Max
+		return opcodeSoundSnapshot(c & uint8Max, c >> 8)
+	} }), // this.pge_op_playSoundGroup.bind(this),
     // /* 0x88 */
-    pgeOpAdjustpos, // this.pge_op_adjustPos.bind(this),
+    withOpcodeDebug('0x88', 'adjustPos', pgeOpAdjustpos, { before: opcodeRoomPosSnapshot, after: opcodeRoomPosSnapshot }), // this.pge_op_adjustPos.bind(this),
     null,
-    pgeOpSettempvar1, // this.pge_op_setTempVar1.bind(this),
-    pgeOpIstempvar1set, // this.pge_op_isTempVar1Set.bind(this)
+    withOpcodeDebug('0x8A', 'setTempVar1', pgeOpSettempvar1, { before: opcodeTempVarSnapshot, after: opcodeTempVarSnapshot }), // this.pge_op_setTempVar1.bind(this),
+    withOpcodeDebug('0x8B', 'isTempVar1Set', pgeOpIstempvar1set, { before: opcodeTempVarSnapshot, after: opcodeTempVarSnapshot }), // this.pge_op_isTempVar1Set.bind(this)
 ]
 
 export { _pgeOpcodetable }

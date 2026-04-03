@@ -82,6 +82,12 @@ function createCollisionGame() {
             this.queueCalls.push([sender, target, signal])
         },
     }
+    game.runtimeData = {
+        get livePgeStore() { return game._livePgeStore },
+        set livePgeStore(value) { game._livePgeStore = value },
+        get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
+        set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
+    }
     return game
 }
 

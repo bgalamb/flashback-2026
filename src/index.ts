@@ -31,10 +31,36 @@ type MainDependencies = {
     Game: typeof Game
 }
 
+type GameDebugFlags = Partial<Record<'collision' | 'opcode' | 'pge' | 'runtime' | 'session' | 'storyText' | 'world', boolean>>
+
+type GameDebugConfig = {
+    debugFlags: GameDebugFlags
+    debugStartFrame?: number
+}
+
 const defaultMainDependencies: MainDependencies = {
     SystemStub,
     FileSystem,
     Game,
+}
+
+const getDebugConfigFromDocument = (doc: Pick<Document, 'querySelectorAll' | 'getElementById'> = document): GameDebugConfig => {
+    const debugFlags: GameDebugFlags = {}
+    const flagInputs = doc.querySelectorAll<HTMLInputElement>('[data-debug-flag]')
+    flagInputs.forEach((input) => {
+        if (input.checked) {
+            const flag = input.dataset.debugFlag as keyof GameDebugFlags
+            debugFlags[flag] = true
+        }
+    })
+
+    const frameInput = doc.getElementById('debug-start-frame') as HTMLInputElement | null
+    const debugStartFrame = frameInput && frameInput.value !== '' ? Number(frameInput.value) : undefined
+
+    return {
+        debugFlags,
+        debugStartFrame: Number.isFinite(debugStartFrame) ? debugStartFrame : undefined,
+    }
 }
 
 const createMain = (dependencies: MainDependencies = defaultMainDependencies) => async (config = defaultConfig ) => {
@@ -58,6 +84,13 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
     await fs.setRootDirectory(dataPath)
 
     const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave)
+    if (typeof document !== 'undefined') {
+        const debugConfig = getDebugConfigFromDocument(document)
+        game.debugFlags = debugConfig.debugFlags
+        if (typeof debugConfig.debugStartFrame === 'number') {
+            game.debugStartFrame = debugConfig.debugStartFrame
+        }
+    }
     stub._game = game
     await stub.init(gCaption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
     await game.run()
@@ -88,4 +121,4 @@ if (typeof document !== 'undefined') {
     bindPlayButton()
 }
 
-export { bindPlayButton, createMain, initOptions, main, parseScaler }
+export { bindPlayButton, createMain, getDebugConfigFromDocument, initOptions, main, parseScaler }

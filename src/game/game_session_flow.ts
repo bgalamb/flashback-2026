@@ -5,6 +5,7 @@ import { LocaleData } from '../resource/resource'
 import { dfFastmode, dfSetlife, dirDown, dirUp } from '../platform/systemstub_web'
 import { charW, gamescreenW, uint8Max } from '../core/game_constants'
 import { kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
+import { gameDebugLog } from './game_debug'
 import { gameChangeStateSlot, gameCompleteFrameTiming, gameEndLoop, gameSetSaveTimestamp, gameTickDeathCutscene } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
 import { getGameServices } from './game_services'
@@ -17,8 +18,10 @@ export async function gamePlayCutscene(game: Game, id: number = -1) {
         cut.setId(id)
     }
     if (cut.getId() === -1) {
+        gameDebugLog(game, 'session', '[cutscene] skip reason=no-cutscene-id')
         return
     }
+    gameDebugLog(game, 'session', `[cutscene] play id=${cut.getId()} requestedId=${id}`)
     mix.stopMusic()
     if (cut.getId() !== 0x4A) {
         mix.playMusic(Cutscene._musicTable[cut.getId()])
@@ -26,9 +29,11 @@ export async function gamePlayCutscene(game: Game, id: number = -1) {
     await cut.play()
     if (id === 0xD && !cut.isInterrupted()) {
         cut.setId(0x4A)
+        gameDebugLog(game, 'session', '[cutscene] chaining intro to id=74')
         await cut.play()
     }
     mix.stopMusic()
+    gameDebugLog(game, 'session', `[cutscene] finished id=${cut.getId()} interrupted=${cut.isInterrupted()}`)
 }
 
 export async function gameShowFinalScore(game: Game) {
@@ -166,6 +171,9 @@ export function gameMaybeAutoSave(game: Game, autoSaveIntervalMs: number) {
     if (getRuntimeRegistryState(game).livePgesByIndex[0].life > 0 && world.deathCutsceneCounter === 0) {
         game.saveGameState(kAutoSaveSlot)
         gameSetSaveTimestamp(game)
+        gameDebugLog(game, 'session', `[autosave] saved slot=${kAutoSaveSlot} timestamp=${session.saveTimestamp}`)
+    } else {
+        gameDebugLog(game, 'session', `[autosave] skipped conradLife=${getRuntimeRegistryState(game).livePgesByIndex[0].life} deathCutsceneCounter=${world.deathCutsceneCounter}`)
     }
 }
 
@@ -173,12 +181,15 @@ export function gameInpHandleSpecialKeys(game: Game) {
     const session = getGameSessionState(game)
     if (game._stub._pi.dbgMask & dfSetlife) {
         getRuntimeRegistryState(game).livePgesByIndex[0].life = 0x7FFF
+        gameDebugLog(game, 'session', '[debug-key] set Conrad life to max')
     }
     if (game._stub._pi.load) {
+        gameDebugLog(game, 'session', `[debug-key] load requested slot=${session.stateSlot}`)
         game.loadGameState(session.stateSlot)
         game._stub._pi.load = false
     }
     if (game._stub._pi.save) {
+        gameDebugLog(game, 'session', `[debug-key] save requested slot=${session.stateSlot}`)
         game.saveGameState(session.stateSlot)
         game._stub._pi.save = false
     }
@@ -186,15 +197,16 @@ export function gameInpHandleSpecialKeys(game: Game) {
         const previousSlot = session.stateSlot
         const slot = gameChangeStateSlot(game, game._stub._pi.stateSlot)
         if (slot !== previousSlot) {
-            console.log(`Current game state slot is ${session.stateSlot}`)
+            gameDebugLog(game, 'session', `Current game state slot is ${session.stateSlot}`)
         }
         game._stub._pi.stateSlot = 0
     }
     if (game._stub._pi.rewind) {
         if (game._rewindLen !== 0) {
+            gameDebugLog(game, 'session', `[rewind] loading previous state rewindLen=${game._rewindLen} rewindPtr=${game._rewindPtr}`)
             gameLoadStateRewind(game)
         } else {
-            console.log('Rewind buffer is empty')
+            gameDebugLog(game, 'session', 'Rewind buffer is empty')
         }
         game._stub._pi.rewind = false
     }
@@ -213,5 +225,6 @@ export function gameLoadStateRewind(game: Game) {
     if (game._rewindLen > 0) {
         --game._rewindLen
     }
+    gameDebugLog(game, 'session', `[rewind] loaded ptr=${ptr} nextPtr=${game._rewindPtr} remaining=${game._rewindLen}`)
     return !f.ioErr()
 }

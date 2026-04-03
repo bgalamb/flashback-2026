@@ -4,6 +4,7 @@ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_cons
 import { gamescreenW } from '../core/game_constants'
 import { uint16Max } from '../core/game_constants'
 import { ctGridHeight, ctGridStride, ctGridWidth, ctHeaderSize } from '../core/game_constants'
+import { gameDebugLog, gameDebugTrace } from './game_debug'
 import { getRuntimeRegistryState } from './game_runtime_data'
 
 export function gameFindOverlappingPgeByObjectType(game: Game, pge: LivePGE, arg2: number) {
@@ -77,6 +78,7 @@ export function gameRebuildActiveRoomCollisionSlotLookup(game: Game, currentRoom
             game.collision.activeRoomCollisionSlotWindow.right[localIndex] = slotBucket
         }
     })
+    gameDebugLog(game, 'collision', `[collision-window] room=${currentRoom} left=${game.collision.activeCollisionLeftRoom} right=${game.collision.activeCollisionRightRoom} currentBuckets=${game.collision.activeRoomCollisionSlotWindow.current.filter(Boolean).length} leftBuckets=${game.collision.activeRoomCollisionSlotWindow.left.filter(Boolean).length} rightBuckets=${game.collision.activeRoomCollisionSlotWindow.right.filter(Boolean).length}`)
 }
 
 export function gameClearDynamicCollisionSlotState(game: Game) {
@@ -174,7 +176,7 @@ export function gameGetCollisionLanePositionIndexByXY(game: Game, pge: LivePGE, 
     x = (x + 8) >> 4
     y = ((y - 8) / 72) >> 0
 
-    game.renders > game.debugStartFrame && console.log(`getGridPos x=${x} y=${y}`)
+    gameDebugTrace(game, 'collision', `getGridPos x=${x} y=${y}`)
 
     if (x < 0 || x > ctGridWidth - 1 || y < 0 || y > 2) {
         return uint16Max
@@ -243,6 +245,8 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
                 }
             }
         }
+        const bucketPges = (game.collision.dynamicPgeCollisionSlotsByPosition.get(pos) || []).map((slot) => slot.pge?.index ?? -1).join(',')
+        gameDebugLog(game, 'collision', `[collision-segment] pge=${pge.index} segment=${collisionSegment} pos=${pos} room=${pge.roomLocation} bucket=[${bucketPges}]`)
         previousPgeCollisionSegmentSlot = currentPgeCollisionSegmentSlot
 
     }

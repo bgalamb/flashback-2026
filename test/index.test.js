@@ -6,6 +6,7 @@ const assert = require('node:assert/strict')
 const {
     bindPlayButton,
     createMain,
+    getDebugConfigFromDocument,
 } = require('../src/index.ts')
 
 test('main loads the game with the configured boot sequence', async () => {
@@ -118,4 +119,31 @@ test('clicking play reveals the game and starts boot', async () => {
     assert.equal(intro.style.display, 'none')
     assert.deepEqual(main.classList.added, ['visible'])
     assert.equal(startCount, 1)
+})
+
+test('debug controls are parsed from the document', () => {
+    const fakeDocument = {
+        querySelectorAll(selector) {
+            assert.equal(selector, '[data-debug-flag]')
+            return [
+                { checked: true, dataset: { debugFlag: 'pge' } },
+                { checked: false, dataset: { debugFlag: 'runtime' } },
+                { checked: true, dataset: { debugFlag: 'storyText' } },
+            ]
+        },
+        getElementById(id) {
+            assert.equal(id, 'debug-start-frame')
+            return { value: '12' }
+        },
+    }
+
+    const result = getDebugConfigFromDocument(fakeDocument)
+
+    assert.deepEqual(result, {
+        debugFlags: {
+            pge: true,
+            storyText: true,
+        },
+        debugStartFrame: 12,
+    })
 })

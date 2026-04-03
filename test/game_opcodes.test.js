@@ -23,6 +23,44 @@ function createAnimData(animNumber = 9, special = 0) {
     ])
 }
 
+function attachGroupedGameState(game) {
+    game.world = {
+        get currentLevel() { return game._currentLevel },
+        set currentLevel(value) { game._currentLevel = value },
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get loadMap() { return game._loadMap },
+        set loadMap(value) { game._loadMap = value },
+        get credits() { return game._credits },
+        set credits(value) { game._credits = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+        get deathCutsceneCounter() { return game._deathCutsceneCounter },
+        set deathCutsceneCounter(value) { game._deathCutsceneCounter = value },
+    }
+    game.ui = {
+        get saveStateCompleted() { return game._saveStateCompleted },
+        set saveStateCompleted(value) { game._saveStateCompleted = value },
+    }
+    game.session = {
+        get validSaveState() { return game._validSaveState },
+        set validSaveState(value) { game._validSaveState = value },
+    }
+    game.pge = {
+        get opcodeTempVar1() { return game._opcodeTempVar1 },
+        set opcodeTempVar1(value) { game._opcodeTempVar1 = value },
+    }
+    game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
+        get livePgeStore() { return game._livePgeStore },
+        set livePgeStore(value) { game._livePgeStore = value },
+        get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
+        set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
+    }
+    return game
+}
+
 function createOpcodeGame(overrides = {}) {
     const calls = []
     const currentPge = {
@@ -101,7 +139,7 @@ function createOpcodeGame(overrides = {}) {
     game._livePgeStore.liveByRoom[currentPge.roomLocation].push(currentPge)
 
     Object.assign(game, overrides)
-    return game
+    return attachGroupedGameState(game)
 }
 
 function runOpcode(index, args, game) {

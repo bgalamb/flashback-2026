@@ -40,7 +40,7 @@ function activatePgeForCurrentFrame(game: Game, pge: LivePGE, log: PgeTransition
 }
 
 function activateCurrentRoomPges(game: Game, room: number, log: PgeTransitionLogger) {
-    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room]) {
+    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room] ?? []) {
         if (pge.initPge.flags & initPgeFlagInCurrentRoomList) {
             activatePgeForCurrentFrame(game, pge, log, `activate current-room pge=${pge.index} pos=(${pge.posX},${pge.posY})`)
         }
@@ -51,7 +51,7 @@ function activateNeighborRoomPges(game: Game, room: number, minY: number, label:
     if (room < 0 || room >= 0x40) {
         return
     }
-    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room]) {
+    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room] ?? []) {
         if (pge.initPge.objectType !== 10 && pge.posY >= minY && (pge.initPge.flags & initPgeFlagInCurrentRoomList)) {
             activatePgeForCurrentFrame(game, pge, log, `activate ${label} pge=${pge.index} room=${room} pos=(${pge.posX},${pge.posY})`)
         }

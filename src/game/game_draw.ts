@@ -5,6 +5,7 @@ import { charW, gamescreenH, gamescreenW } from '../core/game_constants'
 import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/game_constants'
 import { gameFindFirstMatchingCollidingObject } from './game_collision'
 import { assert } from "../core/assert"
+import { gameDebugLog, gameDebugWarn } from './game_debug'
 import { gameClearSaveStateCompleted, gameTickRoomOverlay } from './game_lifecycle'
 import { gameGetCurrentInventoryItemIndex } from './game_inventory'
 import { getGameServices } from './game_services'
@@ -96,19 +97,19 @@ export async function gameDrawStoryTexts(game: Game) {
     const world = getGameWorldState(game)
     const ui = getGameUiState(game)
     if (world.textToDisplay !== uint16Max) {
-        console.log(`[story-text] start frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} inventoryIcon=${ui.currentInventoryIconNum}`)
+        gameDebugLog(game, 'storyText', `[story-text] start frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} inventoryIcon=${ui.currentInventoryIconNum}`)
         let textColor = 0xE8
         let str = game._res.getGameString(world.textToDisplay)
         let index = 0
         game._vid.copyFrontLayerToTemp()
         let textSpeechSegment = 0
         while (!game._stub._pi.quit) {
-            console.log(`[story-text] segment frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
+            gameDebugLog(game, 'storyText', `[story-text] segment frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
             const storyIconNum = Number.isInteger(ui.currentInventoryIconNum) ? ui.currentInventoryIconNum : uint8Max
             if (storyIconNum === uint8Max) {
-                console.warn(`[story-text] missing inventory icon frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}; skipping story icon draw`)
+                gameDebugWarn(game, 'storyText', `[story-text] missing inventory icon frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}; skipping story icon draw`)
             } else {
-                console.log(`[story-text] draw icon frame=${game.renders} icon=${storyIconNum}`)
+                gameDebugLog(game, 'storyText', `[story-text] draw icon frame=${game.renders} icon=${storyIconNum}`)
                 game.drawIcon(storyIconNum, 80, 8, 0xC)
             }
             let yPos = 26
@@ -116,24 +117,24 @@ export async function gameDrawStoryTexts(game: Game) {
             if (str[index] === uint8Max) {
                 textColor = str[index + 1]
                 index += 3
-                console.log(`[story-text] control-prefix textColor=${textColor} nextIndex=${index}`)
+                gameDebugLog(game, 'storyText', `[story-text] control-prefix textColor=${textColor} nextIndex=${index}`)
             }
 
             while (1) {
                 const remaining = str.subarray(index)
                 const len = getLineLength(remaining)
                 const line = remaining.subarray(0, len)
-                console.log(`[story-text] draw line len=${len} y=${yPos} firstByte=${str[index]} index=${index}`)
+                gameDebugLog(game, 'storyText', `[story-text] draw line len=${len} y=${yPos} firstByte=${str[index]} index=${index}`)
                 game._vid.drawString(new TextDecoder().decode(line), ((176 - len * charW) / 2) >> 0, yPos, textColor)
 
                 index += len
                 const terminator = str[index]
-                console.log(`[story-text] line terminator=${terminator} nextIndex=${index}`)
+                gameDebugLog(game, 'storyText', `[story-text] line terminator=${terminator} nextIndex=${index}`)
                 if (terminator === 0 || terminator === 0xB) {
                     break
                 }
                 if (terminator !== 0xA) {
-                    console.warn(`[story-text] unexpected line terminator=${terminator} at index=${index} for text=${world.textToDisplay}`)
+                    gameDebugWarn(game, 'storyText', `[story-text] unexpected line terminator=${terminator} at index=${index} for text=${world.textToDisplay}`)
                     break
                 }
                 index++
@@ -144,17 +145,17 @@ export async function gameDrawStoryTexts(game: Game) {
             const res = await gameLoadVoiceSegment(game, world.textToDisplay, textSpeechSegment++)
             voiceSegmentData = res.buf
             voiceSegmentLen = res.bufSize
-            console.log(`[story-text] voice frame=${game.renders} text=${world.textToDisplay} hasVoice=${!!voiceSegmentData} voiceLen=${voiceSegmentLen}`)
+            gameDebugLog(game, 'storyText', `[story-text] voice frame=${game.renders} text=${world.textToDisplay} hasVoice=${!!voiceSegmentData} voiceLen=${voiceSegmentLen}`)
             if (voiceSegmentData) {
                 game._mix.play(voiceSegmentData, voiceSegmentLen, 32000, maxVolume)
             }
             await game._vid.updateScreen()
             if (!voiceSegmentData) {
-                console.log(`[story-text] waiting for input without voice frame=${game.renders} text=${world.textToDisplay}`)
+                gameDebugLog(game, 'storyText', `[story-text] waiting for input without voice frame=${game.renders} text=${world.textToDisplay}`)
             }
             while (!game._stub._pi.backspace && !game._stub._pi.quit) {
                 if (voiceSegmentData && !game._mix.isPlaying(voiceSegmentData)) {
-                    console.log(`[story-text] voice finished frame=${game.renders} text=${world.textToDisplay}`)
+                    gameDebugLog(game, 'storyText', `[story-text] voice finished frame=${game.renders} text=${world.textToDisplay}`)
                     break
                 }
                 await game.inpUpdate()
@@ -172,7 +173,7 @@ export async function gameDrawStoryTexts(game: Game) {
 
             game._vid.restoreFrontLayerFromTemp()
         }
-        console.log(`[story-text] end frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}`)
+        gameDebugLog(game, 'storyText', `[story-text] end frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}`)
         world.textToDisplay = uint16Max
     }
 }

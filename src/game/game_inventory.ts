@@ -4,6 +4,7 @@ import { LocaleData } from '../resource/resource'
 import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub_web'
 import { charW, gamescreenW } from '../core/game_constants'
 import { uint16Max, uint8Max } from '../core/game_constants'
+import { gameDebugLog } from './game_debug'
 import { gameChangeStateSlot } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
 import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
@@ -121,6 +122,7 @@ export async function gameHandleConfigPanel(game: Game) {
     const menuItemSave = 3
     const colors = [ 2, 3, 3, 3 ]
     let current = 0
+    gameDebugLog(game, 'session', `[config-panel] opened stateSlot=${session.stateSlot}`)
     while (!game._stub._pi.quit) {
         game._menu.drawString(game._res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
         game._menu.drawString(game._res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
@@ -155,6 +157,7 @@ export async function gameHandleConfigPanel(game: Game) {
             const tmp = colors[prev]
             colors[prev] = colors[current]
             colors[current] = tmp
+            gameDebugLog(game, 'session', `[config-panel] selection=${current} stateSlot=${session.stateSlot}`)
         }
         if (game._stub._pi.enter) {
             game._stub._pi.enter = false
@@ -166,10 +169,12 @@ export async function gameHandleConfigPanel(game: Game) {
                     game._stub._pi.save = true
                     break
             }
+            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game._stub._pi.load} save=${game._stub._pi.save} stateSlot=${session.stateSlot}`)
             break
         }
         if (game._stub._pi.escape) {
             game._stub._pi.escape = false
+            gameDebugLog(game, 'session', '[config-panel] closed via escape')
             break
         }
     }
@@ -186,6 +191,7 @@ export async function gameHandleInventory(game: Game) {
     const pge: LivePGE = runtime.livePgesByIndex[0]
     const inventoryItemIndices = gameGetInventoryItemIndices(game, pge)
     if (pge.life > 0 && inventoryItemIndices.length !== 0) {
+        gameDebugLog(game, 'session', `[inventory] opened owner=${pge.index} items=${inventoryItemIndices.join(',')}`)
         game.playSound(66, 0)
         const items: InventoryItem[] = new Array(24).fill(null).map(() => ({
             iconNum: 0,
@@ -229,6 +235,7 @@ export async function gameHandleInventory(game: Game) {
                     if (currentItem === itemIt) {
                         game.drawIcon(76, iconXPos, 157, 0xC)
                         selectedPge = items[itemIt].livePge
+                        gameDebugLog(game, 'session', `[inventory] highlight itemIndex=${currentItem} line=${currentLine} pge=${selectedPge.index} icon=${items[itemIt].iconNum} scoreView=${displayScore}`)
                         const txtNum = items[itemIt].initPge.textNum
                         const str = game._res.getTextString(world.currentLevel, txtNum)
                         game.drawString(str, gamescreenW, 189, 0xED, true)
@@ -261,6 +268,7 @@ export async function gameHandleInventory(game: Game) {
                 if (currentLine < numLines - 1) {
                     ++currentLine
                     currentItem = currentLine * 4
+                    gameDebugLog(game, 'session', `[inventory] move up line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
             if (game._stub._pi.dirMask & dirDown) {
@@ -268,6 +276,7 @@ export async function gameHandleInventory(game: Game) {
                 if (currentLine > 0) {
                     --currentLine
                     currentItem = currentLine * 4
+                    gameDebugLog(game, 'session', `[inventory] move down line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
             if (game._stub._pi.dirMask & dirLeft) {
@@ -276,6 +285,7 @@ export async function gameHandleInventory(game: Game) {
                     const itemNum = currentItem % 4
                     if (itemNum > 0) {
                         --currentItem
+                        gameDebugLog(game, 'session', `[inventory] move left itemIndex=${currentItem}`)
                     }
                 }
             }
@@ -285,12 +295,14 @@ export async function gameHandleInventory(game: Game) {
                     const itemNum = currentItem % 4
                     if (itemNum < 3) {
                         ++currentItem
+                        gameDebugLog(game, 'session', `[inventory] move right itemIndex=${currentItem}`)
                     }
                 }
             }
             if (game._stub._pi.enter) {
                 game._stub._pi.enter = false
                 displayScore = !displayScore
+                gameDebugLog(game, 'session', `[inventory] toggled scoreView=${displayScore}`)
             }
         }
         game._vid.fullRefresh()
@@ -303,6 +315,7 @@ export async function gameHandleInventory(game: Game) {
                 gameSetCurrentInventoryPgeSelection(game, selectedPge)
             }
         }
+        gameDebugLog(game, 'session', `[inventory] closed selected=${selectedPge?.index ?? 'none'} scoreView=${displayScore}`)
         game.playSound(66, 0)
     }
 }

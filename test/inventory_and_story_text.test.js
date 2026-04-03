@@ -17,6 +17,54 @@ function createPlayerInput() {
     }
 }
 
+function attachInventoryGroupedGameState(game) {
+    game.world = {
+        get currentLevel() { return game._currentLevel },
+        set currentLevel(value) { game._currentLevel = value },
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+    }
+    game.ui = {
+        get score() { return game._score },
+        set score(value) { game._score = value },
+        get skillLevel() { return game._skillLevel },
+        set skillLevel(value) { game._skillLevel = value },
+        get currentInventoryIconNum() { return game._currentInventoryIconNum },
+        set currentInventoryIconNum(value) { game._currentInventoryIconNum = value },
+    }
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+    }
+    game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
+        get inventoryItemIndicesByOwner() { return game._inventoryItemIndicesByOwner },
+        set inventoryItemIndicesByOwner(value) { game._inventoryItemIndicesByOwner = value },
+    }
+    return game
+}
+
+function attachStoryGroupedGameState(game) {
+    game.world = {
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+    }
+    game.ui = {
+        get currentInventoryIconNum() { return game._currentInventoryIconNum },
+        set currentInventoryIconNum(value) { game._currentInventoryIconNum = value },
+    }
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+    }
+    return game
+}
+
 function createInventoryGame(overrides = {}) {
     const playerInput = createPlayerInput()
     const frontLayer = new Uint8Array(32)
@@ -111,7 +159,7 @@ function createInventoryGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return game
+    return attachInventoryGroupedGameState(game)
 }
 
 function createStoryGame(overrides = {}) {
@@ -182,7 +230,7 @@ function createStoryGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return game
+    return attachStoryGroupedGameState(game)
 }
 
 test('gameHandleInventory draws the selected item overlay and picks the highlighted inventory item on exit', async () => {

@@ -9,6 +9,7 @@ import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/g
 import { _gameLevels } from '../core/staticres'
 import { monsterListsByLevel } from '../core/staticres-monsters'
 import { assert } from "../core/assert"
+import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game_debug'
 import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game_pge'
 import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game_lifecycle'
 import { getGameServices } from './game_services'
@@ -72,7 +73,7 @@ function applyDirectLevelStartOverride(game: Game) {
         if (nextIndex >= 0) {
             conrad.firstScriptEntryIndex = nextIndex
         } else {
-            console.warn(`[direct-start] Missing Conrad script state ${override.stateType} for level ${world.currentLevel}`)
+            gameDebugWarn(game, 'world', `[direct-start] Missing Conrad script state ${override.stateType} for level ${world.currentLevel}`)
         }
         conrad.animSeq = 0
         gameInitializePgeDefaultAnimation(game, conrad)
@@ -103,6 +104,7 @@ export function gameGetRandomNumber(game: Game) {
 export async function gameChangeLevel(game: Game) {
     const world = getGameWorldState(game)
     const { vid } = getGameServices(game)
+    gameDebugLog(game, 'world', `[level-change] begin level=${world.currentLevel} room=${world.currentRoom}`)
     await vid.fadeOut()
     game.clearStateRewind()
     await game.loadLevelData()
@@ -111,6 +113,7 @@ export async function gameChangeLevel(game: Game) {
     vid.setPalette0xF()
     vid.setTextPalette()
     vid.fullRefresh()
+    gameDebugLog(game, 'world', `[level-change] complete level=${world.currentLevel} room=${world.currentRoom}`)
 }
 
 export async function gameInpUpdate(game: Game) {
@@ -140,6 +143,7 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
         return uint16Max
     }
     if (pge.roomLocation !== currentRoom) {
+        gameDebugLog(game, 'world', `[monster-load] skip pge=${pge.index} room=${pge.roomLocation} currentRoom=${currentRoom}`)
         return 0
     }
 
@@ -159,12 +163,16 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
             resolvedSpriteSet
         })
         vid.setPaletteSlotLE(monsterPaletteSlot, currentMonster.palette)
+        gameDebugLog(game, 'world', `[monster-load] loaded monster=${currentMonster.name} pge=${pge.index} scriptNode=${currentMonster.monsterScriptNodeIndex} paletteSlot=${monsterPaletteSlot}`)
+    } else {
+        gameDebugLog(game, 'world', `[monster-load] cache-hit pge=${pge.index} scriptNode=${currentMonster.monsterScriptNodeIndex}`)
     }
     return uint16Max
 }
 
 export function gameHasLevelMap(game: Game, room: number) {
     if (room < 0 || room >= 0x40) {
+        gameDebugLog(game, 'world', `[level-map] room=${room} hasMap=false reason=out-of-range`)
         return false
     }
     const ct = getGameServices(game).res.level.ctData
@@ -174,20 +182,24 @@ export function gameHasLevelMap(game: Game, room: number) {
         ct[ctRightRoom + room] !== 0 ||
         ct[ctLeftRoom + room] !== 0
     ) {
+        gameDebugLog(game, 'world', `[level-map] room=${room} hasMap=true reason=neighbor-link`)
         return true
     }
     const gridOffset = ctHeaderSize + room * ctGridStride
     for (let i = 0; i < ctGridStride; ++i) {
         if (ct[gridOffset + i] !== 0) {
+            gameDebugLog(game, 'world', `[level-map] room=${room} hasMap=true reason=grid-data cell=${i}`)
             return true
         }
     }
+    gameDebugLog(game, 'world', `[level-map] room=${room} hasMap=false`)
     return false
 }
 
 export async function gameLoadLevelMap(game: Game, currentRoom: number) {
     const world = getGameWorldState(game)
     world.currentIcon = uint8Max
+    gameDebugLog(game, 'world', `[level-map] decode level=${world.currentLevel} room=${currentRoom}`)
     await getGameServices(game).vid.pcDecodemap(world.currentLevel, currentRoom)
 }
 
@@ -209,7 +221,7 @@ export function gameCreatePgeLiveTable1(game: Game) {
     })
     for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
         if (game._res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
-            game.renders > game.debugStartFrame && console.log(`i=${i} => skill!`)
+            gameDebugTrace(game, 'world', `i=${i} => skill!`)
             const pge = runtime.livePgesByIndex[i]
             runtime.livePgeStore.liveByRoom[pge.roomLocation].push(pge)
         }
@@ -223,6 +235,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     const { res, cut, mix } = getGameServices(game)
     res.clearLevelAllResources()
     const lvl = _gameLevels[world.currentLevel]
+    gameDebugLog(game, 'world', `[level-load] begin level=${world.currentLevel} name=${lvl.name2} cutscene=${lvl.cutsceneId} track=${lvl.track}`)
 
     await res.load(lvl.name2, ObjectType.otMbk)
     await res.loadCollisionData(lvl.name2)
@@ -247,6 +260,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     runtime.livePgeStore.initByIndex = res.level.pgeAllInitialStateFromFile
     const currentRoom = getLevelStartRoom(game)
     world.currentRoom = currentRoom
+    gameDebugLog(game, 'world', `[level-load] start-room level=${world.currentLevel} room=${currentRoom} directStart=${getGameSessionState(game).startedFromLevelSelect}`)
 
     let n = res.level.pgeTotalNumInFile
     while (n--) {
@@ -258,6 +272,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game.resetPgeGroups()
     gameClearValidSaveState(game)
     mix.playMusic(Mixer.musicTrack + lvl.track)
+    gameDebugLog(game, 'world', `[level-load] complete level=${world.currentLevel} room=${currentRoom} totalPges=${res.level.pgeTotalNumInFile}`)
     return currentRoom
 }
 
@@ -274,7 +289,7 @@ export function gameClearStateRewind(game: Game) {
 }
 
 export function gameLoadState(_game: Game, _f: any) {
-    debugger
+    throw new Error('gameLoadState() is not implemented')
 }
 
 export function gameIsAboveRoomPge(_game: Game, pge: LivePGE): boolean {
@@ -373,7 +388,9 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 }
 
 export async function gamePrepareCurrentRoomAnims(game: Game, currentRoom: number) {
-    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[currentRoom]) {
+    const roomPges = getRuntimeRegistryState(game).livePgeStore.liveByRoom[currentRoom] ?? []
+    gameDebugLog(game, 'world', `[anim-prep] current-room room=${currentRoom} pges=${roomPges.length}`)
+    for (const pge of roomPges) {
         await gamePrepareAnimsHelper(game, pge, 0, 0, currentRoom)
     }
 }
@@ -388,7 +405,9 @@ export async function gamePrepareAdjacentRoomAnims(
 ) {
     const pgeRoom = game._res.level.ctData[roomOffset + currentRoom]
     if (pgeRoom >= 0 && pgeRoom < 0x40) {
-        for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[pgeRoom]) {
+        const roomPges = getRuntimeRegistryState(game).livePgeStore.liveByRoom[pgeRoom] ?? []
+        gameDebugLog(game, 'world', `[anim-prep] adjacent sourceRoom=${currentRoom} targetRoom=${pgeRoom} offset=(${offsetX},${offsetY}) candidates=${roomPges.length}`)
+        for (const pge of roomPges) {
             if (shouldPrepare(game, pge)) {
                 await gamePrepareAnimsHelper(game, pge, offsetX, offsetY, currentRoom)
             }

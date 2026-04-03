@@ -23,6 +23,7 @@ import {
     gameTickDeathCutscene
 } from './game_lifecycle'
 import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
+import { gameDebugLog, gameDebugWarn } from './game_debug'
 import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game_world'
 import { getRuntimeRegistryState } from './game_runtime_data'
@@ -128,7 +129,9 @@ function gameStartRenderLoop(game: Game) {
     game.resetGameState()
     gameBeginFrameLoop(game)
     game.renders = 0
-    game.debugStartFrame = 10650
+    if (typeof game.debugStartFrame !== 'number') {
+        game.debugStartFrame = 10650
+    }
     game.renderPromise = new Promise<void>((resolve) => {
         game.renderDone = () => resolve()
     })
@@ -157,7 +160,9 @@ async function gameProcessActiveFrame(game: Game) {
     gameProcessActivePgesForFrame(game, runtime.livePgeStore.activeFrameList, world.currentRoom)
     if (session.startedFromLevelSelect && game.renders < 5) {
         const conrad = runtime.livePgesByIndex[0]
-        console.log(
+        gameDebugLog(
+            game,
+            'runtime',
             `[direct-start] frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber} deathCounter=${world.deathCutsceneCounter} loadMap=${world.loadMap}`
         )
     }
@@ -179,9 +184,12 @@ async function gameResolvePendingMapLoad(game: Game) {
     if (!world.loadMap) {
         return
     }
+    gameDebugLog(game, 'runtime', `[map-load] requested level=${world.currentLevel} worldRoom=${world.currentRoom} conradRoom=${runtime.livePgesByIndex[0].roomLocation}`)
     if (world.currentRoom === uint8Max || !gameHasLevelMap(game, runtime.livePgesByIndex[0].roomLocation)) {
         const conrad = runtime.livePgesByIndex[0]
-        console.warn(
+        gameDebugWarn(
+            game,
+            'runtime',
             `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber}`
         )
         game._cut.setId(6)
@@ -189,9 +197,11 @@ async function gameResolvePendingMapLoad(game: Game) {
         return
     }
     const room = runtime.livePgesByIndex[0].roomLocation
+    gameDebugLog(game, 'runtime', `[map-load] committing level=${world.currentLevel} room=${room}`)
     gameCommitLoadedRoom(game, room)
     await gameLoadLevelMap(game, room)
     game._vid.fullRefresh()
+    gameDebugLog(game, 'runtime', `[map-load] completed room=${room} overlayCounter=${getGameUiState(game).currentRoomOverlayCounter}`)
 }
 
 async function gameRenderCurrentFrame(game: Game) {
@@ -241,6 +251,7 @@ export async function gameRun(game: Game) {
 
     const presentMenu = true
     while (!game._stub._pi.quit) {
+        gameDebugLog(game, 'runtime', `[session] title-loop level=${game.world.currentLevel} skill=${game.ui.skillLevel} autoSave=${game.session.autoSave}`)
         if (presentMenu) {
             if (!await gamePresentTitleScreen(game)) {
                 break
@@ -250,8 +261,10 @@ export async function gameRun(game: Game) {
             break
         }
         gamePreparePlaythroughSession(game)
+        gameDebugLog(game, 'runtime', `[session] starting playthrough level=${game.world.currentLevel} skill=${game.ui.skillLevel} slot=${game.session.stateSlot}`)
         await game.loadLevelData()
         await gameStartRenderLoop(game)
+        gameDebugLog(game, 'runtime', `[session] playthrough-ended quit=${game._stub._pi.quit} endLoop=${game.session.endLoop} renders=${game.renders}`)
         gameResetPostSessionInput(game)
     }
 }
@@ -269,14 +282,20 @@ export function gameLoadGameState(_game: Game, _slot: number) {
 // entry, this loop refreshes the per-PGE collision-grid origin used by room-collision queries
 // and then hands control to gameRunPgeFrameLogic() to run that entity's frame logic.
 export function gameProcessActivePgesForFrame(game: Game, activeFramePges: LivePGE[], currentRoom: number) {
+    gameDebugLog(game, 'runtime', `[frame] active-pges count=${activeFramePges.length} room=${currentRoom} frame=${game.renders}`)
     for (const pge of activeFramePges) {
         getGameCollisionState(game).currentPgeCollisionGridY = ((pge.posY / 36) >> 0) & ~1
         getGameCollisionState(game).currentPgeCollisionGridX = (pge.posX + 8) >> 4
+        gameDebugLog(game, 'runtime', `[frame] pge=${pge.index} room=${pge.roomLocation} pos=(${pge.posX},${pge.posY}) collisionOrigin=(${getGameCollisionState(game).currentPgeCollisionGridX},${getGameCollisionState(game).currentPgeCollisionGridY})`)
         gameRunPgeFrameLogic(game, pge, currentRoom)
     }
 }
 
 export async function gameMainLoop(game: Game) {
+    const runtime = getRuntimeRegistryState(game)
+    const world = getGameWorldState(game)
+    const conrad = runtime.livePgesByIndex[0]
+    gameDebugLog(game, 'runtime', `[frame] begin frame=${game.renders} level=${world.currentLevel} room=${world.currentRoom} conradRoom=${conrad?.roomLocation} loadMap=${world.loadMap} text=${world.textToDisplay}`)
     if (!gameConsumeLevelCutsceneSkip(game)) {
         await gamePlayCutscene(game)
     }
@@ -292,4 +311,5 @@ export async function gameMainLoop(game: Game) {
     if (await gameHandleFrameMenus(game)) return
     gameInpHandleSpecialKeys(game)
     gameMaybeAutoSave(game, kAutoSaveIntervalMs)
+    gameDebugLog(game, 'runtime', `[frame] end frame=${game.renders} level=${world.currentLevel} room=${world.currentRoom} conradRoom=${runtime.livePgesByIndex[0]?.roomLocation} loadMap=${world.loadMap}`)
 }
