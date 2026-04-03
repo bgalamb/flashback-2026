@@ -1,5 +1,5 @@
-import { CT_GRID_HEIGHT, CT_GRID_WIDTH } from "../game_constants"
-import { encodeRgbPng } from "../png-rgb"
+import { CT_GRID_HEIGHT, CT_GRID_WIDTH } from "../core/game_constants"
+import { encodeRgbPng } from "../core/png-rgb"
 
 type RoomCoord = {
     room: number

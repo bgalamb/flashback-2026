@@ -1,4 +1,4 @@
-import { READ_BE_UINT16, READ_LE_UINT16 } from '../intern'
+import { READ_BE_UINT16, READ_LE_UINT16 } from '../core/intern'
 import { LocaleData, NUM_CUTSCENE_TEXTS } from './constants'
 
 function loadDefaultLocaleTables() {

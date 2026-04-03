@@ -1,10 +1,10 @@
-import type { AnimBufferState, LivePGE } from './intern'
+import type { AnimBufferState, LivePGE } from '../core/intern'
 import type { Game } from './game'
-import { MAX_VOLUME } from './mixer'
-import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
-import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
+import { MAX_VOLUME } from '../audio/mixer'
+import { CHAR_W, GAMESCREEN_H, GAMESCREEN_W } from '../core/game_constants'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from '../core/game_constants'
 import { gameFindFirstMatchingCollidingObject } from './game_collision'
-import { assert } from "./assert"
+import { assert } from "../core/assert"
 
 const PGE_NUM = 256
 

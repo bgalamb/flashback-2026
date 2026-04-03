@@ -1,8 +1,8 @@
-import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from './game'
+import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from '../game/game'
 import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from './intern'
-import type { col_Callback1, col_Callback2 } from './game'
+import type { col_Callback1, col_Callback2 } from '../game/game'
 import { UINT16_MAX } from './game_constants'
-import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game_collision'
+import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from '../game/game_collision'
 import { assert } from "./assert"
 
 

@@ -3,9 +3,9 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { Video, GAMESCREEN_W, GAMESCREEN_H } = require('../src/video.ts')
-const { encodeIndexedPng } = require('../src/indexed-png.ts')
-const { SCREENBLOCK_W, SCREENBLOCK_H } = require('../src/game_constants.ts')
+const { Video, GAMESCREEN_W, GAMESCREEN_H } = require('../src/video/video.ts')
+const { encodeIndexedPng } = require('../src/core/indexed-png.ts')
+const { SCREENBLOCK_W, SCREENBLOCK_H } = require('../src/core/game_constants.ts')
 
 function createPaletteBank(bankIndex) {
     return Array.from({ length: 16 }, (_, colorIndex) => ({

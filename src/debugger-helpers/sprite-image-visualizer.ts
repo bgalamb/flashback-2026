@@ -1,7 +1,7 @@
-import { READ_LE_UINT16 } from "../intern"
-import type { Game } from "../game"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../game_constants"
-import { Video } from "../video"
+import { READ_LE_UINT16 } from "../core/intern"
+import type { Game } from "../game/game"
+import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
+import { Video } from "../video/video"
 
 type RenderedSpriteImage = {
     width: number

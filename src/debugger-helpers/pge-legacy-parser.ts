@@ -1,4 +1,4 @@
-import { CreateInitPGE, InitPGE, READ_LE_UINT16 } from "../intern"
+import { CreateInitPGE, InitPGE, READ_LE_UINT16 } from "../core/intern"
 
 function decodeLegacyPGEData(p: Uint8Array, maxPges: number): { pgeNum: number, pgeInit: InitPGE[] } {
     let index = 0

@@ -1,7 +1,7 @@
-import { CT_ROOM_SIZE } from "../game_constants"
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../intern"
-import { _gameLevels } from "../staticres"
-import { bytekiller_unpack } from "../unpack"
+import { CT_ROOM_SIZE } from "../core/game_constants"
+import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
+import { _gameLevels } from "../core/staticres"
+import { bytekiller_unpack } from "../core/unpack"
 
 function printUsage() {
     console.error("Usage: node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-palette-headers.ts <dataDir> [outputDir]")

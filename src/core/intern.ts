@@ -1,4 +1,4 @@
-import { Game } from "./game"
+import { Game } from "../game/game"
 import { UINT16_MAX, UINT8_MAX } from './game_constants'
 import { assert } from "./assert"
 

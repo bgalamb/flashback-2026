@@ -1,5 +1,5 @@
-import type { Color } from './intern'
-import { GAMESCREEN_H, GAMESCREEN_W, SCREENBLOCK_H, SCREENBLOCK_W } from './game_constants'
+import type { Color } from '../core/intern'
+import { GAMESCREEN_H, GAMESCREEN_W, SCREENBLOCK_H, SCREENBLOCK_W } from '../core/game_constants'
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4: number, p5: Uint8Array, p6: number, p7: number) => void
 

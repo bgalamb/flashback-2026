@@ -1,6 +1,6 @@
-import { READ_BE_UINT16 } from "../intern"
-import { encodeIndexedPng, decodeIndexedPng } from "../indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../game_constants"
+import { READ_BE_UINT16 } from "../core/intern"
+import { encodeIndexedPng, decodeIndexedPng } from "../core/indexed-png"
+import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
 
 type PaletteHeaderSlots = {
     slot1?: { dec?: number } | number

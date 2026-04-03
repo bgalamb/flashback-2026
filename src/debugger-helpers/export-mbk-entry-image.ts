@@ -1,7 +1,7 @@
-import { assert } from "../assert"
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../intern"
-import { bytekiller_unpack } from "../unpack"
-import { encodeRgbPng } from "../png-rgb"
+import { assert } from "../core/assert"
+import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
+import { bytekiller_unpack } from "../core/unpack"
+import { encodeRgbPng } from "../core/png-rgb"
 
 type RgbColor = {
     r: number

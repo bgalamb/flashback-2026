@@ -1,5 +1,5 @@
-import { CLIP, SoundFx } from '../intern'
-import { UINT8_MAX, UINT16_MAX } from '../game_constants'
+import { CLIP, SoundFx } from '../core/intern'
+import { UINT8_MAX, UINT16_MAX } from '../core/game_constants'
 import { File } from './file'
 import { FileSystem } from './fs'
 

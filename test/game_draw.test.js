@@ -3,8 +3,8 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const gameDraw = require('../src/game_draw.ts')
-const { PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } = require('../src/game_constants.ts')
+const gameDraw = require('../src/game/game_draw.ts')
+const { PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } = require('../src/core/game_constants.ts')
 
 function createDrawGame(overrides = {}) {
     const drawCharacterCalls = []

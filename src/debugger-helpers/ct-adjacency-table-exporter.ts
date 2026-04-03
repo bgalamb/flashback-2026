@@ -1,7 +1,7 @@
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../game_constants"
-import { getLevelAssetPathCandidates } from "../level-asset-paths"
-import { bytekiller_unpack } from "../unpack"
-import { _gameLevels } from "../staticres"
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../core/game_constants"
+import { getLevelAssetPathCandidates } from "../core/level-asset-paths"
+import { bytekiller_unpack } from "../core/unpack"
+import { _gameLevels } from "../core/staticres"
 
 type RoomAdjacency = {
     room: number

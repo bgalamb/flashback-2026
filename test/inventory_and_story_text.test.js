@@ -3,10 +3,10 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { gameHandleInventory } = require('../src/game_inventory.ts')
-const { gameDrawStoryTexts } = require('../src/game_draw.ts')
+const { gameHandleInventory } = require('../src/game/game_inventory.ts')
+const { gameDrawStoryTexts } = require('../src/game/game_draw.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { UINT16_MAX, UINT8_MAX } = require('../src/game_constants.ts')
+const { UINT16_MAX, UINT8_MAX } = require('../src/core/game_constants.ts')
 
 function createPlayerInput() {
     return {

@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { _pge_opcodeTable } = require('../src/game_opcodes.ts')
+const { _pge_opcodeTable } = require('../src/game/game_opcodes.ts')
 const {
     CT_HEADER_SIZE,
     CT_GRID_STRIDE,
@@ -11,8 +11,8 @@ const {
     UINT16_MAX,
     UINT8_MAX,
     PGE_FLAG_ACTIVE,
-} = require('../src/game_constants.ts')
-const { global_game_options, kIngameSaveSlot } = require('../src/game_constants.ts')
+} = require('../src/core/game_constants.ts')
+const { global_game_options, kIngameSaveSlot } = require('../src/core/game_constants.ts')
 
 function createAnimData(animNumber = 9, special = 0) {
     return Uint8Array.from([

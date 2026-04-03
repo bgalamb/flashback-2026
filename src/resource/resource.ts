@@ -1,13 +1,13 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
-import { Color, InitPGE, PgeScriptNode, READ_BE_UINT16, READ_LE_UINT16, READ_LE_UINT32, SoundFx, BankSlot, Buffer, ResolvedSpriteSet, LoadedConradVisual } from "../intern"
-import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../staticres'
-import { _conradVisualVariants } from '../staticres'
-import { bytekiller_unpack } from '../unpack'
+import { Color, InitPGE, PgeScriptNode, READ_BE_UINT16, READ_LE_UINT16, READ_LE_UINT32, SoundFx, BankSlot, Buffer, ResolvedSpriteSet, LoadedConradVisual } from "../core/intern"
+import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../core/staticres'
+import { _conradVisualVariants } from '../core/staticres'
+import { bytekiller_unpack } from '../core/unpack'
 import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './constants'
 import { createObjectTypeMapping } from './loaders'
-import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
-import { assert } from "../assert"
+import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../core/game_constants'
+import { assert } from "../core/assert"
 import { getCandidateEntryNames, getSharedSpriteEntryNames } from './entry-paths'
 import { clearResourceBankCache, createResourceBankCache, findResourceBankData, loadResourceBankData, ResourceBankCacheState } from './bank-cache'
 import { buildResolvedSpriteSet, createEmptyResolvedSpriteSet, initializeConradVisualsByVariant } from './sprite-store'

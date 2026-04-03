@@ -1,5 +1,5 @@
-import type { SystemStub } from './systemstub_web'
-import { SCREENBLOCK_H, SCREENBLOCK_W } from './game_constants'
+import type { SystemStub } from '../platform/systemstub_web'
+import { SCREENBLOCK_H, SCREENBLOCK_W } from '../core/game_constants'
 import type { VideoLayerState, VideoScreenState } from './video-state'
 
 function markScreenBlockAsDirty(layers: VideoLayerState, screen: VideoScreenState, x: number, y: number, w: number, h: number, scale: number) {

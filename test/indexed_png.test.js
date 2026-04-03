@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { encodeIndexedPng, decodeIndexedPng, paletteBankToColors } = require('../src/indexed-png.ts')
+const { encodeIndexedPng, decodeIndexedPng, paletteBankToColors } = require('../src/core/indexed-png.ts')
 
 test('indexed png encode/decode round-trips pixels and palette alpha', async () => {
     const palette = Array.from({ length: 32 }, (_, index) => ({

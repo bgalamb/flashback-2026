@@ -1,4 +1,4 @@
-import { global_game_options } from "../game_constants"
+import { global_game_options } from "../core/game_constants"
 
 const dumpedFrontLayers: { [key: string]: boolean } = {}
 const dumpedFrontLayerPixels: { [key: string]: boolean } = {}

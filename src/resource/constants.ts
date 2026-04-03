@@ -1,4 +1,4 @@
-import { _stringsTableEN, _textsTableEN } from '../staticres'
+import { _stringsTableEN, _textsTableEN } from '../core/staticres'
 
 const LocaleData = {
     Id: {

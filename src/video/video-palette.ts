@@ -1,9 +1,9 @@
-import type { Color } from './intern'
-import { _gameLevels } from './staticres'
-import type { Resource } from './resource/resource'
-import type { SystemStub } from './systemstub_web'
-import { File } from './resource/file'
-import { decodeIndexedPng, paletteBankToColors } from './indexed-png'
+import type { Color } from '../core/intern'
+import { _gameLevels } from '../core/staticres'
+import type { Resource } from '../resource/resource'
+import type { SystemStub } from '../platform/systemstub_web'
+import { File } from '../resource/file'
+import { decodeIndexedPng, paletteBankToColors } from '../core/indexed-png'
 import type { PaletteHeaderColors, VideoLayerState, VideoPaletteState } from './video-state'
 
 function parsePaletteSlotColors(value: { colors?: unknown[] } | number | undefined): Color[] | null {

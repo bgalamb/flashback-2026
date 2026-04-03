@@ -1,6 +1,6 @@
-import { Color } from "../intern"
-import { decodeIndexedPng, encodeIndexedPng, paletteBankToColors } from "../indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../game_constants"
+import { Color } from "../core/intern"
+import { decodeIndexedPng, encodeIndexedPng, paletteBankToColors } from "../core/indexed-png"
+import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
 
 const LAYER_TRANSPARENT_INDEX = 0xFF
 

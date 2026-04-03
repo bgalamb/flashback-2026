@@ -1,14 +1,14 @@
-import type { InitPGE, LivePGE, PgeScriptNode } from './intern'
-import { CreatePGE, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT32 } from './intern'
+import type { InitPGE, LivePGE, PgeScriptNode } from '../core/intern'
+import { CreatePGE, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT32 } from '../core/intern'
 import type { Game } from './game'
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
-import { Mixer } from './mixer'
-import { ObjectType } from './resource/resource'
-import { CT_GRID_STRIDE, CT_HEADER_SIZE, GAMESCREEN_H, GAMESCREEN_W } from './game_constants'
-import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from './game_constants'
-import { _gameLevels } from './staticres'
-import { monsterListsByLevel } from './staticres-monsters'
-import { assert } from "./assert"
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/game_constants'
+import { Mixer } from '../audio/mixer'
+import { ObjectType } from '../resource/resource'
+import { CT_GRID_STRIDE, CT_HEADER_SIZE, GAMESCREEN_H, GAMESCREEN_W } from '../core/game_constants'
+import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from '../core/game_constants'
+import { _gameLevels } from '../core/staticres'
+import { monsterListsByLevel } from '../core/staticres-monsters'
+import { assert } from "../core/assert"
 import { gameInitializePgeDefaultAnimation } from './game_pge'
 
 const MONSTER_PALETTE_SLOT = 5

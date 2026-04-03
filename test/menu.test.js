@@ -3,10 +3,10 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { Menu } = require('../src/menu.ts')
+const { Menu } = require('../src/game/menu.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { DIR_DOWN } = require('../src/systemstub_web.ts')
-const { GAMESCREEN_W, GAMESCREEN_H } = require('../src/video.ts')
+const { DIR_DOWN } = require('../src/platform/systemstub_web.ts')
+const { GAMESCREEN_W, GAMESCREEN_H } = require('../src/video/video.ts')
 
 function createMenuFixture(overrides = {}) {
     const scratchSize = 0x3800 * 4

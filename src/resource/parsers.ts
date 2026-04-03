@@ -1,4 +1,4 @@
-import { CreateInitPGE, createPgeScriptEntry, InitPGE, PgeScriptNode, READ_LE_UINT16, READ_LE_UINT32 } from '../intern'
+import { CreateInitPGE, createPgeScriptEntry, InitPGE, PgeScriptNode, READ_LE_UINT16, READ_LE_UINT32 } from '../core/intern'
 
 interface ParsedPgeEntryData {
     type: number

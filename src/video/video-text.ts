@@ -1,4 +1,4 @@
-import { CHAR_H, CHAR_W, UINT8_MAX } from './game_constants'
+import { CHAR_H, CHAR_W, UINT8_MAX } from '../core/game_constants'
 import type { VideoLayerState, VideoTextState } from './video-state'
 
 function drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {

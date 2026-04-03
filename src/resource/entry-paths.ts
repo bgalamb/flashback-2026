@@ -1,5 +1,5 @@
 import { ObjectType } from './constants'
-import { getLevelAssetBaseName, getLevelAssetPathCandidates, getSharedAssetPathCandidates } from '../level-asset-paths'
+import { getLevelAssetBaseName, getLevelAssetPathCandidates, getSharedAssetPathCandidates } from '../core/level-asset-paths'
 
 function getParsedLevelDataPath(levelName: string, suffix: 'pge' | 'obj' | 'tbn'): string {
     const baseName = getLevelAssetBaseName(levelName)

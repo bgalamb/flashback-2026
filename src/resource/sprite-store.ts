@@ -1,5 +1,5 @@
-import { LoadedConradVisual, ResolvedSpriteSet, READ_BE_UINT32 } from '../intern'
-import { assert } from '../assert'
+import { LoadedConradVisual, ResolvedSpriteSet, READ_BE_UINT32 } from '../core/intern'
+import { assert } from '../core/assert'
 import { buildResolvedSpriteViewsByIndex } from './parsers'
 
 const kPersoDatSize = 178647

@@ -1,6 +1,6 @@
 import { Mixer } from "./mixer"
-import { _module68, _module70, _module72, _module73, _module74, _module75, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _sfxPeriodTable } from "./staticres"
-import { assert } from "./assert"
+import { _module68, _module70, _module72, _module73, _module74, _module75, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _sfxPeriodTable } from "../core/staticres"
+import { assert } from "../core/assert"
 
 interface Module {
     sampleData: Uint8Array[]

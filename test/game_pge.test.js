@@ -14,10 +14,10 @@ const {
     PGE_FLAG_MIRRORED,
     PGE_FLAG_SPECIAL_ANIM,
     UINT16_MAX,
-} = require('../src/game_constants.ts')
-const { CT_LEFT_ROOM, CT_RIGHT_ROOM } = require('../src/game.ts')
-const gameCollision = require('../src/game_collision.ts')
-const gamePge = require('../src/game_pge.ts')
+} = require('../src/core/game_constants.ts')
+const { CT_LEFT_ROOM, CT_RIGHT_ROOM } = require('../src/game/game.ts')
+const gameCollision = require('../src/game/game_collision.ts')
+const gamePge = require('../src/game/game_pge.ts')
 
 function createPgeGame() {
     return {

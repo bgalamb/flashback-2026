@@ -1,7 +1,7 @@
-import { CLIP, Color } from './intern'
-import { Scaler, ScalerType, _internalScaler } from './scaler'
-import { assert } from "./assert"
-import type { Game } from './game'
+import { CLIP, Color } from '../core/intern'
+import { Scaler, ScalerType, _internalScaler } from '../core/scaler'
+import { assert } from "../core/assert"
+import type { Game } from '../game/game'
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void
 
@@ -95,8 +95,8 @@ class SystemStub {
 		const candidates = [
 			'js/processors.js',
 			'./js/processors.js',
-			'src/audio-processors.js',
-			'./src/audio-processors.js',
+			'src/audio/audio-processors.js',
+			'./src/audio/audio-processors.js',
 		]
 		let lastError: unknown = null
 		for (const modulePath of candidates) {

@@ -1,7 +1,7 @@
-import { ScalerParameters, defaultScaleParameters, SystemStub } from './systemstub_web'
+import { ScalerParameters, defaultScaleParameters, SystemStub } from './platform/systemstub_web'
 import { FileSystem } from './resource/fs'
-import { Game } from './game'
-import { DEFAULT_CONFIG, global_game_options } from './game_constants'
+import { Game } from './game/game'
+import { DEFAULT_CONFIG, global_game_options } from './core/game_constants'
 
 const g_caption = "REminiscence"
 

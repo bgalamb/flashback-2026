@@ -1,9 +1,9 @@
-import type { CollisionSlot, LivePGE } from './intern'
+import type { CollisionSlot, LivePGE } from '../core/intern'
 import type { Game } from './game'
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
-import { GAMESCREEN_W } from './game_constants'
-import { UINT16_MAX } from './game_constants'
-import { CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE } from './game_constants'
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/game_constants'
+import { GAMESCREEN_W } from '../core/game_constants'
+import { UINT16_MAX } from '../core/game_constants'
+import { CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE } from '../core/game_constants'
 
 export function gameFindOverlappingPgeByObjectType(game: Game, pge: LivePGE, arg2: number) {
     if (pge.collision_slot !== UINT16_MAX) {

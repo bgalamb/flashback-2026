@@ -1,8 +1,8 @@
 import { Resource } from '../resource/resource'
-import { SystemStub } from '../systemstub_web'
-import { Video } from '../video'
-import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../staticres'
-import { UINT16_MAX, UINT8_MAX, global_game_options } from '../game_constants'
+import { SystemStub } from '../platform/systemstub_web'
+import { Video } from '../video/video'
+import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../core/staticres'
+import { UINT16_MAX, UINT8_MAX, global_game_options } from '../core/game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
 
 class Cutscene {

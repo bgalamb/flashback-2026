@@ -1,5 +1,5 @@
-import { READ_BE_UINT16, READ_LE_UINT16 } from './intern'
-import { GAMESCREEN_W } from './game_constants'
+import { READ_BE_UINT16, READ_LE_UINT16 } from '../core/intern'
+import { GAMESCREEN_W } from '../core/game_constants'
 
 function decodeIcon(src: Uint8Array, num: number, dst: Uint8Array) {
     const offset = READ_LE_UINT16(src, num * 2)

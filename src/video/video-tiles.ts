@@ -1,6 +1,6 @@
-import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from './intern'
-import { GAMESCREEN_H, GAMESCREEN_W, UINT16_MAX } from './game_constants'
-import { assert } from './assert'
+import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from '../core/intern'
+import { GAMESCREEN_H, GAMESCREEN_W, UINT16_MAX } from '../core/game_constants'
+import { assert } from '../core/assert'
 
 function decodeMapPlane(sz: number, src: Uint8Array, dst: Uint8Array) {
     const end = sz

@@ -1,14 +1,14 @@
-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from './intern'
-import type { PgeOpcodeHandler } from './intern'
-import { Cutscene } from './cutscene-players/cutscene'
-import { Mp4CutscenePlayer } from './cutscene-players/mp4-cutscene-player'
-import { Mixer } from './mixer'
-import { Resource, ObjectType, LocaleData } from './resource/resource'
-import { Video } from './video'
-import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP, SystemStub } from './systemstub_web'
-import { FileSystem } from './resource/fs'
+import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
+import type { PgeOpcodeHandler } from '../core/intern'
+import { Cutscene } from '../cutscene-players/cutscene'
+import { Mp4CutscenePlayer } from '../cutscene-players/mp4-cutscene-player'
+import { Mixer } from '../audio/mixer'
+import { Resource, ObjectType, LocaleData } from '../resource/resource'
+import { Video } from '../video/video'
+import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP, SystemStub } from '../platform/systemstub_web'
+import { FileSystem } from '../resource/fs'
 import { Menu } from './menu'
-import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from './game_constants'
+import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from '../core/game_constants'
 
 import {
     scoreTable,
@@ -17,11 +17,11 @@ import {
     _protectionCodeData,
     _protectionPal,
     _protectionWordData,
-} from './staticres'
+} from '../core/staticres'
 import {
     monsterListsByLevel
-} from './staticres-monsters'
-import { File } from './resource/file'
+} from '../core/staticres-monsters'
+import { File } from '../resource/file'
 import { _pge_opcodeTable as opcodeHandlers } from './game_opcodes'
 import {
     UINT8_MAX,
@@ -35,7 +35,7 @@ import {
     CT_RIGHT_ROOM,
     CT_LEFT_ROOM,
     PGE_NUM,
-} from './game_constants'
+} from '../core/game_constants'
 import { gamePlaySound } from './game_audio'
 import {
     gameDrawAnimBuffer,

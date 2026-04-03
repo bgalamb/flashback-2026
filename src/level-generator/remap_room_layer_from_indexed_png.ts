@@ -1,6 +1,6 @@
 import * as fs from "fs"
-import { decodeIndexedPng, encodeIndexedPng } from "../indexed-png"
-import { Color } from "../intern"
+import { decodeIndexedPng, encodeIndexedPng } from "../core/indexed-png"
+import { Color } from "../core/intern"
 
 const LAYER_TRANSPARENT_INDEX = 0xFF
 const SOURCE_BANK_COUNT = 4

@@ -1,4 +1,4 @@
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../intern"
+import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
 
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/debugger-helpers/export-mbk-bnq-map-table.ts <mbk> <bnq> [outputDir]")

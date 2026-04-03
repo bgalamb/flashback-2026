@@ -1,4 +1,4 @@
-import { READ_BE_UINT16 } from '../intern'
+import { READ_BE_UINT16 } from '../core/intern'
 import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData } from './parsers'
 import { ResourceLevelState, ResourceSpriteState } from './resource-state'
 import { decodePackedSpriteSet } from './sprite-store'

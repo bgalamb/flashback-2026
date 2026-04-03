@@ -1,13 +1,13 @@
-import { assert } from "../assert"
-import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from "../intern"
-import { CT_ROOM_SIZE, GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../game_constants"
-import { bytekiller_unpack } from "../unpack"
-import { Video } from "../video"
-import { _gameLevels } from "../staticres"
-import { Color } from "../intern"
-import { encodeIndexedPng } from "../indexed-png"
-import { encodeRgbPng } from "../png-rgb"
-import { getLevelAssetBaseName, getLevelAssetPathCandidates } from "../level-asset-paths"
+import { assert } from "../core/assert"
+import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from "../core/intern"
+import { CT_ROOM_SIZE, GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../core/game_constants"
+import { bytekiller_unpack } from "../core/unpack"
+import { Video } from "../video/video"
+import { _gameLevels } from "../core/staticres"
+import { Color } from "../core/intern"
+import { encodeIndexedPng } from "../core/indexed-png"
+import { encodeRgbPng } from "../core/png-rgb"
+import { getLevelAssetBaseName, getLevelAssetPathCandidates } from "../core/level-asset-paths"
 
 // Loads a room from LEV/MBK-or-BNQ/PAL/SGD assets, decodes the Amiga front layer,
 // applies the room palettes, and writes rendered PNG artifacts.

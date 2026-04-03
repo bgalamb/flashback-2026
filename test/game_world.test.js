@@ -3,14 +3,14 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const gamePge = require('../src/game_pge.ts')
-const { Mixer } = require('../src/mixer.ts')
+const gamePge = require('../src/game/game_pge.ts')
+const { Mixer } = require('../src/audio/mixer.ts')
 const {
     CT_UP_ROOM,
     CT_DOWN_ROOM,
     CT_LEFT_ROOM,
     CT_RIGHT_ROOM,
-} = require('../src/game.ts')
+} = require('../src/game/game.ts')
 const {
     CT_GRID_STRIDE,
     CT_HEADER_SIZE,
@@ -20,7 +20,7 @@ const {
     PGE_FLAG_SPECIAL_ANIM,
     UINT16_MAX,
     UINT8_MAX,
-} = require('../src/game_constants.ts')
+} = require('../src/core/game_constants.ts')
 const {
     gameGetRandomNumber,
     gameChangeLevel,
@@ -41,7 +41,7 @@ const {
     gamePrepareCurrentRoomAnims,
     gamePrepareAdjacentRoomAnims,
     gamePrepareAnimationsInRooms,
-} = require('../src/game_world.ts')
+} = require('../src/game/game_world.ts')
 
 function createWorldGame(overrides = {}) {
     const loadCalls = []

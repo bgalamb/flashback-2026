@@ -1,5 +1,5 @@
-import { decodeIndexedPng, paletteBankToColors } from "../indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../game_constants"
+import { decodeIndexedPng, paletteBankToColors } from "../core/indexed-png"
+import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
 
 const DATA_DIR = "DATA"
 const FILES_JSON_PATH = `${DATA_DIR}/files.json`

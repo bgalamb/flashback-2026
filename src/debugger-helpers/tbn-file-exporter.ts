@@ -1,6 +1,6 @@
 const fs = require("fs")
 const path = require("path")
-import { getLevelAssetPathCandidates } from "../level-asset-paths"
+import { getLevelAssetPathCandidates } from "../core/level-asset-paths"
 
 interface ParsedTbnFileData {
     texts: string[]

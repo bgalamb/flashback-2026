@@ -4,12 +4,13 @@ import type {
     PgeScriptEntry,
     PgeScriptNode,
     PgeOpcodeArgs
-} from './intern'
-import { assert } from "./assert"
-import type { PgeOpcodeHandler } from './intern'
+} from '../core/intern'
+import { assert } from "../core/assert"
+import type { PgeOpcodeHandler } from '../core/intern'
 import type { Game } from './game'
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game as GameClass } from './game'
-import { GAMESCREEN_W } from './game_constants'
+import { Game as GameClass } from './game'
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/game_constants'
+import { GAMESCREEN_W } from '../core/game_constants'
 import {
     gameClearDynamicCollisionSlotState,
     gameGetCollisionLanePositionIndexByXY,
@@ -32,7 +33,7 @@ import {
     UINT8_MAX,
     UINT16_MAX,
     CT_ROOM_SIZE
-} from './game_constants'
+} from '../core/game_constants'
 import { gamePlayPgeAnimationSoundEffect as gameAudioPgePlayAnimSound } from './game_audio'
 import {
     gameAddPgeToInventoryChain as gameInventoryPgeAddToInventory,

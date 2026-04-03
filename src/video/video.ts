@@ -1,10 +1,10 @@
-import { Color, READ_BE_UINT16, READ_LE_UINT16 } from "./intern"
-import { Resource } from "./resource/resource"
-import { _gameLevels, _palSlot0xF, _textPal } from "./staticres"
-import { SystemStub } from "./systemstub_web"
-import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX, global_game_options } from './game_constants'
-import { writeLayerImages, writeLayerPixelData } from "./debugger-helpers/front-layer-image"
-import { assert } from "./assert"
+import { Color, READ_BE_UINT16, READ_LE_UINT16 } from "../core/intern"
+import { Resource } from "../resource/resource"
+import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
+import { SystemStub } from "../platform/systemstub_web"
+import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX, global_game_options } from '../core/game_constants'
+import { writeLayerImages, writeLayerPixelData } from "../debugger-helpers/front-layer-image"
+import { assert } from "../core/assert"
 import { applyLevelPalettes, readRoomPaletteOffsets, tryLoadFrontLayerFromFile } from "./video-palette"
 import { createVideoLayerState, createVideoPaletteState, createVideoScreenState, createVideoTextState } from "./video-state"
 import { decodeIcon, decodeSpc, decodeSpm, drawSpriteSub1, drawSpriteSub2, drawSpriteSub3, drawSpriteSub4, drawSpriteSub5, drawSpriteSub6 } from "./video-sprites"

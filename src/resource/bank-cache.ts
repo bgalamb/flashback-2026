@@ -1,6 +1,6 @@
-import { BankSlot, READ_BE_UINT32 } from '../intern'
-import { UINT16_MAX } from '../game_constants'
-import { assert } from '../assert'
+import { BankSlot, READ_BE_UINT32 } from '../core/intern'
+import { UINT16_MAX } from '../core/game_constants'
+import { assert } from '../core/assert'
 
 interface ResourceBankCacheState {
     bankData: Uint8Array

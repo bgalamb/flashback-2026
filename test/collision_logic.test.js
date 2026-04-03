@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, CT_DOWN_ROOM } = require('../src/game.ts')
+const { CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, CT_DOWN_ROOM } = require('../src/game/game.ts')
 const {
     CT_GRID_STRIDE,
     CT_GRID_WIDTH,
@@ -12,21 +12,21 @@ const {
     GAMESCREEN_W,
     INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST,
     UINT16_MAX,
-} = require('../src/game_constants.ts')
+} = require('../src/core/game_constants.ts')
 const {
     gameFindFirstMatchingCollidingObject,
     gameGetCollisionLanePositionIndexByXY,
     gameGetRoomCollisionGridData,
     gameRegisterPgeCollisionSegments,
     gameRebuildActiveRoomCollisionSlotLookup,
-} = require('../src/game_collision.ts')
+} = require('../src/game/game_collision.ts')
 const {
     col_detectHit,
     col_detectHitCallback1,
     col_detectHitCallback4,
     col_detectHitCallbackHelper,
     col_detectHitCallback6,
-} = require('../src/collision.ts')
+} = require('../src/core/collision.ts')
 
 function createCollisionGame() {
     const ctData = new Int8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40)

@@ -1,9 +1,9 @@
-import {  Skill } from "./intern"
-import { LocaleData, Resource } from "./resource/resource"
-import { DIR_DOWN, DIR_UP, SystemStub } from "./systemstub_web"
-import {GAMESCREEN_H, GAMESCREEN_W, Video} from "./video"
-import { CHAR_W, CHAR_H, UINT8_MAX } from './game_constants'
-import { _gameLevels } from './staticres'
+import {  Skill } from "../core/intern"
+import { LocaleData, Resource } from "../resource/resource"
+import { DIR_DOWN, DIR_UP, SystemStub } from "../platform/systemstub_web"
+import {GAMESCREEN_H, GAMESCREEN_W, Video} from "../video/video"
+import { CHAR_W, CHAR_H, UINT8_MAX } from '../core/game_constants'
+import { _gameLevels } from '../core/staticres'
 
 
 const SCREEN_TITLE = 0

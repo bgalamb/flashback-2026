@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import { encodeIndexedPng } from "../indexed-png"
+import { encodeIndexedPng } from "../core/indexed-png"
 import { resolveDefaultCollisionDir, resolveDefaultGeneratedLevelDir } from "./generation-config"
 
 const WIDTH = 256

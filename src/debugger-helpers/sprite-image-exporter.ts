@@ -1,12 +1,12 @@
 import * as fs from "fs"
-import { READ_BE_UINT16, READ_LE_UINT16 } from "../intern"
-import { GAMESCREEN_H, GAMESCREEN_W, UINT16_MAX } from "../game_constants"
-import { _conradVisualVariants } from "../staticres"
-import { monsterListsByLevel } from "../staticres-monsters"
+import { READ_BE_UINT16, READ_LE_UINT16 } from "../core/intern"
+import { GAMESCREEN_H, GAMESCREEN_W, UINT16_MAX } from "../core/game_constants"
+import { _conradVisualVariants } from "../core/staticres"
+import { monsterListsByLevel } from "../core/staticres-monsters"
 import { buildResolvedSpriteViewsByIndex } from "../resource/parsers"
 import { NUM_SPRITES } from "../resource/constants"
-import { Video } from "../video"
-import { encodeRgbPng } from "../png-rgb"
+import { Video } from "../video/video"
+import { encodeRgbPng } from "../core/png-rgb"
 
 type RgbImage = {
     width: number

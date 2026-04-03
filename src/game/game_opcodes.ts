@@ -1,10 +1,11 @@
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM, Game } from "./game"
-import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot, PgeZOrderComparator } from "./intern"
-import { col_detectHit, col_detectHitCallback3, col_detectHitCallback1, col_detectHitCallback2, col_detectGunHitCallback2, col_detectGunHitCallback1, col_detectGunHit, col_detectGunHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHitCallback6 } from './collision'
-import { UINT8_MAX, UINT16_MAX, CT_ROOM_SIZE, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE, global_game_options, kIngameSaveSlot } from "./game_constants"
+import { Game } from "./game"
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from "../core/game_constants"
+import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot, PgeZOrderComparator } from "../core/intern"
+import { col_detectHit, col_detectHitCallback3, col_detectHitCallback1, col_detectHitCallback2, col_detectGunHitCallback2, col_detectGunHitCallback1, col_detectGunHit, col_detectGunHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHitCallback6 } from '../core/collision'
+import { UINT8_MAX, UINT16_MAX, CT_ROOM_SIZE, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE, global_game_options, kIngameSaveSlot } from "../core/game_constants"
 import { gameFindFirstMatchingCollidingObject, gameFindOverlappingPgeByObjectType, gameGetRoomCollisionGridData } from './game_collision'
 import { gameInitializePgeDefaultAnimation } from './game_pge'
-import { assert } from "./assert"
+import { assert } from "../core/assert"
 
 const pge_op_isInpUp = (args: PgeOpcodeArgs, game: Game) => {
 	if (1 === game._currentPgeInputMask) {

@@ -1,9 +1,9 @@
-import type { InventoryItem, LivePGE } from './intern'
+import type { InventoryItem, LivePGE } from '../core/intern'
 import type { Game } from './game'
-import { LocaleData } from './resource/resource'
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from './systemstub_web'
-import { CHAR_W, GAMESCREEN_W } from './game_constants'
-import { UINT16_MAX, UINT8_MAX } from './game_constants'
+import { LocaleData } from '../resource/resource'
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../platform/systemstub_web'
+import { CHAR_W, GAMESCREEN_W } from '../core/game_constants'
+import { UINT16_MAX, UINT8_MAX } from '../core/game_constants'
 
 function getOrCreateInventoryItemsForOwner(game: Game, ownerPge: LivePGE) {
     let inventoryItemIndices = game._inventoryItemIndicesByOwner.get(ownerPge.index)

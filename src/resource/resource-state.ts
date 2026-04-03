@@ -1,5 +1,5 @@
-import { Color, InitPGE, LoadedConradVisual, PgeScriptNode, ResolvedSpriteSet, SoundFx, CreateInitPGE } from '../intern'
-import { CT_DATA_SIZE } from '../game_constants'
+import { Color, InitPGE, LoadedConradVisual, PgeScriptNode, ResolvedSpriteSet, SoundFx, CreateInitPGE } from '../core/intern'
+import { CT_DATA_SIZE } from '../core/game_constants'
 import { createEmptyResolvedSpriteSet } from './sprite-store'
 
 interface ResourceUiState {

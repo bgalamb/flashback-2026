@@ -1,4 +1,4 @@
-import { createPgeScriptEntry, PgeScriptNode, READ_LE_UINT16, READ_LE_UINT32 } from "../intern"
+import { createPgeScriptEntry, PgeScriptNode, READ_LE_UINT16, READ_LE_UINT32 } from "../core/intern"
 
 function decodeLegacyOBJData(tmp: Uint8Array, size: number, numObjectNodes: number): { numObjectNodes: number, objectNodesMap: PgeScriptNode[] } {
     const offsets = new Uint32Array(256)

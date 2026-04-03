@@ -1,8 +1,8 @@
-import type { SoundFx, LivePGE } from './intern'
+import type { SoundFx, LivePGE } from '../core/intern'
 import type { Game } from './game'
-import { MAX_VOLUME } from './mixer'
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
-import { PGE_FLAG_ACTIVE, UINT8_MAX } from './game_constants'
+import { MAX_VOLUME } from '../audio/mixer'
+import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/game_constants'
+import { PGE_FLAG_ACTIVE, UINT8_MAX } from '../core/game_constants'
 
 export function gamePlaySound(game: Game, num: number, softVol: number) {
     if (num < game._res.audio.numSfx) {
