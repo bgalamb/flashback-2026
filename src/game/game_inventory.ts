@@ -4,12 +4,44 @@ import { LocaleData } from '../resource/resource'
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../platform/systemstub_web'
 import { CHAR_W, GAMESCREEN_W } from '../core/game_constants'
 import { UINT16_MAX, UINT8_MAX } from '../core/game_constants'
+import { gameChangeStateSlot } from './game_lifecycle'
+import { getRuntimeRegistryState } from './game_runtime_data'
+import { gameInpUpdate } from './game_world'
+
+type InventoryGame = Record<string, unknown>
+
+function getInventoryWorldState(game: Game) {
+    const inventoryGame = game as unknown as InventoryGame
+    return (inventoryGame['world'] as { currentLevel: number } | undefined) ?? {
+        get currentLevel() { return inventoryGame['_currentLevel'] as number },
+        set currentLevel(value: number) { inventoryGame['_currentLevel'] = value },
+    }
+}
+
+function getInventoryUiState(game: Game) {
+    const inventoryGame = game as unknown as InventoryGame
+    return (inventoryGame['ui'] as { score: number; skillLevel: number } | undefined) ?? {
+        get score() { return inventoryGame['_score'] as number },
+        set score(value: number) { inventoryGame['_score'] = value },
+        get skillLevel() { return inventoryGame['_skillLevel'] as number },
+        set skillLevel(value: number) { inventoryGame['_skillLevel'] = value },
+    }
+}
+
+function getInventorySessionState(game: Game) {
+    const inventoryGame = game as unknown as InventoryGame
+    return (inventoryGame['session'] as { stateSlot: number } | undefined) ?? {
+        get stateSlot() { return inventoryGame['_stateSlot'] as number },
+        set stateSlot(value: number) { inventoryGame['_stateSlot'] = value },
+    }
+}
 
 function getOrCreateInventoryItemsForOwner(game: Game, ownerPge: LivePGE) {
-    let inventoryItemIndices = game._inventoryItemIndicesByOwner.get(ownerPge.index)
+    const runtime = getRuntimeRegistryState(game)
+    let inventoryItemIndices = runtime.inventoryItemIndicesByOwner.get(ownerPge.index)
     if (!inventoryItemIndices) {
         inventoryItemIndices = []
-        game._inventoryItemIndicesByOwner.set(ownerPge.index, inventoryItemIndices)
+        runtime.inventoryItemIndicesByOwner.set(ownerPge.index, inventoryItemIndices)
     }
     return inventoryItemIndices
 }
@@ -33,8 +65,9 @@ export function gameGetNextInventoryItemIndex(game: Game, ownerPge: LivePGE, inv
 }
 
 export function gameFindInventoryItemByObjectId(game: Game, ownerPge: LivePGE, objectId: number) {
+    const runtime = getRuntimeRegistryState(game)
     for (const inventoryItemIndex of getOrCreateInventoryItemsForOwner(game, ownerPge)) {
-        const inventoryItem = game._livePgesByIndex[inventoryItemIndex]
+        const inventoryItem = runtime.livePgesByIndex[inventoryItemIndex]
         if (inventoryItem.init_PGE.object_id === objectId) {
             return inventoryItem
         }
@@ -44,8 +77,9 @@ export function gameFindInventoryItemByObjectId(game: Game, ownerPge: LivePGE, o
 
 
 export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
+    const runtime = getRuntimeRegistryState(game)
     if (pge.unkF !== UINT8_MAX) {
-        const _bx: LivePGE = game._livePgesByIndex[pge.unkF]
+        const _bx: LivePGE = runtime.livePgesByIndex[pge.unkF]
         const _di: LivePGE = game.findInventoryItemBeforePge(_bx, pge)
         if (_di === _bx) {
             if (gameGetCurrentInventoryItemIndex(game, _di) === pge.index) {
@@ -69,6 +103,7 @@ export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: Liv
 }
 
 export async function gameHandleConfigPanel(game: Game) {
+    const session = getInventorySessionState(game)
     const x = 7
     const y = 10
     const w = 17
@@ -119,7 +154,7 @@ export async function gameHandleConfigPanel(game: Game) {
         game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_20_LOAD_GAME), y + 6, 9, colors[2])
         game._menu.drawString(game._res.getMenuString(LocaleData.Id.LI_21_SAVE_GAME), y + 8, 9, colors[3])
         game._vid.fillRect(CHAR_W * (x + 1), CHAR_W * (y + 10), CHAR_W * (w - 2), CHAR_W, 0xE2)
-        const buf = game._res.getMenuString(LocaleData.Id.LI_22_SAVE_SLOT) + " < " + game._stateSlot.toString().padStart(2, "0") + " >"
+        const buf = game._res.getMenuString(LocaleData.Id.LI_22_SAVE_SLOT) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
         game._menu.drawString(buf, y + 10, 9, 1)
 
         game._vid.updateScreen()
@@ -137,17 +172,11 @@ export async function gameHandleConfigPanel(game: Game) {
         }
         if (game._stub._pi.dirMask & DIR_LEFT) {
             game._stub._pi.dirMask &= ~DIR_LEFT
-            --game._stateSlot
-            if (game._stateSlot < 1) {
-                game._stateSlot = 1
-            }
+            gameChangeStateSlot(game, -1)
         }
         if (game._stub._pi.dirMask & DIR_RIGHT) {
             game._stub._pi.dirMask &= ~DIR_RIGHT
-            ++game._stateSlot
-            if (game._stateSlot > 99) {
-                game._stateSlot = 99
-            }
+            gameChangeStateSlot(game, 1)
         }
         if (prev !== current) {
             const tmp = colors[prev]
@@ -177,8 +206,11 @@ export async function gameHandleConfigPanel(game: Game) {
 
 
 export async function gameHandleInventory(game: Game) {
+    const world = getInventoryWorldState(game)
+    const ui = getInventoryUiState(game)
+    const runtime = getRuntimeRegistryState(game)
     let selected_pge: LivePGE = null
-    const pge: LivePGE = game._livePgesByIndex[0]
+    const pge: LivePGE = runtime.livePgesByIndex[0]
     const inventoryItemIndices = gameGetInventoryItemIndices(game, pge)
     if (pge.life > 0 && inventoryItemIndices.length !== 0) {
         game.playSound(66, 0)
@@ -192,7 +224,7 @@ export async function gameHandleInventory(game: Game) {
             items[num_items] = {
                 icon_num: game._res.level.pgeAllInitialStateFromFile[inv_pge].icon_num,
                 init_pge: game._res.level.pgeAllInitialStateFromFile[inv_pge],
-                live_pge: game._livePgesByIndex[inv_pge]
+                live_pge: runtime.livePgesByIndex[inv_pge]
             }
             ++num_items
         }
@@ -225,7 +257,7 @@ export async function gameHandleInventory(game: Game) {
                         game.drawIcon(76, icon_x_pos, 157, 0xC)
                         selected_pge = items[item_it].live_pge
                         const txt_num = items[item_it].init_pge.text_num
-                        const str = game._res.getTextString(game._currentLevel, txt_num)
+                        const str = game._res.getTextString(world.currentLevel, txt_num)
                         game.drawString(str, GAMESCREEN_W, 189, 0xED, true)
                         if (items[item_it].init_pge.init_flags & 4) {
                             const buf = selected_pge.life.toString()
@@ -241,9 +273,9 @@ export async function gameHandleInventory(game: Game) {
                     game.drawIcon(77, 120, 143, 0xC)
                 }
             } else {
-                let buf = "SCORE " + game._score.toString().padStart(8, "0")
+                let buf = "SCORE " + ui.score.toString().padStart(8, "0")
                 game._vid.drawString(buf, (((114 - buf.length * CHAR_W) / 2) >> 0) + 72, 158, 0xE5)
-                buf = game._res.getMenuString(LocaleData.Id.LI_06_LEVEL) + ":" + game._res.getMenuString(LocaleData.Id.LI_13_EASY + game._skillLevel)
+                buf = game._res.getMenuString(LocaleData.Id.LI_06_LEVEL) + ":" + game._res.getMenuString(LocaleData.Id.LI_13_EASY + ui.skillLevel)
                 game._vid.drawString(buf, (((114 - buf.length * CHAR_W) / 2) >> 0) + 72, 166, 0xE5)
             }
 
@@ -298,11 +330,12 @@ export async function gameHandleInventory(game: Game) {
 }
 
 export function gameFindInventoryItemBeforePge(game: Game, pge: LivePGE, last_pge: LivePGE) {
+    const runtime = getRuntimeRegistryState(game)
     let previousInventoryItemOrOwner: LivePGE = pge
     const inventoryItemIndices = getOrCreateInventoryItemsForOwner(game, pge)
 
     for (const inventoryItemIndex of inventoryItemIndices) {
-        const inventoryItem = game._livePgesByIndex[inventoryItemIndex]
+        const inventoryItem = runtime.livePgesByIndex[inventoryItemIndex]
         if (inventoryItem === last_pge) {
             break
         }
@@ -341,17 +374,18 @@ export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: Live
 }
 
 export function gameSetCurrentInventoryPgeSelection(game: Game, pge: LivePGE) {
-    const _bx: LivePGE = game.findInventoryItemBeforePge(game._livePgesByIndex[0], pge)
-    if (_bx === game._livePgesByIndex[0]) {
+    const runtime = getRuntimeRegistryState(game)
+    const _bx: LivePGE = game.findInventoryItemBeforePge(runtime.livePgesByIndex[0], pge)
+    if (_bx === runtime.livePgesByIndex[0]) {
         if (gameGetCurrentInventoryItemIndex(game, _bx) !== pge.index) {
             return 0
         }
     } else {
-        if (gameGetNextInventoryItemIndex(game, game._livePgesByIndex[0], _bx.index) !== pge.index) {
+        if (gameGetNextInventoryItemIndex(game, runtime.livePgesByIndex[0], _bx.index) !== pge.index) {
             return 0
         }
     }
-    game.removePgeFromInventory(_bx, pge, game._livePgesByIndex[0])
-    game.addPgeToInventory(game._livePgesByIndex[0], pge, game._livePgesByIndex[0])
+    game.removePgeFromInventory(_bx, pge, runtime.livePgesByIndex[0])
+    game.addPgeToInventory(runtime.livePgesByIndex[0], pge, runtime.livePgesByIndex[0])
     return UINT16_MAX
 }

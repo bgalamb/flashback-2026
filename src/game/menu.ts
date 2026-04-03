@@ -327,7 +327,7 @@ class Menu {
     async loadPicture(prefix: string) {
         const kPictureW = GAMESCREEN_W
         const kPictureH = GAMESCREEN_H
-        await this._res.load_MAP_menu(prefix, this._res.scratchBuffer)
+        await this._res.loadMenuMap(prefix, this._res.scratchBuffer)
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {
                 for (let x = 0; x < kPictureW / 4; ++x) {
@@ -336,7 +336,7 @@ class Menu {
             }
         }
         this._vid.copyFrontLayerToBack()
-        await this._res.load_PAL_menu(prefix, this._res.scratchBuffer)
+        await this._res.loadMenuPalette(prefix, this._res.scratchBuffer)
         this._stub.setPalette(this._res.scratchBuffer, 256)
     }
 

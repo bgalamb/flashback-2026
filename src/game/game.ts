@@ -52,8 +52,28 @@ import {
     gameSaveGameState,
 } from './game_runtime'
 import {
+    gameApplyTitleScreenSelection,
+    gameBeginFrameLoop,
+    gameBeginPlaythrough,
+    gameChangeStateSlot,
+    gameClearSaveStateCompleted,
+    gameClearValidSaveState,
+    gameCommitLoadedRoom,
+    gameCompleteFrameTiming,
+    gameConsumeLevelCutsceneSkip,
+    gameEndLoop,
+    gameMarkSaveStateCompleted,
+    gameQueueDeathCutscene,
+    gameRequestMapReload,
+    gameResetLevelLifecycle,
+    gameSetCurrentLevel,
+    gameSetSaveTimestamp,
+    gameSetStateSlot,
+    gameTickDeathCutscene,
+    gameTickRoomOverlay
+} from './game_lifecycle'
+import {
     gameClearStateRewind,
-    gameGetRandomNumber,
     gameInpUpdate,
     gameLoadLevelData,
     gameLoadLevelMap,
@@ -82,6 +102,79 @@ import {
 type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
 
+interface GameWorldState {
+    currentLevel: number
+    currentRoom: number
+    currentIcon: number
+    loadMap: boolean
+    printLevelCodeCounter: number
+    credits: number
+    blinkingConradCounter: number
+    textToDisplay: number
+    eraseBackground: boolean
+    deathCutsceneCounter: number
+}
+
+interface GameUiState {
+    skillLevel: number
+    score: number
+    currentRoomOverlayCounter: number
+    currentInventoryIconNum: number
+    saveStateCompleted: boolean
+}
+
+interface GameSessionState {
+    randSeed: number
+    endLoop: boolean
+    skipNextLevelCutscene: boolean
+    startedFromLevelSelect: boolean
+    frameTimestamp: number
+    autoSave: boolean
+    saveTimestamp: number
+    stateSlot: number
+    validSaveState: boolean
+}
+
+interface GamePgeExecutionState {
+    currentPgeRoom: number
+    currentPgeFacingIsMirrored: boolean
+    shouldProcessCurrentPgeObjectNode: boolean
+    currentPgeInputMask: number
+    opcodeTempVar1: number
+    opcodeTempVar2: number
+    opcodeComparisonResult1: number
+    opcodeComparisonResult2: number
+}
+
+interface GameCollisionState {
+    nextFreeDynamicPgeCollisionSlotPoolIndex: number
+    dynamicPgeCollisionSlotsByPosition: Map<number, CollisionSlot[]>
+    dynamicPgeCollisionSlotObjectPool: CollisionSlot[]
+    roomCollisionGridPatchRestoreSlotPool: RoomCollisionGridPatchRestoreSlot[]
+    nextFreeRoomCollisionGridPatchRestoreSlot: RoomCollisionGridPatchRestoreSlot
+    activeRoomCollisionGridPatchRestoreSlots: RoomCollisionGridPatchRestoreSlot
+    activeRoomCollisionSlotWindow: ActiveRoomCollisionSlotWindow
+    activeCollisionLeftRoom: number
+    activeCollisionRightRoom: number
+    currentPgeCollisionGridX: number
+    currentPgeCollisionGridY: number
+}
+
+interface GameRuntimeDataState {
+    livePgesByIndex: LivePGE[]
+    livePgeStore: LivePgeRegistry
+    pendingSignalsByTargetPgeIndex: Map<number, PendingPgeSignal[]>
+    inventoryItemIndicesByOwner: Map<number, number[]>
+}
+
+interface GameRenderDataState {
+    animBuffer0State: AnimBufferState[]
+    animBuffer1State: AnimBufferState[]
+    animBuffer2State: AnimBufferState[]
+    animBuffer3State: AnimBufferState[]
+    animBuffers: AnimBuffers
+}
+
 class Game {
     static _gameLevels: Level[] = _gameLevels
     static _scoreTable: Uint16Array = scoreTable
@@ -104,26 +197,75 @@ class Game {
     _rewindBuffer: File[]
     _rewindPtr: number
     _rewindLen: number
+    readonly world: GameWorldState = {
+        currentLevel: 0,
+        currentRoom: 0,
+        currentIcon: 0,
+        loadMap: false,
+        printLevelCodeCounter: 0,
+        credits: 0,
+        blinkingConradCounter: 0,
+        textToDisplay: 0,
+        eraseBackground: false,
+        deathCutsceneCounter: 0,
+    }
+    readonly ui: GameUiState = {
+        skillLevel: Skill.kSkillNormal,
+        score: 0,
+        currentRoomOverlayCounter: 0,
+        currentInventoryIconNum: 0,
+        saveStateCompleted: false,
+    }
+    readonly session: GameSessionState = {
+        randSeed: 0,
+        endLoop: false,
+        skipNextLevelCutscene: false,
+        startedFromLevelSelect: false,
+        frameTimestamp: 0,
+        autoSave: false,
+        saveTimestamp: 0,
+        stateSlot: 1,
+        validSaveState: false,
+    }
+    readonly pge: GamePgeExecutionState = {
+        currentPgeRoom: 0,
+        currentPgeFacingIsMirrored: false,
+        shouldProcessCurrentPgeObjectNode: false,
+        currentPgeInputMask: 0,
+        opcodeTempVar1: 0,
+        opcodeTempVar2: 0,
+        opcodeComparisonResult1: 0,
+        opcodeComparisonResult2: 0,
+    }
+    readonly collision: GameCollisionState = {
+        nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
+        dynamicPgeCollisionSlotsByPosition: new Map(),
+        dynamicPgeCollisionSlotObjectPool: new Array(PGE_NUM).fill(null).map(() => ({
+            collision_grid_position_index: 0,
+            pge: null,
+            index: 0
+        })),
+        roomCollisionGridPatchRestoreSlotPool: new Array(PGE_NUM).fill(null).map(() => ({
+            nextPatchedRegionRestoreSlot: null,
+            patchedGridDataView: null,
+            patchedCellCount: 0,
+            originalGridCellValues: new Uint8Array(0x10)
+        })),
+        nextFreeRoomCollisionGridPatchRestoreSlot: null,
+        activeRoomCollisionGridPatchRestoreSlots: null,
+        activeRoomCollisionSlotWindow: createActiveRoomCollisionSlotWindow(),
+        activeCollisionLeftRoom: 0,
+        activeCollisionRightRoom: 0,
+        currentPgeCollisionGridX: 0,
+        currentPgeCollisionGridY: 0,
+    }
 
-    _currentLevel: number
-    _skillLevel: number
-    _score: number
-    _credits: number
-    _currentRoom: number
-    _currentRoomOverlayCounter: number
-    _currentIcon: number
-    _loadMap: boolean
-    _printLevelCodeCounter: number
-    _randSeed: number
-    _currentInventoryIconNum: number
     // Loaded monster visuals keep sprite data and palette data together.
     // Monsters currently still render through palette slot 5, but the map keeps
     // the visual data grouped by monster script-node index.
     _loadedMonsterVisualsByScriptNodeIndex: Map<number, LoadedMonsterVisual> = new Map()
-    _blinkingConradCounter: number
-    _textToDisplay: number
-    _eraseBackground: boolean
-    _animBuffer0State: AnimBufferState[] = new Array(41).fill(null).map(() => ({
+    readonly renderData: GameRenderDataState = {
+        animBuffer0State: new Array(41).fill(null).map(() => ({
         x: 0,
         y: 0,
         w: 0,
@@ -131,8 +273,8 @@ class Game {
         dataPtr: null,
         pge: null,
         paletteColorMaskOverride: -1,
-    }))
-    _animBuffer1State: AnimBufferState[]  = new Array(6).fill(null).map(() => ({
+    })),
+        animBuffer1State: new Array(6).fill(null).map(() => ({
         x: 0,
         y: 0,
         w: 0,
@@ -140,8 +282,8 @@ class Game {
         dataPtr: null,
         pge: null,
         paletteColorMaskOverride: -1,
-    }))
-    _animBuffer2State: AnimBufferState[]  = new Array(42).fill(null).map(() => ({
+    })),
+        animBuffer2State: new Array(42).fill(null).map(() => ({
         x: 0,
         y: 0,
         w: 0,
@@ -149,8 +291,8 @@ class Game {
         dataPtr: null,
         pge: null,
         paletteColorMaskOverride: -1,
-    }))
-    _animBuffer3State: AnimBufferState[] = new Array(12).fill(null).map(() => ({
+    })),
+        animBuffer3State: new Array(12).fill(null).map(() => ({
         x: 0,
         y: 0,
         w: 0,
@@ -158,59 +300,20 @@ class Game {
         dataPtr: null,
         pge: null,
         paletteColorMaskOverride: -1,
-    }))
-    _animBuffers: AnimBuffers = new AnimBuffers()
-    _deathCutsceneCounter: number
-    _saveStateCompleted: boolean
-    _endLoop: boolean
-    _skipNextLevelCutscene: boolean
-    _startedFromLevelSelect: boolean
-    _frameTimestamp: number
-    _autoSave: boolean
-    _saveTimestamp: number
-
-    _stateSlot: number
-    _validSaveState: boolean
+    })),
+        animBuffers: new AnimBuffers(),
+    }
 
     _inp_lastKeysHit: number
     _inp_lastKeysHitLeftRight: number
     _shouldPlayPgeAnimationSound: boolean
 
-    _livePgesByIndex = new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE())
-    _livePgeStore: LivePgeRegistry = createLivePgeRegistry(this._livePgesByIndex)
-    _pendingSignalsByTargetPgeIndex: Map<number, PendingPgeSignal[]> = new Map()
-    _inventoryItemIndicesByOwner: Map<number, number[]> = new Map()
-
-	_currentPgeRoom: number
-	_currentPgeFacingIsMirrored: boolean
-	_shouldProcessCurrentPgeObjectNode: boolean
-	_currentPgeInputMask: number
-	_opcodeTempVar1: number
-	_opcodeTempVar2: number
-	_opcodeComparisonResult1: number
-	_opcodeComparisonResult2: number
-
-    _nextFreeDynamicPgeCollisionSlotPoolIndex = 0
-    _dynamicPgeCollisionSlotsByPosition: Map<number, CollisionSlot[]> = new Map()
-    _dynamicPgeCollisionSlotObjectPool: CollisionSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
-        collision_grid_position_index: 0,
-        pge: null,
-        index: 0      
-    }))
-	_roomCollisionGridPatchRestoreSlotPool: RoomCollisionGridPatchRestoreSlot[] = new Array(PGE_NUM).fill(null).map(() => ({
-        nextPatchedRegionRestoreSlot: null,
-        patchedGridDataView: null,
-        patchedCellCount: 0,
-        originalGridCellValues: new Uint8Array(0x10)
-    }))
-	_nextFreeRoomCollisionGridPatchRestoreSlot: RoomCollisionGridPatchRestoreSlot
-	_activeRoomCollisionGridPatchRestoreSlots: RoomCollisionGridPatchRestoreSlot
-    _activeRoomCollisionSlotWindow: ActiveRoomCollisionSlotWindow = createActiveRoomCollisionSlotWindow()
-
-    _activeCollisionLeftRoom: number
-	_activeCollisionRightRoom: number
-	_currentPgeCollisionGridX: number
-	_currentPgeCollisionGridY: number
+    readonly runtimeData: GameRuntimeDataState = {
+        livePgesByIndex: new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE()),
+        livePgeStore: null,
+        pendingSignalsByTargetPgeIndex: new Map(),
+        inventoryItemIndicesByOwner: new Map(),
+    }
     renders: number
     debugStartFrame: number
 
@@ -222,20 +325,97 @@ class Game {
         this._mix = new Mixer(fs, stub)
         this._stub = stub
         this._fs = fs
-        this._stateSlot = 1
-        this._skillLevel = this._menu._skill = Skill.kSkillNormal
-        this._currentLevel = this._menu._level = level
-        this._credits = 0
-        this._autoSave = autoSave
-        this._currentRoomOverlayCounter = 0
+        this.runtimeData.livePgeStore = createLivePgeRegistry(this.runtimeData.livePgesByIndex)
+        this.session.stateSlot = 1
+        this.ui.skillLevel = this._menu._skill = Skill.kSkillNormal
+        this.world.currentLevel = this._menu._level = level
+        this.world.credits = 0
+        this.session.autoSave = autoSave
+        this.ui.currentRoomOverlayCounter = 0
         this._rewindPtr = -1
         this._rewindLen = 0
-        this._skipNextLevelCutscene = false
-        this._startedFromLevelSelect = false
+        this.session.skipNextLevelCutscene = false
+        this.session.startedFromLevelSelect = false
     }
 
     private setCurrentRoom(room: number) {
-        this._currentRoom = room
+        this.world.currentRoom = room
+    }
+
+    applyTitleScreenSelection() {
+        return gameApplyTitleScreenSelection(this)
+    }
+
+    beginPlaythrough() {
+        return gameBeginPlaythrough(this)
+    }
+
+    beginFrameLoop() {
+        return gameBeginFrameLoop(this)
+    }
+
+    completeFrameTiming() {
+        return gameCompleteFrameTiming(this)
+    }
+
+    endLoop() {
+        return gameEndLoop(this)
+    }
+
+    consumeLevelCutsceneSkip() {
+        return gameConsumeLevelCutsceneSkip(this)
+    }
+
+    requestMapReload(room: number) {
+        return gameRequestMapReload(this, room)
+    }
+
+    commitLoadedRoom(room: number) {
+        return gameCommitLoadedRoom(this, room)
+    }
+
+    resetLevelLifecycle(startRoom: number) {
+        return gameResetLevelLifecycle(this, startRoom)
+    }
+
+    queueDeathCutscene(counter: number, deathCutsceneId?: number) {
+        return gameQueueDeathCutscene(this, counter, deathCutsceneId)
+    }
+
+    tickDeathCutscene() {
+        return gameTickDeathCutscene(this)
+    }
+
+    markSaveStateCompleted() {
+        return gameMarkSaveStateCompleted(this)
+    }
+
+    clearSaveStateCompleted() {
+        return gameClearSaveStateCompleted(this)
+    }
+
+    clearValidSaveState() {
+        return gameClearValidSaveState(this)
+    }
+
+    setSaveTimestamp() {
+        return gameSetSaveTimestamp(this)
+    }
+
+    setStateSlot(slot: number) {
+        return gameSetStateSlot(this, slot)
+    }
+
+    changeStateSlot(delta: number) {
+        return gameChangeStateSlot(this, delta)
+    }
+
+    setCurrentLevel(level: number) {
+        return gameSetCurrentLevel(this, level)
+    }
+
+    tickRoomOverlay() {
+        return gameTickRoomOverlay(this)
     }
 
     loadPgeForCurrentLevel(idx: number, currentRoom: number) {
@@ -273,7 +453,7 @@ class Game {
     }
 
     printSaveStateCompleted() {
-        if (this._saveStateCompleted) {
+        if (this.ui.saveStateCompleted) {
             const str = this._res.getMenuString(LocaleData.Id.LI_05_COMPLETED)
             this._vid.drawString(str, ((176 - str.length * CHAR_W) / 2) >> 0, 34, 0xE6)
         }
@@ -299,6 +479,10 @@ class Game {
 
     loadState(f: File) {
         return gameLoadState(this, f)
+    }
+
+    async inp_update() {
+        return gameInpUpdate(this)
     }
 
     drawString(p: Uint8Array, x: number, y: number, color: number, hcenter: boolean) {
@@ -359,14 +543,6 @@ class Game {
         return gameSetCurrentInventoryPge(this, pge)
     }
 
-    getRandomNumber() {
-        return gameGetRandomNumber(this)
-    }
-
-    async inp_update() {
-        return gameInpUpdate(this)
-    }
-
     resetGameState() {
         return gameResetGameState(this)
     }
@@ -374,7 +550,6 @@ class Game {
     async loadMonsterSprites(pge: LivePGE, currentRoom:number) {
         return gameLoadMonsterSprites(this, pge, currentRoom)
     }
-
 
     async loadLevelMap(currentRoom:number) {
         return gameLoadLevelMap(this, currentRoom)
@@ -391,6 +566,7 @@ class Game {
     clearStateRewind() {
         return gameClearStateRewind(this)
     }
+
 }
 
 export { Game, CT_UP_ROOM, CT_DOWN_ROOM, CT_RIGHT_ROOM, CT_LEFT_ROOM, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }

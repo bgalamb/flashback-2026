@@ -10,11 +10,9 @@ import type { PgeOpcodeHandler } from '../core/intern'
 import type { Game } from './game'
 import { Game as GameClass } from './game'
 import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/game_constants'
-import { GAMESCREEN_W } from '../core/game_constants'
 import {
     gameClearDynamicCollisionSlotState,
     gameGetCollisionLanePositionIndexByXY,
-    gameRebuildActiveRoomCollisionSlotLookup,
     gameRegisterPgeCollisionSegments
 } from './game_collision'
 import {
@@ -35,6 +33,7 @@ import {
     CT_ROOM_SIZE
 } from '../core/game_constants'
 import { gamePlayPgeAnimationSoundEffect as gameAudioPgePlayAnimSound } from './game_audio'
+import { gameHandlePgeRoomTransition, gameRelocatePgeToRoom } from './game_room_transition'
 import {
     gameAddPgeToInventoryChain as gameInventoryPgeAddToInventory,
     gameFindInventoryItemBeforePge as gameInventoryPgeGetInventoryItemBefore,
@@ -43,33 +42,106 @@ import {
     gameSetCurrentInventoryPgeSelection as gameInventoryPgeSetCurrentInventoryObject,
     gameUpdatePgeInventoryLinks as gameInventoryPgeUpdateInventory
 } from './game_inventory'
+import { gameInpUpdate } from './game_world'
+import { getRuntimeRegistryState } from './game_runtime_data'
+
+type PgeGameShape = Record<string, unknown>
+
+function getPgeWorldState(game: Game) {
+    const pgeGame = game as unknown as PgeGameShape
+    const groupedState = pgeGame['world'] as { currentLevel: number; currentRoom: number; blinkingConradCounter: number; textToDisplay: number; loadMap: boolean } | undefined
+    return groupedState ?? {
+        get currentLevel() { return pgeGame['_currentLevel'] as number },
+        set currentLevel(value: number) { pgeGame['_currentLevel'] = value },
+        get currentRoom() { return pgeGame['_currentRoom'] as number },
+        set currentRoom(value: number) { pgeGame['_currentRoom'] = value },
+        get blinkingConradCounter() { return pgeGame['_blinkingConradCounter'] as number },
+        set blinkingConradCounter(value: number) { pgeGame['_blinkingConradCounter'] = value },
+        get textToDisplay() { return pgeGame['_textToDisplay'] as number },
+        set textToDisplay(value: number) { pgeGame['_textToDisplay'] = value },
+        get loadMap() { return pgeGame['_loadMap'] as boolean },
+        set loadMap(value: boolean) { pgeGame['_loadMap'] = value },
+    }
+}
+
+function getPgeUiState(game: Game) {
+    const pgeGame = game as unknown as PgeGameShape
+    const groupedState = pgeGame['ui'] as { skillLevel: number; score: number } | undefined
+    return groupedState ?? {
+        get skillLevel() { return pgeGame['_skillLevel'] as number },
+        set skillLevel(value: number) { pgeGame['_skillLevel'] = value },
+        get score() { return pgeGame['_score'] as number },
+        set score(value: number) { pgeGame['_score'] = value },
+    }
+}
+
+function getPgeSessionState(game: Game) {
+    const pgeGame = game as unknown as PgeGameShape
+    const groupedState = pgeGame['session'] as { startedFromLevelSelect: boolean } | undefined
+    return groupedState ?? {
+        get startedFromLevelSelect() { return pgeGame['_startedFromLevelSelect'] as boolean },
+        set startedFromLevelSelect(value: boolean) { pgeGame['_startedFromLevelSelect'] = value },
+    }
+}
+
+function getPgeExecutionState(game: Game) {
+    const pgeGame = game as unknown as PgeGameShape
+    const groupedState = pgeGame['pge'] as { shouldProcessCurrentPgeObjectNode: boolean; currentPgeFacingIsMirrored: boolean; currentPgeRoom: number; currentPgeInputMask: number } | undefined
+    return groupedState ?? {
+        get shouldProcessCurrentPgeObjectNode() { return pgeGame['_shouldProcessCurrentPgeObjectNode'] as boolean },
+        set shouldProcessCurrentPgeObjectNode(value: boolean) { pgeGame['_shouldProcessCurrentPgeObjectNode'] = value },
+        get currentPgeFacingIsMirrored() { return pgeGame['_currentPgeFacingIsMirrored'] as boolean },
+        set currentPgeFacingIsMirrored(value: boolean) { pgeGame['_currentPgeFacingIsMirrored'] = value },
+        get currentPgeRoom() { return pgeGame['_currentPgeRoom'] as number },
+        set currentPgeRoom(value: number) { pgeGame['_currentPgeRoom'] = value },
+        get currentPgeInputMask() { return pgeGame['_currentPgeInputMask'] as number },
+        set currentPgeInputMask(value: number) { pgeGame['_currentPgeInputMask'] = value },
+    }
+}
+
+function getPgeCollisionState(game: Game) {
+    const pgeGame = game as unknown as PgeGameShape
+    const groupedState = pgeGame['collision'] as { currentPgeCollisionGridX: number; currentPgeCollisionGridY: number } | undefined
+    return groupedState ?? {
+        get currentPgeCollisionGridX() { return pgeGame['_currentPgeCollisionGridX'] as number },
+        set currentPgeCollisionGridX(value: number) { pgeGame['_currentPgeCollisionGridX'] = value },
+        get currentPgeCollisionGridY() { return pgeGame['_currentPgeCollisionGridY'] as number },
+        set currentPgeCollisionGridY(value: number) { pgeGame['_currentPgeCollisionGridY'] = value },
+    }
+}
 
 function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
-    const isDirectStartStartup = game._startedFromLevelSelect && game.renders < 5 && (!pge || pge.index === 0)
-    return isDirectStartStartup || game.renders > game.debugStartFrame || game._currentRoom === 39 || pge?.room_location === 39 || game._textToDisplay !== UINT16_MAX
+    const session = getPgeSessionState(game)
+    const world = getPgeWorldState(game)
+    const isDirectStartStartup = session.startedFromLevelSelect && game.renders < 5 && (!pge || pge.index === 0)
+    return isDirectStartStartup || game.renders > game.debugStartFrame || world.currentRoom === 39 || pge?.room_location === 39 || world.textToDisplay !== UINT16_MAX
 }
 
 function logPgeInteraction(game: Game, scope: string, message: string, pge?: LivePGE) {
+    const world = getPgeWorldState(game)
     if (!shouldLogPgeInteraction(game, pge)) {
         return
     }
     const prefix = pge
-        ? `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} state=${pge.script_state_type}/${pge.first_script_entry_index}`
-        : `[${scope}] frame=${game.renders} currentRoom=${game._currentRoom}`
+        ? `[${scope}] frame=${game.renders} currentRoom=${world.currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} state=${pge.script_state_type}/${pge.first_script_entry_index}`
+        : `[${scope}] frame=${game.renders} currentRoom=${world.currentRoom}`
     console.log(`${prefix} ${message}`)
 }
 
 function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode: PgeScriptNode, scriptEntry: PgeScriptEntry) {
+    const world = getPgeWorldState(game)
     const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
     console.warn(
-        `[pge-transition] frame=${game.renders} currentRoom=${game._currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} scriptNode=${pge.init_PGE.script_node_index} objectType=${pge.init_PGE.object_type} state=${pge.script_state_type} currentEntry=${pge.first_script_entry_index} nextEntry=${scriptEntry.next_script_entry_index} maxEntry=${maxEntryIndex} nextState=${scriptEntry.next_script_state_type}`
+        `[pge-transition] frame=${game.renders} currentRoom=${world.currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} scriptNode=${pge.init_PGE.script_node_index} objectType=${pge.init_PGE.object_type} state=${pge.script_state_type} currentEntry=${pge.first_script_entry_index} nextEntry=${scriptEntry.next_script_entry_index} maxEntry=${maxEntryIndex} nextState=${scriptEntry.next_script_state_type}`
     )
 }
 
 
 export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom: number) {
+    const ui = getPgeUiState(game)
+    const runtime = getRuntimeRegistryState(game)
     const initial_pge_from_file: InitPGE = game._res.level.pgeAllInitialStateFromFile[idx]
-    const live_pge: LivePGE = game._livePgesByIndex[idx]
+    const live_pge: LivePGE = runtime.livePgesByIndex[idx]
 
     live_pge.init_PGE = initial_pge_from_file
     live_pge.script_state_type = initial_pge_from_file.type
@@ -81,7 +153,7 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
     // Conrad is PGE index 0. Override his starting shield count here instead of
     // changing the inventory counter item, which only mirrors Conrad's real life.
     live_pge.life = idx === 0 ? 20 : initial_pge_from_file.life
-    if (game._skillLevel >= 2 && initial_pge_from_file.object_type === 10) {
+    if (ui.skillLevel >= 2 && initial_pge_from_file.object_type === 10) {
         live_pge.life *= 2
     }
     live_pge.counter_value = 0
@@ -91,13 +163,13 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
     live_pge.index = idx
 
     let flags = 0
-    if (initial_pge_from_file.skill > game._skillLevel) {
+    if (initial_pge_from_file.skill > ui.skillLevel) {
         return
     }
 
     if (initial_pge_from_file.room_location !== 0 || ((initial_pge_from_file.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST) && (currentRoom === initial_pge_from_file.init_room))) {
         flags |= PGE_FLAG_ACTIVE
-        game._livePgeStore.activeFrameByIndex[idx] = live_pge
+        runtime.livePgeStore.activeFrameByIndex[idx] = live_pge
     }
     if (initial_pge_from_file.mirror_x !== 0) {
         flags |= PGE_FLAG_MIRRORED
@@ -155,10 +227,13 @@ export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
 }
 
 export function gameRemovePgeFromPendingGroups(game: Game, idx: number) {
-    game._pendingSignalsByTargetPgeIndex.delete(idx)
+    getRuntimeRegistryState(game).pendingSignalsByTargetPgeIndex.delete(idx)
 }
 
 export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge: InitPGE, scriptEntry: PgeScriptEntry) {
+    const ui = getPgeUiState(game)
+    const world = getPgeWorldState(game)
+    const pgeState = getPgeExecutionState(game)
     let op: PgeOpcodeHandler
     const args: PgeOpcodeArgs = {
         pge: null,
@@ -215,7 +290,7 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
     live_pge.first_script_entry_index = scriptEntry.next_script_entry_index
     live_pge.anim_seq = 0
     if (scriptEntry.flags & 0xF0) {
-        game._score += GameClass._scoreTable[scriptEntry.flags >> 4]
+        ui.score += GameClass._scoreTable[scriptEntry.flags >> 4]
     }
     if (scriptEntry.flags & OBJ_FLAG_TOGGLE_MIRROR) {
         live_pge.flags ^= PGE_FLAG_MIRRORED
@@ -223,9 +298,9 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
     if (scriptEntry.flags & OBJ_FLAG_DEC_LIFE) {
         --live_pge.life
         if (init_pge.object_type === 1) {
-            game._shouldProcessCurrentPgeObjectNode = true
+            pgeState.shouldProcessCurrentPgeObjectNode = true
         } else if (init_pge.object_type === 10) {
-            game._score += 100
+            ui.score += 100
         }
     }
     if (scriptEntry.flags & OBJ_FLAG_INC_LIFE) {
@@ -242,10 +317,10 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
     }
     live_pge.pos_y += scriptEntry.dy
 
-    if (game._shouldProcessCurrentPgeObjectNode && init_pge.object_type === 1) {
+    if (pgeState.shouldProcessCurrentPgeObjectNode && init_pge.object_type === 1) {
         if (gameObjectNodeHasPgeGroupCondition(game, live_pge) !== 0) {
-            game._blinkingConradCounter = 60
-            game._shouldProcessCurrentPgeObjectNode = false
+            world.blinkingConradCounter = 60
+            pgeState.shouldProcessCurrentPgeObjectNode = false
         }
     }
     return UINT16_MAX
@@ -279,30 +354,32 @@ export function gameUpdatePgeInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
 }
 
 export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targetPgeIndex: number, signalId: number) {
-    let pge: LivePGE = game._livePgesByIndex[targetPgeIndex]
+    const world = getPgeWorldState(game)
+    const runtime = getRuntimeRegistryState(game)
+    let pge: LivePGE = runtime.livePgesByIndex[targetPgeIndex]
     if (!(pge.flags & PGE_FLAG_ACTIVE)) {
         if (!(pge.init_PGE.flags & INIT_PGE_FLAG_HAS_COLLISION)) {
             return
         }
         pge.flags |= PGE_FLAG_ACTIVE
-        game._livePgeStore.activeFrameByIndex[targetPgeIndex] = pge
+        runtime.livePgeStore.activeFrameByIndex[targetPgeIndex] = pge
     }
     if (signalId <= 4) {
         const pge_room = pge.room_location
-        pge = game._livePgesByIndex[senderPgeIndex]
+        pge = runtime.livePgesByIndex[senderPgeIndex]
         if (pge_room !== pge.room_location) {
             return
         }
-        if (targetPgeIndex === 0 && game._blinkingConradCounter !== 0) {
+        if (targetPgeIndex === 0 && world.blinkingConradCounter !== 0) {
             return
         }
     }
-    const pendingGroups = game._pendingSignalsByTargetPgeIndex.get(targetPgeIndex) ?? []
+    const pendingGroups = runtime.pendingSignalsByTargetPgeIndex.get(targetPgeIndex) ?? []
     pendingGroups.unshift({
         senderPgeIndex,
         signalId
     })
-    game._pendingSignalsByTargetPgeIndex.set(targetPgeIndex, pendingGroups)
+    runtime.pendingSignalsByTargetPgeIndex.set(targetPgeIndex, pendingGroups)
 }
 
 // Run one frame of OBJ-script logic for a single PGE. This consumes pending group signals,
@@ -310,12 +387,15 @@ export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targ
 // handles any resulting room transition / activation updates, advances the animation frame,
 // and finally clears the consumed group entry for this PGE.
 export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: number) {
+    const world = getPgeWorldState(game)
+    const pgeState = getPgeExecutionState(game)
+    const runtime = getRuntimeRegistryState(game)
     game._shouldPlayPgeAnimationSound = true
-    game._currentPgeFacingIsMirrored = (pge.flags & PGE_FLAG_MIRRORED) !== 0
-    game._currentPgeRoom = pge.room_location
-    const pendingGroups = game._pendingSignalsByTargetPgeIndex.get(pge.index)
+    pgeState.currentPgeFacingIsMirrored = (pge.flags & PGE_FLAG_MIRRORED) !== 0
+    pgeState.currentPgeRoom = pge.room_location
+    const pendingGroups = runtime.pendingSignalsByTargetPgeIndex.get(pge.index)
     logPgeInteraction(game, 'pge-frame', `start currentRoomArg=${currentRoom} pos=(${pge.pos_x},${pge.pos_y}) animSeq=${pge.anim_seq} pendingGroups=${pendingGroups?.map(({ senderPgeIndex, signalId }) => `${senderPgeIndex}:${signalId}`).join(',') || 'none'}`, pge)
-    game.renders > game.debugStartFrame && console.log(`_currentPgeFacingIsMirrored=${game._currentPgeFacingIsMirrored} _currentPgeRoom=${game._currentPgeRoom} pendingGroups=${pendingGroups?.length ?? 0}`)
+    game.renders > game.debugStartFrame && console.log(`currentPgeFacingIsMirrored=${pgeState.currentPgeFacingIsMirrored} currentPgeRoom=${pgeState.currentPgeRoom} pendingGroups=${pendingGroups?.length ?? 0}`)
     if (pendingGroups?.length) {
         gameApplyNextPgeAnimationFrameFromGroups(game, pge, pendingGroups)
     }
@@ -335,17 +415,17 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
             logPgeInteraction(game, 'pge-step', `scriptEntryIndex=${objIndex} type=${scriptEntry.type} opcodes=0x${scriptEntry.opcode1.toString(16)}/0x${scriptEntry.opcode2.toString(16)}/0x${scriptEntry.opcode3.toString(16)} args=${scriptEntry.opcode_arg1}/${scriptEntry.opcode_arg2}/${scriptEntry.opcode_arg3}`, pge)
             if (scriptEntry.type !== pge.script_state_type) {
                 game.renders > game.debugStartFrame && console.log('exiting pge_process loop: removing', pge.index)
-                logPgeInteraction(game, 'pge-frame', `end reason=script-type-mismatch text=${game._textToDisplay}`, pge)
+                logPgeInteraction(game, 'pge-frame', `end reason=script-type-mismatch text=${world.textToDisplay}`, pge)
                 gameRemovePgeFromPendingGroups(game, pge.index)
                 return
             }
             const _ax = gameExecutePgeObjectStep(game, pge, init_pge, scriptEntry)
-            logPgeInteraction(game, 'pge-step', `result=${_ax} nextState=${pge.script_state_type}/${pge.first_script_entry_index} pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} text=${game._textToDisplay} loadMap=${game._loadMap}`, pge)
+            logPgeInteraction(game, 'pge-step', `result=${_ax} nextState=${pge.script_state_type}/${pge.first_script_entry_index} pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} text=${world.textToDisplay} loadMap=${world.loadMap}`, pge)
 
-            if (game._currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
+            if (world.currentLevel === 6 && (currentRoom === 50 || currentRoom === 51)) {
                 if (pge.index === 79 && _ax === UINT16_MAX && scriptEntry.opcode1 === 0x60 && scriptEntry.opcode2 === 0 && scriptEntry.opcode3 === 0) {
-                    if (gameGetCollisionLanePositionIndexByXY(game, game._livePgesByIndex[79], 0) === gameGetCollisionLanePositionIndexByXY(game, game._livePgesByIndex[0], 0)) {
-                        game.queuePgeGroupSignal(79, 0, 4)
+                    if (gameGetCollisionLanePositionIndexByXY(game, runtime.livePgesByIndex[79], 0) === gameGetCollisionLanePositionIndexByXY(game, runtime.livePgesByIndex[0], 0)) {
+                        gameQueuePgeGroupSignal(game, 79, 0, 4)
                     }
                 }
             }
@@ -358,9 +438,9 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
                 if (snd) {
                     gamePlayPgeAnimationSound(game, pge, snd)
                 }
-                logPgeInteraction(game, 'pge-transition', `before roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} loadMap=${game._loadMap}`, pge)
+                logPgeInteraction(game, 'pge-transition', `before roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} loadMap=${world.loadMap}`, pge)
                 gameHandlePgeRoomTransitionAndActivation(game, pge, init_pge)
-                logPgeInteraction(game, 'pge-transition', `after roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} currentRoom=${game._currentRoom} loadMap=${game._loadMap}`, pge)
+                logPgeInteraction(game, 'pge-transition', `after roomTransition pos=(${pge.pos_x},${pge.pos_y}) room=${pge.room_location} currentRoom=${world.currentRoom} loadMap=${world.loadMap}`, pge)
                 break
             }
             ++objIndex
@@ -372,7 +452,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
     gameAdvancePgeAnimationState(game, pge)
     ++pge.anim_seq
     gameRemovePgeFromPendingGroups(game, pge.index)
-    logPgeInteraction(game, 'pge-frame', `end animSeq=${pge.anim_seq} animNumber=${pge.anim_number} text=${game._textToDisplay}`, pge)
+    logPgeInteraction(game, 'pge-frame', `end animSeq=${pge.anim_seq} animNumber=${pge.anim_number} text=${world.textToDisplay}`, pge)
 }
 
 export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
@@ -404,84 +484,15 @@ export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
 }
 
 export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePGE, init_pge: InitPGE) {
-    let room_ct_data: Int8Array = null
-    if (pge.pos_x <= -10) {
-        pge.pos_x += GAMESCREEN_W
-        room_ct_data = game._res.level.ctData.subarray(CT_LEFT_ROOM)
-    } else if (pge.pos_x >= GAMESCREEN_W) {
-        pge.pos_x -= GAMESCREEN_W
-        room_ct_data = game._res.level.ctData.subarray(CT_RIGHT_ROOM)
-    } else if (pge.pos_y < 0) {
-        pge.pos_y += 216
-        room_ct_data = game._res.level.ctData.subarray(CT_UP_ROOM)
-    } else if (pge.pos_y >= 216) {
-        pge.pos_y -= 216
-        room_ct_data = game._res.level.ctData.subarray(CT_DOWN_ROOM)
-    }
-    if (room_ct_data) {
-        logPgeInteraction(game, 'pge-transition', `crossing room boundary from=${pge.room_location} pos=(${pge.pos_x},${pge.pos_y}) objectType=${init_pge.object_type}`, pge)
-        let room = pge.room_location << 24 >> 24
-        if (room >= 0) {
-            room = room_ct_data[room]
-            pge.room_location = room
-        }
-        if (init_pge.object_type === 1) {
-            game._currentRoom = room
-            gameRebuildActiveRoomCollisionSlotLookup(game, game._currentRoom)
-            game._loadMap = true
-            if (!(game._currentRoom & 0x80) && game._currentRoom < 0x40) {
-                for (const pge_it of game._livePgeStore.liveByRoom[game._currentRoom]) {
-                    if (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST) {
-                        logPgeInteraction(game, 'pge-activate', `activate current-room pge=${pge_it.index} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
-                        game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
-                        pge_it.flags |= PGE_FLAG_ACTIVE
-                    }
-                }
-                room = game._res.level.ctData[CT_UP_ROOM + game._currentRoom]
-                if (room >= 0 && room < 0x40) {
-                    for (const pge_it of game._livePgeStore.liveByRoom[room]) {
-                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 48 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
-                            logPgeInteraction(game, 'pge-activate', `activate upper-neighbor pge=${pge_it.index} room=${room} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
-                            game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
-                            pge_it.flags |= PGE_FLAG_ACTIVE
-                        }
-                    }
-                }
-                room = game._res.level.ctData[CT_DOWN_ROOM + game._currentRoom]
-                if (room >= 0 && room < 0x40) {
-                    for (const pge_it of game._livePgeStore.liveByRoom[room]) {
-                        if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 176 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
-                            logPgeInteraction(game, 'pge-activate', `activate lower-neighbor pge=${pge_it.index} room=${room} pos=(${pge_it.pos_x},${pge_it.pos_y})`, pge_it)
-                            game._livePgeStore.activeFrameByIndex[pge_it.index] = pge_it
-                            pge_it.flags |= PGE_FLAG_ACTIVE
-                        }
-                    }
-                }
-            }
-        }
-    }
-    gameAddPgeToRoomLiveList(game, pge, game._currentPgeRoom)
+    gameHandlePgeRoomTransition(game, pge, init_pge, getPgeExecutionState(game).currentPgeRoom, (scope, message, targetPge = pge) => {
+        logPgeInteraction(game, scope, message, targetPge)
+    })
 }
 
 export function gameAddPgeToRoomLiveList(game: Game, pge: LivePGE, room: number) {
-    if (room !== pge.room_location) {
-        const previousRoomList = game._livePgeStore.liveByRoom[room]
-        if (!previousRoomList) {
-            logPgeInteraction(game, 'pge-live-list', `skip move missing previousRoomList oldRoom=${room} newRoom=${pge.room_location}`, pge)
-            return
-        }
-        const previousRoomIndex = previousRoomList.indexOf(pge)
-        if (previousRoomIndex >= 0) {
-            previousRoomList.splice(previousRoomIndex, 1)
-            const nextRoomList = game._livePgeStore.liveByRoom[pge.room_location]
-            if (nextRoomList) {
-                nextRoomList.push(pge)
-                logPgeInteraction(game, 'pge-live-list', `moved oldRoom=${room} newRoom=${pge.room_location}`, pge)
-            } else {
-                logPgeInteraction(game, 'pge-live-list', `skip move missing nextRoomList oldRoom=${room} newRoom=${pge.room_location}`, pge)
-            }
-        }
-    }
+    gameRelocatePgeToRoom(game, pge, room, (scope, message, targetPge = pge) => {
+        logPgeInteraction(game, scope, message, targetPge)
+    })
 }
 
 export function gamePlayPgeAnimationSound(game: Game, pge: LivePGE, arg2: number) {
@@ -489,6 +500,8 @@ export function gamePlayPgeAnimationSound(game: Game, pge: LivePGE, arg2: number
 }
 
 export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePGE, pendingGroups: { senderPgeIndex: number; signalId: number }[]) {
+    const pgeState = getPgeExecutionState(game)
+    const collisionState = getPgeCollisionState(game)
     const init_pge: InitPGE = pge.init_PGE
     assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
 
@@ -500,7 +513,7 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
         let index = 0
         while (_dh > _dl) {
             if (game._res.readUint16(anim_frame, index) !== UINT16_MAX) {
-                if (game._currentPgeFacingIsMirrored) {
+                if (pgeState.currentPgeFacingIsMirrored) {
                     pge.pos_x = pge.pos_x - (anim_frame[2 + index] << 24 >> 24)
                 } else {
                     pge.pos_x = pge.pos_x + (anim_frame[2 + index] << 24 >> 24)
@@ -511,8 +524,8 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
             ++_dl
         }
         pge.anim_seq = _dh
-        game._currentPgeCollisionGridY = (pge.pos_y / 36) & ~1
-        game._currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
+        collisionState.currentPgeCollisionGridY = (pge.pos_y / 36) & ~1
+        collisionState.currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
     }
 
     const on: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
@@ -585,21 +598,22 @@ export function gameSetCurrentInventoryPge(game: Game, pge: LivePGE) {
 }
 
 export function gameRebuildPgeCollisionStateForCurrentRoom(game: Game, currentRoom: number) {
+    const runtime = getRuntimeRegistryState(game)
     // clear the collisions arrays
     gameClearDynamicCollisionSlotState(game)
     if (currentRoom & 0x80) return
 
-    for (const pge of game._livePgeStore.liveByRoom[currentRoom]) {
+    for (const pge of runtime.livePgeStore.liveByRoom[currentRoom]) {
         // this is going to prepare the collisions table for all the PGEs in current roon
         gameRegisterPgeCollisionSegments(game, pge)
         if (!(pge.flags & PGE_FLAG_ACTIVE) && (pge.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
-            game._livePgeStore.activeFrameByIndex[pge.index] = pge
+            runtime.livePgeStore.activeFrameByIndex[pge.index] = pge
             pge.flags |= PGE_FLAG_ACTIVE
         }
     }
 
     for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
-        const pge2 = game._livePgeStore.activeFrameByIndex[i]
+        const pge2 = runtime.livePgeStore.activeFrameByIndex[i]
         if (pge2 && currentRoom !== pge2.room_location) {
             gameRegisterPgeCollisionSegments(game, pge2)
         }
@@ -607,37 +621,39 @@ export function gameRebuildPgeCollisionStateForCurrentRoom(game: Game, currentRo
 }
 
 export function gameRebuildActiveFramePgeList(game: Game) {
-    game._livePgeStore.activeFrameList.length = 0
-    for (const pge of game._livePgeStore.activeFrameByIndex) {
+    const runtime = getRuntimeRegistryState(game)
+    runtime.livePgeStore.activeFrameList.length = 0
+    for (const pge of runtime.livePgeStore.activeFrameByIndex) {
         if (pge) {
-            game._livePgeStore.activeFrameList.push(pge)
+            runtime.livePgeStore.activeFrameList.push(pge)
         }
     }
 }
 
 export async function gameUpdatePgeDirectionalInputState(game: Game) {
+    const pgeState = getPgeExecutionState(game)
     await game.inp_update()
 
     game._inp_lastKeysHit = game._stub._pi.dirMask
     if ((game._inp_lastKeysHit & 0xC) && (game._inp_lastKeysHit & 0x3)) {
         const mask = (game._inp_lastKeysHit & 0xF0) | (game._inp_lastKeysHitLeftRight & 0xF)
-        game._currentPgeInputMask = mask
+        pgeState.currentPgeInputMask = mask
         game._inp_lastKeysHit = mask
     } else {
-        game._currentPgeInputMask = game._inp_lastKeysHit
+        pgeState.currentPgeInputMask = game._inp_lastKeysHit
         game._inp_lastKeysHitLeftRight = game._inp_lastKeysHit
     }
     if (game._stub._pi.enter) {
-        game._currentPgeInputMask |= 0x10
+        pgeState.currentPgeInputMask |= 0x10
     }
     if (game._stub._pi.space) {
-        game._currentPgeInputMask |= 0x20
+        pgeState.currentPgeInputMask |= 0x20
     }
     if (game._stub._pi.shift) {
-        game._currentPgeInputMask |= 0x40
+        pgeState.currentPgeInputMask |= 0x40
     }
 }
 
 export function gameResetPgeGroupState(game: Game) {
-    game._pendingSignalsByTargetPgeIndex.clear()
+    getRuntimeRegistryState(game).pendingSignalsByTargetPgeIndex.clear()
 }

@@ -9,10 +9,57 @@ import { PGE_FLAG_FLIP_X, PGE_FLAG_SPECIAL_ANIM, UINT16_MAX, UINT8_MAX } from '.
 import { _gameLevels } from '../core/staticres'
 import { monsterListsByLevel } from '../core/staticres-monsters'
 import { assert } from "../core/assert"
-import { gameInitializePgeDefaultAnimation } from './game_pge'
+import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game_pge'
+import { gameClearValidSaveState, gameCommitLoadedRoom, ROOM_OVERLAY_DURATION_FRAMES, gameResetLevelLifecycle } from './game_lifecycle'
+import { getRenderDataState, getRuntimeRegistryState } from './game_runtime_data'
 
 const MONSTER_PALETTE_SLOT = 5
-const ROOM_OVERLAY_DURATION_FRAMES = 90
+type WorldGame = Record<string, unknown>
+
+function getWorldState(game: Game) {
+    const worldGame = game as unknown as WorldGame
+    return (worldGame['world'] as { currentLevel: number; currentRoom: number; currentIcon: number; printLevelCodeCounter: number } | undefined) ?? {
+        get currentLevel() { return worldGame['_currentLevel'] as number },
+        set currentLevel(value: number) { worldGame['_currentLevel'] = value },
+        get currentRoom() { return worldGame['_currentRoom'] as number },
+        set currentRoom(value: number) { worldGame['_currentRoom'] = value },
+        get currentIcon() { return worldGame['_currentIcon'] as number },
+        set currentIcon(value: number) { worldGame['_currentIcon'] = value },
+        get printLevelCodeCounter() { return worldGame['_printLevelCodeCounter'] as number },
+        set printLevelCodeCounter(value: number) { worldGame['_printLevelCodeCounter'] = value },
+    }
+}
+
+function getUiState(game: Game) {
+    const worldGame = game as unknown as WorldGame
+    return (worldGame['ui'] as { skillLevel: number } | undefined) ?? {
+        get skillLevel() { return worldGame['_skillLevel'] as number },
+        set skillLevel(value: number) { worldGame['_skillLevel'] = value },
+    }
+}
+
+function getSessionState(game: Game) {
+    const worldGame = game as unknown as WorldGame
+    return (worldGame['session'] as { startedFromLevelSelect: boolean; randSeed: number } | undefined) ?? {
+        get startedFromLevelSelect() { return worldGame['_startedFromLevelSelect'] as boolean },
+        set startedFromLevelSelect(value: boolean) { worldGame['_startedFromLevelSelect'] = value },
+        get randSeed() { return worldGame['_randSeed'] as number },
+        set randSeed(value: number) { worldGame['_randSeed'] = value },
+    }
+}
+
+function getCollisionState(game: Game) {
+    const worldGame = game as unknown as WorldGame
+    return (worldGame['collision'] as { nextFreeRoomCollisionGridPatchRestoreSlot: unknown; roomCollisionGridPatchRestoreSlotPool: unknown[]; activeRoomCollisionGridPatchRestoreSlots: unknown } | undefined) ?? {
+        get nextFreeRoomCollisionGridPatchRestoreSlot() { return worldGame['_nextFreeRoomCollisionGridPatchRestoreSlot'] as unknown },
+        set nextFreeRoomCollisionGridPatchRestoreSlot(value: unknown) { worldGame['_nextFreeRoomCollisionGridPatchRestoreSlot'] = value },
+        get roomCollisionGridPatchRestoreSlotPool() { return worldGame['_roomCollisionGridPatchRestoreSlotPool'] as unknown[] },
+        set roomCollisionGridPatchRestoreSlotPool(value: unknown[]) { worldGame['_roomCollisionGridPatchRestoreSlotPool'] = value },
+        get activeRoomCollisionGridPatchRestoreSlots() { return worldGame['_activeRoomCollisionGridPatchRestoreSlots'] as unknown },
+        set activeRoomCollisionGridPatchRestoreSlots(value: unknown) { worldGame['_activeRoomCollisionGridPatchRestoreSlots'] = value },
+    }
+}
+
 interface DirectLevelStartOverride {
     room: number
     posX?: number
@@ -32,8 +79,10 @@ const DIRECT_LEVEL_START_OVERRIDES: Record<number, DirectLevelStartOverride> = {
 }
 
 function getLevelStartRoom(game: Game) {
-    if (game._startedFromLevelSelect) {
-        const override = DIRECT_LEVEL_START_OVERRIDES[game._currentLevel]
+    const session = getSessionState(game)
+    const world = getWorldState(game)
+    if (session.startedFromLevelSelect) {
+        const override = DIRECT_LEVEL_START_OVERRIDES[world.currentLevel]
         if (override) {
             return override.room
         }
@@ -42,14 +91,16 @@ function getLevelStartRoom(game: Game) {
 }
 
 function applyDirectLevelStartOverride(game: Game) {
-    if (!game._startedFromLevelSelect) {
+    const session = getSessionState(game)
+    const world = getWorldState(game)
+    if (!session.startedFromLevelSelect) {
         return
     }
-    const override = DIRECT_LEVEL_START_OVERRIDES[game._currentLevel]
+    const override = DIRECT_LEVEL_START_OVERRIDES[world.currentLevel]
     if (!override) {
         return
     }
-    const conrad = game._livePgesByIndex[0]
+    const conrad = getRuntimeRegistryState(game).livePgesByIndex[0]
     const conradScriptNode: PgeScriptNode = game._res.level.objectNodesMap[conrad.init_PGE.script_node_index]
     conrad.room_location = override.room
     if (typeof override.posX === 'number') {
@@ -64,7 +115,7 @@ function applyDirectLevelStartOverride(game: Game) {
         if (nextIndex >= 0) {
             conrad.first_script_entry_index = nextIndex
         } else {
-            console.warn(`[direct-start] Missing Conrad script state ${override.stateType} for level ${game._currentLevel}`)
+            console.warn(`[direct-start] Missing Conrad script state ${override.stateType} for level ${world.currentLevel}`)
         }
         conrad.anim_seq = 0
         gameInitializePgeDefaultAnimation(game, conrad)
@@ -83,20 +134,22 @@ function getLoadedMonsterVisualForPge(game: Game, pge: LivePGE) {
 }
 
 export function gameGetRandomNumber(game: Game) {
-    let n = game._randSeed * 2
-    if ((game._randSeed << 32 >> 32) >= 0) {
+    const session = getSessionState(game)
+    let n = session.randSeed * 2
+    if ((session.randSeed << 32 >> 32) >= 0) {
         n ^= 0x1D872B41
     }
-    game._randSeed = n
+    session.randSeed = n
     return n & UINT16_MAX
 }
 
 export async function gameChangeLevel(game: Game) {
+    const world = getWorldState(game)
     await game._vid.fadeOut()
     game.clearStateRewind()
     await game.loadLevelData()
-    await game.loadLevelMap(game._currentRoom)
-    game._currentRoomOverlayCounter = ROOM_OVERLAY_DURATION_FRAMES
+    await game.loadLevelMap(world.currentRoom)
+    gameCommitLoadedRoom(game, world.currentRoom)
     game._vid.setPalette0xF()
     game._vid.setTextPalette()
     game._vid.fullRefresh()
@@ -107,31 +160,23 @@ export async function gameInpUpdate(game: Game) {
 }
 
 export function gameResetGameState(game: Game) {
-    game._animBuffers._states[0] = game._animBuffer0State
-    game._animBuffers._curPos[0] = UINT8_MAX
-    game._animBuffers._states[1] = game._animBuffer1State
-    game._animBuffers._curPos[1] = UINT8_MAX
-    game._animBuffers._states[2] = game._animBuffer2State
-    game._animBuffers._curPos[2] = UINT8_MAX
-    game._animBuffers._states[3] = game._animBuffer3State
-    game._animBuffers._curPos[3] = UINT8_MAX
-    game._currentRoom = getLevelStartRoom(game)
-    game._cut.setDeathCutSceneId(UINT16_MAX)
-    game._opcodeTempVar2 = UINT16_MAX
-    game._deathCutsceneCounter = 0
-    game._credits = 0
-    game._saveStateCompleted = false
-    game._loadMap = true
+    const render = getRenderDataState(game)
+    const runtime = getRuntimeRegistryState(game)
+    render.animBuffers._states[0] = render.animBuffer0State
+    render.animBuffers._curPos[0] = UINT8_MAX
+    render.animBuffers._states[1] = render.animBuffer1State
+    render.animBuffers._curPos[1] = UINT8_MAX
+    render.animBuffers._states[2] = render.animBuffer2State
+    render.animBuffers._curPos[2] = UINT8_MAX
+    render.animBuffers._states[3] = render.animBuffer3State
+    render.animBuffers._curPos[3] = UINT8_MAX
+    gameResetLevelLifecycle(game, getLevelStartRoom(game))
     game.resetPgeGroups()
-    game._inventoryItemIndicesByOwner.clear()
-    game._blinkingConradCounter = 0
-    game._currentRoomOverlayCounter = 0
-    game._shouldProcessCurrentPgeObjectNode = false
-    game._opcodeTempVar1 = 0
-    game._textToDisplay = UINT16_MAX
+    runtime.inventoryItemIndicesByOwner.clear()
 }
 
 export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRoom: number) {
+    const world = getWorldState(game)
     const initPge: InitPGE = pge.init_PGE
     if (!isMonsterPge(initPge)) {
         return UINT16_MAX
@@ -140,10 +185,10 @@ export async function gameLoadMonsterSprites(game: Game, pge: LivePGE, currentRo
         return 0
     }
 
-    const currentLevelMonsters = monsterListsByLevel[game._currentLevel]
+    const currentLevelMonsters = monsterListsByLevel[world.currentLevel]
     const currentMonster = currentLevelMonsters.find((monster) => monster.monsterScriptNodeIndex === initPge.script_node_index)
     if (!currentMonster) {
-        throw new Error(`Missing monster descriptor for script node ${initPge.script_node_index} on level ${game._currentLevel}`)
+        throw new Error(`Missing monster descriptor for script node ${initPge.script_node_index} on level ${world.currentLevel}`)
     }
     if (!game._loadedMonsterVisualsByScriptNodeIndex.has(currentMonster.monsterScriptNodeIndex)) {
         const resolvedSpriteSet = await game._res.loadMonsterResolvedSpriteSet(currentMonster.name)
@@ -182,35 +227,42 @@ export function gameHasLevelMap(game: Game, room: number) {
 }
 
 export async function gameLoadLevelMap(game: Game, currentRoom: number) {
-    game._currentIcon = UINT8_MAX
-    await game._vid.PC_decodeMap(game._currentLevel, currentRoom)
+    const world = getWorldState(game)
+    world.currentIcon = UINT8_MAX
+    await game._vid.PC_decodeMap(world.currentLevel, currentRoom)
 }
 
 export function gameClearLivePGETables(game: Game) {
-    game._livePgeStore.liveByRoom.forEach((roomList) => {
+    const runtime = getRuntimeRegistryState(game)
+    runtime.livePgeStore.liveByRoom.forEach((roomList) => {
         roomList.length = 0
     })
-    game._livePgeStore.activeFrameByIndex.fill(null)
-    game._livePgeStore.activeFrameList.length = 0
-    game._inventoryItemIndicesByOwner.clear()
+    runtime.livePgeStore.activeFrameByIndex.fill(null)
+    runtime.livePgeStore.activeFrameList.length = 0
+    runtime.inventoryItemIndicesByOwner.clear()
 }
 
 export function gameCreatePgeLiveTable1(game: Game) {
-    game._livePgeStore.liveByRoom.forEach((roomList) => {
+    const runtime = getRuntimeRegistryState(game)
+    const ui = getUiState(game)
+    runtime.livePgeStore.liveByRoom.forEach((roomList) => {
         roomList.length = 0
     })
     for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
-        if (game._res.level.pgeAllInitialStateFromFile[i].skill <= game._skillLevel) {
+        if (game._res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
             game.renders > game.debugStartFrame && console.log(`i=${i} => skill!`)
-            const pge = game._livePgesByIndex[i]
-            game._livePgeStore.liveByRoom[pge.room_location].push(pge)
+            const pge = runtime.livePgesByIndex[i]
+            runtime.livePgeStore.liveByRoom[pge.room_location].push(pge)
         }
     }
 }
 
 export async function gameLoadLevelData(game: Game): Promise<number> {
+    const runtime = getRuntimeRegistryState(game)
+    const world = getWorldState(game)
+    const collision = getCollisionState(game)
     game._res.clearLevelAllResources()
-    const lvl = _gameLevels[game._currentLevel]
+    const lvl = _gameLevels[world.currentLevel]
 
     await game._res.load(lvl.name2, ObjectType.OT_MBK)
     await game._res.loadCollisionData(lvl.name2)
@@ -227,14 +279,14 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game._cut.setId(lvl.cutscene_id)
     game._loadedMonsterVisualsByScriptNodeIndex.clear()
     game._res.clearBankData()
-    game._printLevelCodeCounter = 150
-    game._nextFreeRoomCollisionGridPatchRestoreSlot = game._roomCollisionGridPatchRestoreSlotPool[0]
-    game._activeRoomCollisionGridPatchRestoreSlots = null
+    world.printLevelCodeCounter = 150
+    collision.nextFreeRoomCollisionGridPatchRestoreSlot = collision.roomCollisionGridPatchRestoreSlotPool[0]
+    collision.activeRoomCollisionGridPatchRestoreSlots = null
 
     gameClearLivePGETables(game)
-    game._livePgeStore.initByIndex = game._res.level.pgeAllInitialStateFromFile
+    runtime.livePgeStore.initByIndex = game._res.level.pgeAllInitialStateFromFile
     const currentRoom = getLevelStartRoom(game)
-    game._currentRoom = currentRoom
+    world.currentRoom = currentRoom
 
     let n = game._res.level.pgeTotalNumInFile
     while (n--) {
@@ -244,7 +296,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     gameCreatePgeLiveTable1(game)
 
     game.resetPgeGroups()
-    game._validSaveState = false
+    gameClearValidSaveState(game)
     game._mix.playMusic(Mixer.MUSIC_TRACK + lvl.track)
     return currentRoom
 }
@@ -298,6 +350,8 @@ function getPaletteColorMaskOverrideForPge(game: Game, pge: LivePGE) {
 }
 
 export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: number, dy: number, currentRoom: number) {
+    const runtime = getRuntimeRegistryState(game)
+    const render = getRenderDataState(game)
     if (!(pge.flags & PGE_FLAG_SPECIAL_ANIM)) {
         if (pge.index !== 0 && await game.loadMonsterSprites(pge, currentRoom) === 0) {
             return
@@ -336,12 +390,12 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
             return
         }
         xpos += 8
-        if (pge === game._livePgesByIndex[0]) {
-            game._animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+        if (pge === runtime.livePgesByIndex[0]) {
+            render.animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         } else if (pge.flags & 0x10) {
-            game._animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+            render.animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         } else {
-            game._animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+            render.animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         }
     } else {
         assert(!(pge.anim_number >= game._res.sprites.numSpc), `Assertion failed: ${pge.anim_number} < ${game._res.sprites.numSpc}`)
@@ -349,17 +403,17 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         const xpos = dx + pge.pos_x + 8
         const ypos = dy + pge.pos_y + 2
         if (pge.init_PGE.object_type === 11) {
-            game._animBuffers.addState(3, xpos, ypos, dataPtr, pge)
+            render.animBuffers.addState(3, xpos, ypos, dataPtr, pge)
         } else if (pge.flags & 0x10) {
-            game._animBuffers.addState(2, xpos, ypos, dataPtr, pge)
+            render.animBuffers.addState(2, xpos, ypos, dataPtr, pge)
         } else {
-            game._animBuffers.addState(0, xpos, ypos, dataPtr, pge)
+            render.animBuffers.addState(0, xpos, ypos, dataPtr, pge)
         }
     }
 }
 
 export async function gamePrepareCurrentRoomAnims(game: Game, currentRoom: number) {
-    for (const pge of game._livePgeStore.liveByRoom[currentRoom]) {
+    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[currentRoom]) {
         await gamePrepareAnimsHelper(game, pge, 0, 0, currentRoom)
     }
 }
@@ -374,7 +428,7 @@ export async function gamePrepareAdjacentRoomAnims(
 ) {
     const pge_room = game._res.level.ctData[roomOffset + currentRoom]
     if (pge_room >= 0 && pge_room < 0x40) {
-        for (const pge of game._livePgeStore.liveByRoom[pge_room]) {
+        for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[pge_room]) {
             if (shouldPrepare(game, pge)) {
                 await gamePrepareAnimsHelper(game, pge, offsetX, offsetY, currentRoom)
             }

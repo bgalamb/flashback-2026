@@ -1,80 +1,69 @@
 import { File } from './file'
 import { ObjectType } from './constants'
+import type { ResourceAssetLoaderContext } from './resource-asset-loaders'
+import {
+    loadAnimationResource,
+    loadBankDataResource,
+    loadCollisionResource,
+    loadCommandTextResource,
+    loadFontResource,
+    loadIconResource,
+    loadMbkResource,
+    loadPackedSpriteResource,
+    loadPaletteResource,
+    loadParsedObjAsset,
+    loadParsedPgeAsset,
+    loadParsedTbnAsset,
+    loadPolygonTextResource,
+    loadRpResource,
+    loadSpcResource,
+    loadSpriteMaskResource,
+    loadSpriteResource,
+} from './resource-asset-loaders'
 
-function createObjectTypeMapping(resource: any): Record<number, { extension: string, loader: (f: File) => void }> {
-    return {
-        [ObjectType.OT_RP]: { extension: 'RP', loader: resource.load_RP },
-        [ObjectType.OT_PAL]: { extension: 'PAL', loader: resource.load_PAL },
-        [ObjectType.OT_TBN]: { extension: 'json', loader: resource.loadParsedTBN },
-        [ObjectType.OT_ANI]: { extension: 'ANI', loader: resource.load_ANI },
-        [ObjectType.OT_BNQ]: { extension: 'BNQ', loader: resource.load_BNQ },
-        [ObjectType.OT_SPM]: { extension: 'SPM', loader: resource.load_SPM },
-        [ObjectType.OT_SPRM]: { extension: 'SPR', loader: resource.load_SPRM },
-        [ObjectType.OT_MBK]: { extension: 'MBK', loader: resource.load_MBK },
-        [ObjectType.OT_FNT]: { extension: 'FNT', loader: resource.load_FNT },
-        [ObjectType.OT_CMD]: { extension: 'CMD', loader: resource.load_CMD },
-        [ObjectType.OT_PGE]: { extension: 'json', loader: resource.loadParsedPGE },
-        [ObjectType.OT_CT]: { extension: 'CT', loader: resource.load_CT },
-        [ObjectType.OT_POL]: { extension: 'POL', loader: resource.load_POL },
-        [ObjectType.OT_ICN]: { extension: 'ICN', loader: resource.load_ICN },
-        [ObjectType.OT_SPC]: { extension: 'SPC', loader: resource.load_SPC },
-        [ObjectType.OT_SPR]: { extension: 'SPR', loader: resource.load_SPRITE },
-        [ObjectType.OT_OBJ]: { extension: 'OBJ', loader: resource.load_OBJ_JSON },
-        [ObjectType.OT_MAP]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_RPC]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_DEMO]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_TAB]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_TXTBIN]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_OFF]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_CMP]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_OBC]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        },
-        [ObjectType.OT_SPL]: {
-            extension: '',
-            loader: function (_f: File): void {
-                throw new Error('Function not implemented.')
-            }
-        }
-    }
+type ResourceFileLoader = (ctx: ResourceAssetLoaderContext, file: File) => void
+
+interface ResourceTypeConfig {
+    extension: string
+    loader: ResourceFileLoader
 }
 
-export { createObjectTypeMapping }
+const UNIMPLEMENTED_RESOURCE_LOADER: ResourceFileLoader = () => {
+    throw new Error('Function not implemented.')
+}
+
+const RESOURCE_TYPE_CONFIG: Record<number, ResourceTypeConfig> = {
+    [ObjectType.OT_RP]: { extension: 'RP', loader: loadRpResource },
+    [ObjectType.OT_PAL]: { extension: 'PAL', loader: loadPaletteResource },
+    [ObjectType.OT_TBN]: { extension: 'json', loader: loadParsedTbnAsset },
+    [ObjectType.OT_ANI]: { extension: 'ANI', loader: loadAnimationResource },
+    [ObjectType.OT_BNQ]: { extension: 'BNQ', loader: loadBankDataResource },
+    [ObjectType.OT_SPM]: { extension: 'SPM', loader: loadPackedSpriteResource },
+    [ObjectType.OT_SPRM]: { extension: 'SPR', loader: loadSpriteMaskResource },
+    [ObjectType.OT_MBK]: { extension: 'MBK', loader: loadMbkResource },
+    [ObjectType.OT_FNT]: { extension: 'FNT', loader: loadFontResource },
+    [ObjectType.OT_CMD]: { extension: 'CMD', loader: loadCommandTextResource },
+    [ObjectType.OT_PGE]: { extension: 'json', loader: loadParsedPgeAsset },
+    [ObjectType.OT_CT]: { extension: 'CT', loader: loadCollisionResource },
+    [ObjectType.OT_POL]: { extension: 'POL', loader: loadPolygonTextResource },
+    [ObjectType.OT_ICN]: { extension: 'ICN', loader: loadIconResource },
+    [ObjectType.OT_SPC]: { extension: 'SPC', loader: loadSpcResource },
+    [ObjectType.OT_SPR]: { extension: 'SPR', loader: loadSpriteResource },
+    [ObjectType.OT_OBJ]: { extension: 'OBJ', loader: loadParsedObjAsset },
+    [ObjectType.OT_MAP]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_RPC]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_DEMO]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_TAB]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_TXTBIN]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_OFF]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_CMP]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_OBC]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+    [ObjectType.OT_SPL]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+}
+
+function getResourceTypeConfig(objType: number): ResourceTypeConfig | undefined {
+    return RESOURCE_TYPE_CONFIG[objType]
+}
+
+export { getResourceTypeConfig }
+export type { ResourceFileLoader, ResourceTypeConfig }

@@ -62,7 +62,7 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 		stepY = 1
 		detectionRange = -detectionRange
 	}
-	if (game._currentPgeFacingIsMirrored) {
+	if (game.pge.currentPgeFacingIsMirrored) {
 		stepX = -stepX
 	}
 	let gridPosX = (pge.pos_x + 8) >> 4
@@ -322,7 +322,7 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 		stepY = 1
 		detectionRange = -detectionRange
 	}
-	if (game._currentPgeFacingIsMirrored) {
+	if (game.pge.currentPgeFacingIsMirrored) {
 		stepX = -stepX
 	}
 

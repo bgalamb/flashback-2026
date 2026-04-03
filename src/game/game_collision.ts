@@ -4,12 +4,13 @@ import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from '../core/g
 import { GAMESCREEN_W } from '../core/game_constants'
 import { UINT16_MAX } from '../core/game_constants'
 import { CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE } from '../core/game_constants'
+import { getRuntimeRegistryState } from './game_runtime_data'
 
 export function gameFindOverlappingPgeByObjectType(game: Game, pge: LivePGE, arg2: number) {
     if (pge.collision_slot !== UINT16_MAX) {
         let collisionGridPositionIndex = pge.collision_slot
         while (collisionGridPositionIndex !== UINT16_MAX) {
-            const slotBucket = game._dynamicPgeCollisionSlotsByPosition.get(collisionGridPositionIndex)
+            const slotBucket = game.collision.dynamicPgeCollisionSlotsByPosition.get(collisionGridPositionIndex)
             let nextCollisionGridPositionIndex = UINT16_MAX
             if (slotBucket) {
                 for (const slot of slotBucket) {
@@ -35,7 +36,7 @@ export function gameFindFirstMatchingCollidingObject(game: Game, pge: LivePGE, n
     if (pge.collision_slot !== UINT16_MAX) {
         let collisionGridPositionIndex = pge.collision_slot
         while (collisionGridPositionIndex !== UINT16_MAX) {
-            const slotBucket = game._dynamicPgeCollisionSlotsByPosition.get(collisionGridPositionIndex)
+            const slotBucket = game.collision.dynamicPgeCollisionSlotsByPosition.get(collisionGridPositionIndex)
             let nextCollisionGridPositionIndex = UINT16_MAX
             if (slotBucket) {
                 for (const slot of slotBucket) {
@@ -58,41 +59,41 @@ export function gameFindFirstMatchingCollidingObject(game: Game, pge: LivePGE, n
 }
 
 export function gameRebuildActiveRoomCollisionSlotLookup(game: Game, currentRoom: number) {
-    game._activeRoomCollisionSlotWindow.left.fill(null)
-    game._activeRoomCollisionSlotWindow.current.fill(null)
-    game._activeRoomCollisionSlotWindow.right.fill(null)
-    game._activeCollisionLeftRoom = game._res.level.ctData[CT_LEFT_ROOM + currentRoom]
-    game._activeCollisionRightRoom = game._res.level.ctData[CT_RIGHT_ROOM + currentRoom]
+    game.collision.activeRoomCollisionSlotWindow.left.fill(null)
+    game.collision.activeRoomCollisionSlotWindow.current.fill(null)
+    game.collision.activeRoomCollisionSlotWindow.right.fill(null)
+    game.collision.activeCollisionLeftRoom = game._res.level.ctData[CT_LEFT_ROOM + currentRoom]
+    game.collision.activeCollisionRightRoom = game._res.level.ctData[CT_RIGHT_ROOM + currentRoom]
 
-    game._dynamicPgeCollisionSlotsByPosition.forEach((slotBucket, collisionGridPositionIndex) => {
+    game.collision.dynamicPgeCollisionSlotsByPosition.forEach((slotBucket, collisionGridPositionIndex) => {
         const localIndex = collisionGridPositionIndex & 0x3F
         const room = (collisionGridPositionIndex / 64) >> 0
 
         if (room === currentRoom) {
-            game._activeRoomCollisionSlotWindow.current[localIndex] = slotBucket
-        } else if (room === game._activeCollisionLeftRoom) {
-            game._activeRoomCollisionSlotWindow.left[localIndex] = slotBucket
-        } else if (room === game._activeCollisionRightRoom) {
-            game._activeRoomCollisionSlotWindow.right[localIndex] = slotBucket
+            game.collision.activeRoomCollisionSlotWindow.current[localIndex] = slotBucket
+        } else if (room === game.collision.activeCollisionLeftRoom) {
+            game.collision.activeRoomCollisionSlotWindow.left[localIndex] = slotBucket
+        } else if (room === game.collision.activeCollisionRightRoom) {
+            game.collision.activeRoomCollisionSlotWindow.right[localIndex] = slotBucket
         }
     })
 }
 
 export function gameClearDynamicCollisionSlotState(game: Game) {
-    game._nextFreeDynamicPgeCollisionSlotPoolIndex = 0
-    game._dynamicPgeCollisionSlotsByPosition.clear()
+    game.collision.nextFreeDynamicPgeCollisionSlotPoolIndex = 0
+    game.collision.dynamicPgeCollisionSlotsByPosition.clear()
 }
 
 export function gameFindCollisionSlotBucketByGridPosition(game: Game, pos: number) {
-    return game._dynamicPgeCollisionSlotsByPosition.get(pos) || null
+    return game.collision.dynamicPgeCollisionSlotsByPosition.get(pos) || null
 }
 
 export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: number, dx: number) {
-    if (game._currentPgeFacingIsMirrored) {
+    if (game.pge.currentPgeFacingIsMirrored) {
         dx = -dx
     }
-    const pge_grid_y = game._currentPgeCollisionGridY + dy
-    const pge_grid_x = game._currentPgeCollisionGridX + dx
+    const pge_grid_y = game.collision.currentPgeCollisionGridY + dy
+    const pge_grid_x = game.collision.currentPgeCollisionGridX + dx
     let room_ct_data: Int8Array
     let next_room = 0
     if (pge_grid_x < 0) {
@@ -186,6 +187,7 @@ export function gameGetCollisionLanePositionIndexByXY(game: Game, pge: LivePGE, 
     }
 }
 export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
+    const runtime = getRuntimeRegistryState(game)
     let previousPgeCollisionSegmentSlot: CollisionSlot = null
     let currentPgeCollisionSegmentSlot: CollisionSlot = null
     if (pge.init_PGE.number_of_collision_segments === 0) {
@@ -195,8 +197,8 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
     let i = 0
     // Each collision segment samples the PGE footprint at 16-pixel horizontal intervals.
     for (let collision_segment = 0; collision_segment < pge.init_PGE.number_of_collision_segments; ++collision_segment, i += 0x10) {
-        currentPgeCollisionSegmentSlot = game._dynamicPgeCollisionSlotObjectPool[game._nextFreeDynamicPgeCollisionSlotPoolIndex]
-        game._nextFreeDynamicPgeCollisionSlotPoolIndex++
+        currentPgeCollisionSegmentSlot = game.collision.dynamicPgeCollisionSlotObjectPool[game.collision.nextFreeDynamicPgeCollisionSlotPoolIndex]
+        game.collision.nextFreeDynamicPgeCollisionSlotPoolIndex++
 
         const pos = gameGetCollisionLanePositionIndexByXY(game, pge, i)
 
@@ -218,7 +220,7 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
         if (existingSlotBucket) {
             existingSlotBucket.push(currentPgeCollisionSegmentSlot)
         } else {
-            game._dynamicPgeCollisionSlotsByPosition.set(pos, [currentPgeCollisionSegmentSlot])
+            game.collision.dynamicPgeCollisionSlotsByPosition.set(pos, [currentPgeCollisionSegmentSlot])
         }
 
         // Keep the PGE's own segment chain in collision_slot/index as packed position keys.
@@ -229,14 +231,14 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
         }
         let temp_pge = pge
         if (temp_pge.flags & 0x80) {
-            game._livePgeStore.activeFrameByIndex[temp_pge.index] = temp_pge
+            runtime.livePgeStore.activeFrameByIndex[temp_pge.index] = temp_pge
             temp_pge.flags |= 4
         }
         if (existingSlotBucket) {
             for (const slot of existingSlotBucket) {
                 temp_pge = slot.pge
                 if (temp_pge.flags & 0x80) {
-                    game._livePgeStore.activeFrameByIndex[temp_pge.index] = temp_pge
+                    runtime.livePgeStore.activeFrameByIndex[temp_pge.index] = temp_pge
                     temp_pge.flags |= 4
                 }
             }
