@@ -166,3 +166,35 @@ test('gameDrawAnimBuffer renders special visible PGEs through drawObject with th
     assert.deepEqual(game.drawObjectCalls, [[objectData, 67, 70, PGE_FLAG_SPECIAL_ANIM, 0x60]])
     assert.equal(game._animBuffers._curPos[3], UINT8_MAX)
 })
+
+test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy flat fields', () => {
+    const drawStringCalls = []
+    const game = {
+        world: {
+            currentLevel: 0,
+            currentRoom: 12,
+            currentIcon: 0,
+            printLevelCodeCounter: 0,
+            textToDisplay: UINT8_MAX,
+            eraseBackground: false,
+            blinkingConradCounter: 0,
+        },
+        ui: {
+            currentRoomOverlayCounter: 2,
+            currentInventoryIconNum: 0,
+        },
+        _currentRoom: 99,
+        _currentRoomOverlayCounter: 88,
+        _vid: {
+            drawString(...args) {
+                drawStringCalls.push(args)
+            },
+        },
+    }
+
+    gameDraw.gameDrawCurrentRoomOverlay(game)
+
+    assert.deepEqual(drawStringCalls, [['ROOM 12', 8, 8, 0xE6]])
+    assert.equal(game.ui.currentRoomOverlayCounter, 1)
+    assert.equal(game._currentRoomOverlayCounter, 88)
+})

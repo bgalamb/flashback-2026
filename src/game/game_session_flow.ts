@@ -7,67 +7,34 @@ import { CHAR_W, GAMESCREEN_W, UINT8_MAX } from '../core/game_constants'
 import { kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { gameChangeStateSlot, gameCompleteFrameTiming, gameEndLoop, gameSetSaveTimestamp, gameTickDeathCutscene } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
+import { getGameServices } from './game_services'
+import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameClearStateRewind, gameLoadLevelData, gameResetGameState } from './game_world'
 
-type SessionFlowGame = Record<string, unknown>
-
-function getSessionFlowUiState(game: Game) {
-    const sessionGame = game as unknown as SessionFlowGame
-    return (sessionGame['ui'] as { score: number } | undefined) ?? {
-        get score() { return sessionGame['_score'] as number },
-        set score(value: number) { sessionGame['_score'] = value },
-    }
-}
-
-function getSessionFlowSessionState(game: Game) {
-    const sessionGame = game as unknown as SessionFlowGame
-    return (sessionGame['session'] as { autoSave: boolean; validSaveState: boolean; stateSlot: number; frameTimestamp: number; endLoop: boolean; saveTimestamp: number } | undefined) ?? {
-        get autoSave() { return sessionGame['_autoSave'] as boolean },
-        set autoSave(value: boolean) { sessionGame['_autoSave'] = value },
-        get validSaveState() { return sessionGame['_validSaveState'] as boolean },
-        set validSaveState(value: boolean) { sessionGame['_validSaveState'] = value },
-        get stateSlot() { return sessionGame['_stateSlot'] as number },
-        set stateSlot(value: number) { sessionGame['_stateSlot'] = value },
-        get frameTimestamp() { return sessionGame['_frameTimestamp'] as number },
-        set frameTimestamp(value: number) { sessionGame['_frameTimestamp'] = value },
-        get endLoop() { return sessionGame['_endLoop'] as boolean },
-        set endLoop(value: boolean) { sessionGame['_endLoop'] = value },
-        get saveTimestamp() { return sessionGame['_saveTimestamp'] as number },
-        set saveTimestamp(value: number) { sessionGame['_saveTimestamp'] = value },
-    }
-}
-
-function getSessionFlowWorldState(game: Game) {
-    const sessionGame = game as unknown as SessionFlowGame
-    return (sessionGame['world'] as { deathCutsceneCounter: number } | undefined) ?? {
-        get deathCutsceneCounter() { return sessionGame['_deathCutsceneCounter'] as number },
-        set deathCutsceneCounter(value: number) { sessionGame['_deathCutsceneCounter'] = value },
-    }
-}
-
 export async function gamePlayCutscene(game: Game, id: number = -1) {
+    const { cut, mix } = getGameServices(game)
     if (id !== -1) {
-        game._cut.setId(id)
+        cut.setId(id)
     }
-    if (game._cut.getId() === -1) {
+    if (cut.getId() === -1) {
         return
     }
-    game._mix.stopMusic()
-    if (game._cut.getId() !== 0x4A) {
-        game._mix.playMusic(Cutscene._musicTable[game._cut.getId()])
+    mix.stopMusic()
+    if (cut.getId() !== 0x4A) {
+        mix.playMusic(Cutscene._musicTable[cut.getId()])
     }
-    await game._cut.play()
-    if (id === 0xD && !game._cut.isInterrupted()) {
-        game._cut.setId(0x4A)
-        await game._cut.play()
+    await cut.play()
+    if (id === 0xD && !cut.isInterrupted()) {
+        cut.setId(0x4A)
+        await cut.play()
     }
-    game._mix.stopMusic()
+    mix.stopMusic()
 }
 
 export async function gameShowFinalScore(game: Game) {
     await gamePlayCutscene(game, 0x49)
 
-    const buf = getSessionFlowUiState(game).score.toString().padStart(8, '0')
+    const buf = getGameUiState(game).score.toString().padStart(8, '0')
     game._vid.drawString(buf, (GAMESCREEN_W - buf.length * CHAR_W) / 2, 40, 0xE5)
     while (!game._stub._pi.quit) {
         game._vid.presentFrontLayer()
@@ -83,7 +50,7 @@ export async function gameShowFinalScore(game: Game) {
 
 export async function gameUpdateTiming(game: Game) {
     const frameHz = 30
-    const delay = game._stub.getTimeStamp() - getSessionFlowSessionState(game).frameTimestamp
+    const delay = game._stub.getTimeStamp() - getGameSessionState(game).frameTimestamp
     let pause = (game._stub._pi.dbgMask & DF_FASTMODE) ? 20 : (1000 / frameHz)
     pause -= delay
     if (pause > 0) {
@@ -110,7 +77,7 @@ export async function gameHandleContinueAbort(game: Game) {
         game._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 104, colors[0])
         str = game._res.getMenuString(LocaleData.Id.LI_04_ABORT)
         game._vid.drawString(str, ((GAMESCREEN_W - str.length * CHAR_W) / 2) >> 0, 112, colors[1])
-        buf = 'SCORE  ' + getSessionFlowUiState(game).score.toString().padStart(8, '0')
+        buf = 'SCORE  ' + getGameUiState(game).score.toString().padStart(8, '0')
         game._vid.drawString(buf, 64, 154, 0xE3)
         if (game._stub._pi.dirMask & DIR_UP) {
             game._stub._pi.dirMask &= ~DIR_UP
@@ -170,7 +137,7 @@ export async function gameDidFinishAllLevels(game: Game) {
 }
 
 export async function gameDidDie(game: Game) {
-    const session = getSessionFlowSessionState(game)
+    const session = getGameSessionState(game)
     if (gameTickDeathCutscene(game)) {
         await gamePlayCutscene(game, game._cut.getDeathCutSceneId())
         if (!await gameHandleContinueAbort(game)) {
@@ -191,8 +158,8 @@ export async function gameDidDie(game: Game) {
 }
 
 export function gameMaybeAutoSave(game: Game, autoSaveIntervalMs: number) {
-    const session = getSessionFlowSessionState(game)
-    const world = getSessionFlowWorldState(game)
+    const session = getGameSessionState(game)
+    const world = getGameWorldState(game)
     if (!session.autoSave || game._stub.getTimeStamp() - session.saveTimestamp < autoSaveIntervalMs) {
         return
     }
@@ -203,7 +170,7 @@ export function gameMaybeAutoSave(game: Game, autoSaveIntervalMs: number) {
 }
 
 export function gameInpHandleSpecialKeys(game: Game) {
-    const session = getSessionFlowSessionState(game)
+    const session = getGameSessionState(game)
     if (game._stub._pi.dbgMask & DF_SETLIFE) {
         getRuntimeRegistryState(game).livePgesByIndex[0].life = 0x7FFF
     }

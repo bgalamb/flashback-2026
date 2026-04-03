@@ -8,6 +8,7 @@ import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from
 import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
 import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
+import { getGameServices } from './game_services'
 import {
     gameApplyTitleScreenSelection,
     gameBeginFrameLoop,
@@ -22,6 +23,7 @@ import {
     gameTickDeathCutscene
 } from './game_lifecycle'
 import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
+import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game_world'
 import { getRuntimeRegistryState } from './game_runtime_data'
 import {
@@ -46,139 +48,79 @@ export {
     gameUpdateTiming,
 }
 
-type RuntimeGame = Record<string, unknown>
-
-function getRuntimeWorldState(game: Game) {
-    const runtimeGame = game as unknown as RuntimeGame
-    return (runtimeGame['world'] as { currentLevel: number; currentRoom: number; loadMap: boolean; blinkingConradCounter: number; deathCutsceneCounter: number } | undefined) ?? {
-        get currentLevel() { return runtimeGame['_currentLevel'] as number },
-        set currentLevel(value: number) { runtimeGame['_currentLevel'] = value },
-        get currentRoom() { return runtimeGame['_currentRoom'] as number },
-        set currentRoom(value: number) { runtimeGame['_currentRoom'] = value },
-        get loadMap() { return runtimeGame['_loadMap'] as boolean },
-        set loadMap(value: boolean) { runtimeGame['_loadMap'] = value },
-        get blinkingConradCounter() { return runtimeGame['_blinkingConradCounter'] as number },
-        set blinkingConradCounter(value: number) { runtimeGame['_blinkingConradCounter'] = value },
-        get deathCutsceneCounter() { return runtimeGame['_deathCutsceneCounter'] as number },
-        set deathCutsceneCounter(value: number) { runtimeGame['_deathCutsceneCounter'] = value },
-    }
-}
-
-function getRuntimeUiState(game: Game) {
-    const runtimeGame = game as unknown as RuntimeGame
-    return (runtimeGame['ui'] as { score: number } | undefined) ?? {
-        get score() { return runtimeGame['_score'] as number },
-        set score(value: number) { runtimeGame['_score'] = value },
-    }
-}
-
-function getRuntimeSessionState(game: Game) {
-    const runtimeGame = game as unknown as RuntimeGame
-    return (runtimeGame['session'] as { randSeed: number; startedFromLevelSelect: boolean; autoSave: boolean; saveTimestamp: number; endLoop: boolean; frameTimestamp: number; validSaveState: boolean; stateSlot: number } | undefined) ?? {
-        get randSeed() { return runtimeGame['_randSeed'] as number },
-        set randSeed(value: number) { runtimeGame['_randSeed'] = value },
-        get startedFromLevelSelect() { return runtimeGame['_startedFromLevelSelect'] as boolean },
-        set startedFromLevelSelect(value: boolean) { runtimeGame['_startedFromLevelSelect'] = value },
-        get autoSave() { return runtimeGame['_autoSave'] as boolean },
-        set autoSave(value: boolean) { runtimeGame['_autoSave'] = value },
-        get saveTimestamp() { return runtimeGame['_saveTimestamp'] as number },
-        set saveTimestamp(value: number) { runtimeGame['_saveTimestamp'] = value },
-        get endLoop() { return runtimeGame['_endLoop'] as boolean },
-        set endLoop(value: boolean) { runtimeGame['_endLoop'] = value },
-        get frameTimestamp() { return runtimeGame['_frameTimestamp'] as number },
-        set frameTimestamp(value: number) { runtimeGame['_frameTimestamp'] = value },
-        get validSaveState() { return runtimeGame['_validSaveState'] as boolean },
-        set validSaveState(value: boolean) { runtimeGame['_validSaveState'] = value },
-        get stateSlot() { return runtimeGame['_stateSlot'] as number },
-        set stateSlot(value: number) { runtimeGame['_stateSlot'] = value },
-    }
-}
-
-function getRuntimePgeState(game: Game) {
-    const runtimeGame = game as unknown as RuntimeGame
-    return (runtimeGame['pge'] as { opcodeTempVar1: number } | undefined) ?? {
-        get opcodeTempVar1() { return runtimeGame['_opcodeTempVar1'] as number },
-        set opcodeTempVar1(value: number) { runtimeGame['_opcodeTempVar1'] = value },
-    }
-}
-
-function getRuntimeCollisionState(game: Game) {
-    const runtimeGame = game as unknown as RuntimeGame
-    return (runtimeGame['collision'] as { currentPgeCollisionGridX: number; currentPgeCollisionGridY: number } | undefined) ?? {
-        get currentPgeCollisionGridX() { return runtimeGame['_currentPgeCollisionGridX'] as number },
-        set currentPgeCollisionGridX(value: number) { runtimeGame['_currentPgeCollisionGridX'] = value },
-        get currentPgeCollisionGridY() { return runtimeGame['_currentPgeCollisionGridY'] as number },
-        set currentPgeCollisionGridY(value: number) { runtimeGame['_currentPgeCollisionGridY'] = value },
-    }
-}
-
 function gameLoadTextResources(game: Game) {
-    const legacyResource = game._res as typeof game._res & {
+    const { res } = getGameServices(game)
+    const legacyResource = res as typeof res & {
         load_TEXT?: () => void
     }
-    if (typeof game._res.loadText === 'function') {
-        game._res.loadText()
+    if (typeof res.loadText === 'function') {
+        res.loadText()
         return
     }
     legacyResource.load_TEXT()
 }
 
 async function gameLoadConradSpriteResources(game: Game) {
-    const legacyResource = game._res as typeof game._res & {
+    const { res } = getGameServices(game)
+    const legacyResource = res as typeof res & {
         load_SPRITE_OFFSETS?: (name: string, spr: unknown) => Promise<void>
     }
-    if (typeof game._res.loadSpriteOffsets === 'function') {
-        await game._res.loadSpriteOffsets('PERSO', game._res.sprites.spr1)
+    if (typeof res.loadSpriteOffsets === 'function') {
+        await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
         return
     }
-    await legacyResource.load_SPRITE_OFFSETS('PERSO', game._res.sprites.spr1)
+    await legacyResource.load_SPRITE_OFFSETS('PERSO', res.sprites.spr1)
 }
 
 async function gameLoadSoundResources(game: Game) {
-    const legacyResource = game._res as typeof game._res & {
+    const { res } = getGameServices(game)
+    const legacyResource = res as typeof res & {
         load_FIB?: (name: string) => Promise<void>
     }
-    if (typeof game._res.loadSoundEffects === 'function') {
-        await game._res.loadSoundEffects('GLOBAL')
+    if (typeof res.loadSoundEffects === 'function') {
+        await res.loadSoundEffects('GLOBAL')
         return
     }
     await legacyResource.load_FIB('GLOBAL')
 }
 
 async function gameBootResources(game: Game) {
-    getRuntimeSessionState(game).randSeed = new Date().getTime()
+    const { res, mix } = getGameServices(game)
+    getGameSessionState(game).randSeed = new Date().getTime()
     gameLoadTextResources(game)
-    await game._res.load('FB_TXT', ObjectType.OT_FNT)
-    game._mix.init()
+    await res.load('FB_TXT', ObjectType.OT_FNT)
+    mix.init()
 
     await gamePlayCutscene(game, 0x40)
     await gamePlayCutscene(game, 0x0D)
 
-    await game._res.load('GLOBAL', ObjectType.OT_ICN)
-    await game._res.load('GLOBAL', ObjectType.OT_SPC)
-    await game._res.load('PERSO', ObjectType.OT_SPR)
+    await res.load('GLOBAL', ObjectType.OT_ICN)
+    await res.load('GLOBAL', ObjectType.OT_SPC)
+    await res.load('PERSO', ObjectType.OT_SPR)
     await gameLoadConradSpriteResources(game)
-    game._res.initializeConradVisuals()
+    res.initializeConradVisuals()
     await gameLoadSoundResources(game)
 }
 
 async function gamePresentTitleScreen(game: Game) {
-    game._mix.playMusic(1)
+    const { mix, stub } = getGameServices(game)
+    mix.playMusic(1)
     await game._menu.handleTitleScreen()
-    if (game._menu._selectedOption === Menu.MENU_OPTION_ITEM_QUIT || game._stub._pi.quit) {
-        game._stub._pi.quit = true
+    if (game._menu._selectedOption === Menu.MENU_OPTION_ITEM_QUIT || stub._pi.quit) {
+        stub._pi.quit = true
         return false
     }
     gameApplyTitleScreenSelection(game)
-    game._mix.stopMusic()
+    mix.stopMusic()
     return true
 }
 
 function gamePreparePlaythroughSession(game: Game) {
-    game._vid.setTextPalette()
-    game._vid.setPalette0xF()
-    game._stub.setOverscanColor(0xE0)
-    game._vid.clearLevelPaletteState()
+    const { vid, stub } = getGameServices(game)
+    vid.setTextPalette()
+    vid.setPalette0xF()
+    stub.setOverscanColor(0xE0)
+    vid.clearLevelPaletteState()
     gameBeginPlaythrough(game)
 }
 
@@ -202,8 +144,8 @@ function gameResetPostSessionInput(game: Game) {
 }
 
 async function gameProcessActiveFrame(game: Game) {
-    const world = getRuntimeWorldState(game)
-    const session = getRuntimeSessionState(game)
+    const world = getGameWorldState(game)
+    const session = getGameSessionState(game)
     const runtime = getRuntimeRegistryState(game)
     game._vid.restoreFrontLayerFromBack()
     await gameUpdatePgeDirectionalInputState(game)
@@ -223,17 +165,17 @@ async function gameProcessActiveFrame(game: Game) {
 }
 
 async function gameResolveLevelChange(game: Game, previousLevel: number) {
-    if (previousLevel === getRuntimeWorldState(game).currentLevel) {
+    if (previousLevel === getGameWorldState(game).currentLevel) {
         return false
     }
     await gameChangeLevel(game)
-    getRuntimePgeState(game).opcodeTempVar1 = 0
+    getGamePgeState(game).opcodeTempVar1 = 0
     return true
 }
 
 async function gameResolvePendingMapLoad(game: Game) {
     const runtime = getRuntimeRegistryState(game)
-    const world = getRuntimeWorldState(game)
+    const world = getGameWorldState(game)
     if (!world.loadMap) {
         return
     }
@@ -253,7 +195,7 @@ async function gameResolvePendingMapLoad(game: Game) {
 }
 
 async function gameRenderCurrentFrame(game: Game) {
-    const world = getRuntimeWorldState(game)
+    const world = getGameWorldState(game)
     await gamePrepareAnimationsInRooms(game, world.currentRoom)
     await gameDrawAnims(game)
     game.renders++
@@ -286,7 +228,7 @@ async function gameHandleFrameMenus(game: Game) {
 
 export async function gameRunLoop(game: Game) {
     await gameMainLoop(game)
-    if (!game._stub._pi.quit && !getRuntimeSessionState(game).endLoop) {
+    if (!game._stub._pi.quit && !getGameSessionState(game).endLoop) {
         requestAnimationFrame(() => gameRunLoop(game))
     } else {
         // @ts-ignore
@@ -328,8 +270,8 @@ export function gameLoadGameState(_game: Game, _slot: number) {
 // and then hands control to gameRunPgeFrameLogic() to run that entity's frame logic.
 export function gameProcessActivePgesForFrame(game: Game, activeFramePges: LivePGE[], currentRoom: number) {
     for (const pge of activeFramePges) {
-        getRuntimeCollisionState(game).currentPgeCollisionGridY = ((pge.pos_y / 36) >> 0) & ~1
-        getRuntimeCollisionState(game).currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
+        getGameCollisionState(game).currentPgeCollisionGridY = ((pge.pos_y / 36) >> 0) & ~1
+        getGameCollisionState(game).currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
         gameRunPgeFrameLogic(game, pge, currentRoom)
     }
 }

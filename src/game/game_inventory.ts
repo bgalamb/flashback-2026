@@ -6,35 +6,8 @@ import { CHAR_W, GAMESCREEN_W } from '../core/game_constants'
 import { UINT16_MAX, UINT8_MAX } from '../core/game_constants'
 import { gameChangeStateSlot } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
+import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameInpUpdate } from './game_world'
-
-type InventoryGame = Record<string, unknown>
-
-function getInventoryWorldState(game: Game) {
-    const inventoryGame = game as unknown as InventoryGame
-    return (inventoryGame['world'] as { currentLevel: number } | undefined) ?? {
-        get currentLevel() { return inventoryGame['_currentLevel'] as number },
-        set currentLevel(value: number) { inventoryGame['_currentLevel'] = value },
-    }
-}
-
-function getInventoryUiState(game: Game) {
-    const inventoryGame = game as unknown as InventoryGame
-    return (inventoryGame['ui'] as { score: number; skillLevel: number } | undefined) ?? {
-        get score() { return inventoryGame['_score'] as number },
-        set score(value: number) { inventoryGame['_score'] = value },
-        get skillLevel() { return inventoryGame['_skillLevel'] as number },
-        set skillLevel(value: number) { inventoryGame['_skillLevel'] = value },
-    }
-}
-
-function getInventorySessionState(game: Game) {
-    const inventoryGame = game as unknown as InventoryGame
-    return (inventoryGame['session'] as { stateSlot: number } | undefined) ?? {
-        get stateSlot() { return inventoryGame['_stateSlot'] as number },
-        set stateSlot(value: number) { inventoryGame['_stateSlot'] = value },
-    }
-}
 
 function getOrCreateInventoryItemsForOwner(game: Game, ownerPge: LivePGE) {
     const runtime = getRuntimeRegistryState(game)
@@ -80,14 +53,14 @@ export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
     const runtime = getRuntimeRegistryState(game)
     if (pge.unkF !== UINT8_MAX) {
         const _bx: LivePGE = runtime.livePgesByIndex[pge.unkF]
-        const _di: LivePGE = game.findInventoryItemBeforePge(_bx, pge)
+        const _di: LivePGE = gameFindInventoryItemBeforePge(game, _bx, pge)
         if (_di === _bx) {
             if (gameGetCurrentInventoryItemIndex(game, _di) === pge.index) {
-                game.removePgeFromInventory(_di, pge, _bx)
+                gameRemovePgeFromInventoryChain(game, _di, pge, _bx)
             }
         } else {
             if (gameGetNextInventoryItemIndex(game, _bx, _di.index) === pge.index) {
-                game.removePgeFromInventory(_di, pge, _bx)
+                gameRemovePgeFromInventoryChain(game, _di, pge, _bx)
             }
         }
     }
@@ -95,15 +68,15 @@ export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
 
 export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: LivePGE) {
     if (pge2.unkF !== UINT8_MAX) {
-        game.reorderPgeInventory(pge2)
+        gameReorderPgeInventoryLinks(game, pge2)
     }
 
-    const _ax: LivePGE = game.findInventoryItemBeforePge(pge1, null)
-    game.addPgeToInventory(_ax, pge2, pge1)
+    const _ax: LivePGE = gameFindInventoryItemBeforePge(game, pge1, null)
+    gameAddPgeToInventoryChain(game, _ax, pge2, pge1)
 }
 
 export async function gameHandleConfigPanel(game: Game) {
-    const session = getInventorySessionState(game)
+    const session = getGameSessionState(game)
     const x = 7
     const y = 10
     const w = 17
@@ -206,8 +179,8 @@ export async function gameHandleConfigPanel(game: Game) {
 
 
 export async function gameHandleInventory(game: Game) {
-    const world = getInventoryWorldState(game)
-    const ui = getInventoryUiState(game)
+    const world = getGameWorldState(game)
+    const ui = getGameUiState(game)
     const runtime = getRuntimeRegistryState(game)
     let selected_pge: LivePGE = null
     const pge: LivePGE = runtime.livePgesByIndex[0]
@@ -323,7 +296,12 @@ export async function gameHandleInventory(game: Game) {
         game._vid.fullRefresh()
         game._stub._pi.backspace = false
         if (selected_pge) {
-            game.setCurrentInventoryPge(selected_pge)
+            const inventoryGame = game as Game & { setCurrentInventoryPge?: (pge: LivePGE) => void }
+            if (typeof inventoryGame.setCurrentInventoryPge === 'function') {
+                inventoryGame.setCurrentInventoryPge(selected_pge)
+            } else {
+                gameSetCurrentInventoryPgeSelection(game, selected_pge)
+            }
         }
         game.playSound(66, 0)
     }
@@ -375,7 +353,7 @@ export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: Live
 
 export function gameSetCurrentInventoryPgeSelection(game: Game, pge: LivePGE) {
     const runtime = getRuntimeRegistryState(game)
-    const _bx: LivePGE = game.findInventoryItemBeforePge(runtime.livePgesByIndex[0], pge)
+    const _bx: LivePGE = gameFindInventoryItemBeforePge(game, runtime.livePgesByIndex[0], pge)
     if (_bx === runtime.livePgesByIndex[0]) {
         if (gameGetCurrentInventoryItemIndex(game, _bx) !== pge.index) {
             return 0
@@ -385,7 +363,7 @@ export function gameSetCurrentInventoryPgeSelection(game: Game, pge: LivePGE) {
             return 0
         }
     }
-    game.removePgeFromInventory(_bx, pge, runtime.livePgesByIndex[0])
-    game.addPgeToInventory(runtime.livePgesByIndex[0], pge, runtime.livePgesByIndex[0])
+    gameRemovePgeFromInventoryChain(game, _bx, pge, runtime.livePgesByIndex[0])
+    gameAddPgeToInventoryChain(game, runtime.livePgesByIndex[0], pge, runtime.livePgesByIndex[0])
     return UINT16_MAX
 }

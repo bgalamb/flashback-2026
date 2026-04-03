@@ -43,82 +43,18 @@ import {
     gameUpdatePgeInventoryLinks as gameInventoryPgeUpdateInventory
 } from './game_inventory'
 import { gameInpUpdate } from './game_world'
+import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { getRuntimeRegistryState } from './game_runtime_data'
 
-type PgeGameShape = Record<string, unknown>
-
-function getPgeWorldState(game: Game) {
-    const pgeGame = game as unknown as PgeGameShape
-    const groupedState = pgeGame['world'] as { currentLevel: number; currentRoom: number; blinkingConradCounter: number; textToDisplay: number; loadMap: boolean } | undefined
-    return groupedState ?? {
-        get currentLevel() { return pgeGame['_currentLevel'] as number },
-        set currentLevel(value: number) { pgeGame['_currentLevel'] = value },
-        get currentRoom() { return pgeGame['_currentRoom'] as number },
-        set currentRoom(value: number) { pgeGame['_currentRoom'] = value },
-        get blinkingConradCounter() { return pgeGame['_blinkingConradCounter'] as number },
-        set blinkingConradCounter(value: number) { pgeGame['_blinkingConradCounter'] = value },
-        get textToDisplay() { return pgeGame['_textToDisplay'] as number },
-        set textToDisplay(value: number) { pgeGame['_textToDisplay'] = value },
-        get loadMap() { return pgeGame['_loadMap'] as boolean },
-        set loadMap(value: boolean) { pgeGame['_loadMap'] = value },
-    }
-}
-
-function getPgeUiState(game: Game) {
-    const pgeGame = game as unknown as PgeGameShape
-    const groupedState = pgeGame['ui'] as { skillLevel: number; score: number } | undefined
-    return groupedState ?? {
-        get skillLevel() { return pgeGame['_skillLevel'] as number },
-        set skillLevel(value: number) { pgeGame['_skillLevel'] = value },
-        get score() { return pgeGame['_score'] as number },
-        set score(value: number) { pgeGame['_score'] = value },
-    }
-}
-
-function getPgeSessionState(game: Game) {
-    const pgeGame = game as unknown as PgeGameShape
-    const groupedState = pgeGame['session'] as { startedFromLevelSelect: boolean } | undefined
-    return groupedState ?? {
-        get startedFromLevelSelect() { return pgeGame['_startedFromLevelSelect'] as boolean },
-        set startedFromLevelSelect(value: boolean) { pgeGame['_startedFromLevelSelect'] = value },
-    }
-}
-
-function getPgeExecutionState(game: Game) {
-    const pgeGame = game as unknown as PgeGameShape
-    const groupedState = pgeGame['pge'] as { shouldProcessCurrentPgeObjectNode: boolean; currentPgeFacingIsMirrored: boolean; currentPgeRoom: number; currentPgeInputMask: number } | undefined
-    return groupedState ?? {
-        get shouldProcessCurrentPgeObjectNode() { return pgeGame['_shouldProcessCurrentPgeObjectNode'] as boolean },
-        set shouldProcessCurrentPgeObjectNode(value: boolean) { pgeGame['_shouldProcessCurrentPgeObjectNode'] = value },
-        get currentPgeFacingIsMirrored() { return pgeGame['_currentPgeFacingIsMirrored'] as boolean },
-        set currentPgeFacingIsMirrored(value: boolean) { pgeGame['_currentPgeFacingIsMirrored'] = value },
-        get currentPgeRoom() { return pgeGame['_currentPgeRoom'] as number },
-        set currentPgeRoom(value: number) { pgeGame['_currentPgeRoom'] = value },
-        get currentPgeInputMask() { return pgeGame['_currentPgeInputMask'] as number },
-        set currentPgeInputMask(value: number) { pgeGame['_currentPgeInputMask'] = value },
-    }
-}
-
-function getPgeCollisionState(game: Game) {
-    const pgeGame = game as unknown as PgeGameShape
-    const groupedState = pgeGame['collision'] as { currentPgeCollisionGridX: number; currentPgeCollisionGridY: number } | undefined
-    return groupedState ?? {
-        get currentPgeCollisionGridX() { return pgeGame['_currentPgeCollisionGridX'] as number },
-        set currentPgeCollisionGridX(value: number) { pgeGame['_currentPgeCollisionGridX'] = value },
-        get currentPgeCollisionGridY() { return pgeGame['_currentPgeCollisionGridY'] as number },
-        set currentPgeCollisionGridY(value: number) { pgeGame['_currentPgeCollisionGridY'] = value },
-    }
-}
-
 function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
-    const session = getPgeSessionState(game)
-    const world = getPgeWorldState(game)
+    const session = getGameSessionState(game)
+    const world = getGameWorldState(game)
     const isDirectStartStartup = session.startedFromLevelSelect && game.renders < 5 && (!pge || pge.index === 0)
     return isDirectStartStartup || game.renders > game.debugStartFrame || world.currentRoom === 39 || pge?.room_location === 39 || world.textToDisplay !== UINT16_MAX
 }
 
 function logPgeInteraction(game: Game, scope: string, message: string, pge?: LivePGE) {
-    const world = getPgeWorldState(game)
+    const world = getGameWorldState(game)
     if (!shouldLogPgeInteraction(game, pge)) {
         return
     }
@@ -129,7 +65,7 @@ function logPgeInteraction(game: Game, scope: string, message: string, pge?: Liv
 }
 
 function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode: PgeScriptNode, scriptEntry: PgeScriptEntry) {
-    const world = getPgeWorldState(game)
+    const world = getGameWorldState(game)
     const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
     console.warn(
         `[pge-transition] frame=${game.renders} currentRoom=${world.currentRoom} pge=${pge.index} pgeRoom=${pge.room_location} scriptNode=${pge.init_PGE.script_node_index} objectType=${pge.init_PGE.object_type} state=${pge.script_state_type} currentEntry=${pge.first_script_entry_index} nextEntry=${scriptEntry.next_script_entry_index} maxEntry=${maxEntryIndex} nextState=${scriptEntry.next_script_state_type}`
@@ -138,7 +74,7 @@ function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode: 
 
 
 export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom: number) {
-    const ui = getPgeUiState(game)
+    const ui = getGameUiState(game)
     const runtime = getRuntimeRegistryState(game)
     const initial_pge_from_file: InitPGE = game._res.level.pgeAllInitialStateFromFile[idx]
     const live_pge: LivePGE = runtime.livePgesByIndex[idx]
@@ -231,9 +167,9 @@ export function gameRemovePgeFromPendingGroups(game: Game, idx: number) {
 }
 
 export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge: InitPGE, scriptEntry: PgeScriptEntry) {
-    const ui = getPgeUiState(game)
-    const world = getPgeWorldState(game)
-    const pgeState = getPgeExecutionState(game)
+    const ui = getGameUiState(game)
+    const world = getGameWorldState(game)
+    const pgeState = getGamePgeState(game)
     let op: PgeOpcodeHandler
     const args: PgeOpcodeArgs = {
         pge: null,
@@ -354,7 +290,7 @@ export function gameUpdatePgeInventory(game: Game, pge1: LivePGE, pge2: LivePGE)
 }
 
 export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targetPgeIndex: number, signalId: number) {
-    const world = getPgeWorldState(game)
+    const world = getGameWorldState(game)
     const runtime = getRuntimeRegistryState(game)
     let pge: LivePGE = runtime.livePgesByIndex[targetPgeIndex]
     if (!(pge.flags & PGE_FLAG_ACTIVE)) {
@@ -387,8 +323,8 @@ export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targ
 // handles any resulting room transition / activation updates, advances the animation frame,
 // and finally clears the consumed group entry for this PGE.
 export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: number) {
-    const world = getPgeWorldState(game)
-    const pgeState = getPgeExecutionState(game)
+    const world = getGameWorldState(game)
+    const pgeState = getGamePgeState(game)
     const runtime = getRuntimeRegistryState(game)
     game._shouldPlayPgeAnimationSound = true
     pgeState.currentPgeFacingIsMirrored = (pge.flags & PGE_FLAG_MIRRORED) !== 0
@@ -484,7 +420,7 @@ export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
 }
 
 export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePGE, init_pge: InitPGE) {
-    gameHandlePgeRoomTransition(game, pge, init_pge, getPgeExecutionState(game).currentPgeRoom, (scope, message, targetPge = pge) => {
+    gameHandlePgeRoomTransition(game, pge, init_pge, getGamePgeState(game).currentPgeRoom, (scope, message, targetPge = pge) => {
         logPgeInteraction(game, scope, message, targetPge)
     })
 }
@@ -500,8 +436,8 @@ export function gamePlayPgeAnimationSound(game: Game, pge: LivePGE, arg2: number
 }
 
 export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePGE, pendingGroups: { senderPgeIndex: number; signalId: number }[]) {
-    const pgeState = getPgeExecutionState(game)
-    const collisionState = getPgeCollisionState(game)
+    const pgeState = getGamePgeState(game)
+    const collisionState = getGameCollisionState(game)
     const init_pge: InitPGE = pge.init_PGE
     assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
 
@@ -631,7 +567,7 @@ export function gameRebuildActiveFramePgeList(game: Game) {
 }
 
 export async function gameUpdatePgeDirectionalInputState(game: Game) {
-    const pgeState = getPgeExecutionState(game)
+    const pgeState = getGamePgeState(game)
     await game.inp_update()
 
     game._inp_lastKeysHit = game._stub._pi.dirMask

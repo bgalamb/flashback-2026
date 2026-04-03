@@ -8,58 +8,8 @@ import { gameInitializePgeDefaultAnimation } from './game_pge'
 import { assert } from "../core/assert"
 import { gameMarkSaveStateCompleted, gameQueueDeathCutscene, gameRequestMapReload, gameSetCurrentLevel } from './game_lifecycle'
 import { getRuntimeRegistryState } from './game_runtime_data'
+import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameGetRandomNumber } from './game_world'
-
-type OpcodeGame = Record<string, unknown>
-
-function getOpcodeWorldState(game: Game) {
-	const opcodeGame = game as unknown as OpcodeGame
-	return (opcodeGame['world'] as {
-		currentRoom: number
-		currentLevel: number
-		credits: number
-		deathCutsceneCounter: number
-		textToDisplay: number
-		loadMap: boolean
-	} | undefined) ?? {
-		get currentRoom() { return opcodeGame['_currentRoom'] as number },
-		set currentRoom(value: number) { opcodeGame['_currentRoom'] = value },
-		get currentLevel() { return opcodeGame['_currentLevel'] as number },
-		set currentLevel(value: number) { opcodeGame['_currentLevel'] = value },
-		get credits() { return opcodeGame['_credits'] as number },
-		set credits(value: number) { opcodeGame['_credits'] = value },
-		get deathCutsceneCounter() { return opcodeGame['_deathCutsceneCounter'] as number },
-		set deathCutsceneCounter(value: number) { opcodeGame['_deathCutsceneCounter'] = value },
-		get textToDisplay() { return opcodeGame['_textToDisplay'] as number },
-		set textToDisplay(value: number) { opcodeGame['_textToDisplay'] = value },
-		get loadMap() { return opcodeGame['_loadMap'] as boolean },
-		set loadMap(value: boolean) { opcodeGame['_loadMap'] = value },
-	}
-}
-
-function getOpcodeUiState(game: Game) {
-	const opcodeGame = game as unknown as OpcodeGame
-	return (opcodeGame['ui'] as { score: number } | undefined) ?? {
-		get score() { return opcodeGame['_score'] as number },
-		set score(value: number) { opcodeGame['_score'] = value },
-	}
-}
-
-function getOpcodeSessionState(game: Game) {
-	const opcodeGame = game as unknown as OpcodeGame
-	return (opcodeGame['session'] as { validSaveState: boolean } | undefined) ?? {
-		get validSaveState() { return opcodeGame['_validSaveState'] as boolean },
-		set validSaveState(value: boolean) { opcodeGame['_validSaveState'] = value },
-	}
-}
-
-function getOpcodePgeState(game: Game) {
-	const opcodeGame = game as unknown as OpcodeGame
-	return (opcodeGame['pge'] as { opcodeTempVar1: number } | undefined) ?? {
-		get opcodeTempVar1() { return opcodeGame['_opcodeTempVar1'] as number },
-		set opcodeTempVar1(value: number) { opcodeGame['_opcodeTempVar1'] = value },
-	}
-}
 
 const pge_op_isInpUp = (args: PgeOpcodeArgs, game: Game) => {
 	if (1 === game.pge.currentPgeInputMask) {
@@ -712,7 +662,7 @@ const pge_op_removePge = (args: PgeOpcodeArgs, game: Game) => {
 
 const pge_op_killPge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
-	const ui = getOpcodeUiState(game)
+	const ui = getGameUiState(game)
 	const pge:LivePGE = args.pge
 	pge.room_location = 0xFE
 	pge.flags &= ~4
@@ -885,7 +835,7 @@ const pge_op_collides2u1u = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_displayText = (args: PgeOpcodeArgs, game: Game) => {
-	const world = getOpcodeWorldState(game)
+	const world = getGameWorldState(game)
 	console.log(`[pge-text] frame=${game.renders} currentRoom=${world.currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.room_location} text=${args.a} previousText=${world.textToDisplay}`)
 	world.textToDisplay = args.a
 	return UINT16_MAX
@@ -957,7 +907,7 @@ const pge_op_updateGroup3 = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_isPgeDead = (args: PgeOpcodeArgs, game: Game) => {
-	const ui = getOpcodeUiState(game)
+	const ui = getGameUiState(game)
 	const pge:LivePGE = args.pge
 	if (pge.life <= 0) {
 		if (pge.init_PGE.object_type === 10) {
@@ -1122,7 +1072,7 @@ const pge_op_incLife = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_setPgeDefaultAnim = (args: PgeOpcodeArgs, game: Game) => {
-	const world = getOpcodeWorldState(game)
+	const world = getGameWorldState(game)
 	assert(!(args.a < 0 || args.a >= 4), `Assertion failed: ${args.a} >= 0 && ${args.a} < 4`)
 
 	const r = args.pge.init_PGE.counter_values[args.a]
@@ -1195,7 +1145,7 @@ const pge_op_isInGroup4 = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_removePgeIfNotNear = (args: PgeOpcodeArgs, game: Game) => {
-    const world = getOpcodeWorldState(game)
+    const world = getGameWorldState(game)
     const runtime = getRuntimeRegistryState(game)
     const skip_pge = () => {
         game._shouldPlayPgeAnimationSound = false
@@ -1564,7 +1514,7 @@ const pge_o_unk0x64 = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_addToCredits = (args: PgeOpcodeArgs, game: Game) => {
-    const world = getOpcodeWorldState(game)
+    const world = getGameWorldState(game)
     const runtime = getRuntimeRegistryState(game)
     const creditsInventoryPgeIndex = args.pge.init_PGE.counter_values[0]
     const pickedUpCreditAmount = args.pge.init_PGE.counter_values[1]
@@ -1594,7 +1544,7 @@ const pge_op_setCollisionState2 = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_saveState = (args: PgeOpcodeArgs, game: Game) => {
-	const session = getOpcodeSessionState(game)
+	const session = getGameSessionState(game)
 	gameMarkSaveStateCompleted(game)
 	game.saveGameState(kIngameSaveSlot)
 	if (session.validSaveState && global_game_options.play_gamesaved_sound) {
@@ -1731,7 +1681,7 @@ const pge_op_decLifeCounter = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_playCutscene = (args: PgeOpcodeArgs, game: Game) => {
-	const world = getOpcodeWorldState(game)
+	const world = getGameWorldState(game)
 	if (world.deathCutsceneCounter === 0) {
 		game._cut.setId(args.a)
 	}
@@ -1803,7 +1753,7 @@ const pge_op_setPgePosModX = (args: PgeOpcodeArgs, game: Game) => {
 
 // taxi and teleporter
 const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
-	const world = getOpcodeWorldState(game)
+	const world = getGameWorldState(game)
 	const runtime = getRuntimeRegistryState(game)
 	const destinationPgeIndex = args.pge.init_PGE.counter_values[args.a]
 	const sourcePgeIndex = args.pge.init_PGE.counter_values[args.a + 1]
@@ -1853,7 +1803,7 @@ const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_changeLevel = (args: PgeOpcodeArgs, game: Game) => {
-	const world = getOpcodeWorldState(game)
+	const world = getGameWorldState(game)
 	gameSetCurrentLevel(game, args.a - 1)
 	return world.currentLevel
 }
@@ -1864,13 +1814,13 @@ const pge_op_shakeScreen = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 const pge_op_setTempVar1 = (args: PgeOpcodeArgs, game: Game) => {
-	getOpcodePgeState(game).opcodeTempVar1 = args.a
+	getGamePgeState(game).opcodeTempVar1 = args.a
 
 	return UINT16_MAX
 }
 
 const pge_op_isTempVar1Set = (args: PgeOpcodeArgs, game: Game) => {
-	if (getOpcodePgeState(game).opcodeTempVar1 !== args.a) {
+	if (getGamePgeState(game).opcodeTempVar1 !== args.a) {
 		return 0
 	} else {
 		return UINT16_MAX

@@ -5,21 +5,12 @@ import { INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST, PGE_FLAG_ACTIVE } from '../core/gam
 import { gameRequestMapReload } from './game_lifecycle'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
 import { getRuntimeRegistryState } from './game_runtime_data'
+import { getGameWorldState } from './game_state'
 
 type PgeTransitionLogger = (scope: string, message: string, pge?: LivePGE) => void
 
 interface PgeRoomBoundaryCrossing {
     roomLookup: Int8Array
-}
-
-type RoomTransitionGame = Record<string, unknown>
-
-function getRoomTransitionWorldState(game: Game) {
-    const transitionGame = game as unknown as RoomTransitionGame
-    return (transitionGame['world'] as { currentRoom: number } | undefined) ?? {
-        get currentRoom() { return transitionGame['_currentRoom'] as number },
-        set currentRoom(value: number) { transitionGame['_currentRoom'] = value },
-    }
 }
 
 function getPgeRoomBoundaryCrossing(game: Game, pge: LivePGE): PgeRoomBoundaryCrossing | null {
@@ -98,7 +89,7 @@ export function gameRelocatePgeToRoom(game: Game, pge: LivePGE, previousRoom: nu
 }
 
 export function gameHandlePgeRoomTransition(game: Game, pge: LivePGE, initPge: InitPGE, previousRoom: number, log: PgeTransitionLogger) {
-    const world = getRoomTransitionWorldState(game)
+    const world = getGameWorldState(game)
     const crossing = getPgeRoomBoundaryCrossing(game, pge)
     if (!crossing) {
         gameRelocatePgeToRoom(game, pge, previousRoom, log)

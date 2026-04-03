@@ -590,3 +590,120 @@ test('gameMainLoop rebuilds frame state, loads the map, draws the frame, and han
     assert.equal(calls.includes('handleInventory'), true)
     assert.equal(calls.some((entry) => Array.isArray(entry) && entry[0] === 'saveGameState'), true)
 })
+
+test('gameMainLoop commits pending map loads through grouped runtime state instead of stale legacy fields', async () => {
+    const originals = {
+        gameUpdatePgeDirectionalInputState: gamePge.gameUpdatePgeDirectionalInputState,
+        gameRebuildPgeCollisionStateForCurrentRoom: gamePge.gameRebuildPgeCollisionStateForCurrentRoom,
+        gameRebuildActiveFramePgeList: gamePge.gameRebuildActiveFramePgeList,
+        gameRunPgeFrameLogic: gamePge.gameRunPgeFrameLogic,
+        gameRebuildActiveRoomCollisionSlotLookup: gameCollision.gameRebuildActiveRoomCollisionSlotLookup,
+        gameDrawAnims: gameDraw.gameDrawAnims,
+        gameDrawCurrentInventoryItem: gameDraw.gameDrawCurrentInventoryItem,
+        gameDrawCurrentRoomOverlay: gameDraw.gameDrawCurrentRoomOverlay,
+        gameDrawLevelTexts: gameDraw.gameDrawLevelTexts,
+        gameDrawStoryTexts: gameDraw.gameDrawStoryTexts,
+        gameHandleConfigPanel: gameInventory.gameHandleConfigPanel,
+        gameHandleInventory: gameInventory.gameHandleInventory,
+        gameChangeLevel: gameWorld.gameChangeLevel,
+        gameHasLevelMap: gameWorld.gameHasLevelMap,
+        gameLoadLevelMap: gameWorld.gameLoadLevelMap,
+        gamePrepareAnimationsInRooms: gameWorld.gamePrepareAnimationsInRooms,
+    }
+    const calls = []
+    const game = createBaseGame({
+        world: {
+            currentLevel: 1,
+            currentRoom: 3,
+            loadMap: true,
+            blinkingConradCounter: 0,
+            deathCutsceneCounter: 0,
+        },
+        ui: {
+            score: 0,
+        },
+        session: {
+            randSeed: 0,
+            startedFromLevelSelect: false,
+            autoSave: false,
+            saveTimestamp: 0,
+            endLoop: false,
+            frameTimestamp: 0,
+            validSaveState: false,
+            stateSlot: 5,
+            skipNextLevelCutscene: true,
+        },
+        runtimeData: {
+            livePgesByIndex: [{ life: 5, room_location: 8, pos_x: 40, pos_y: 72 }],
+            livePgeStore: { activeFrameList: [], activeFrameByIndex: [], liveByRoom: [] },
+            pendingSignalsByTargetPgeIndex: new Map(),
+            inventoryItemIndicesByOwner: new Map(),
+        },
+        _currentRoom: 99,
+        _loadMap: false,
+        _currentRoomOverlayCounter: 77,
+        _skipNextLevelCutscene: false,
+    })
+
+    game.runtimeData.livePgeStore.activeFrameList = [game.runtimeData.livePgesByIndex[0]]
+    game._vid.updateScreen = async () => {
+        calls.push('updateScreen')
+    }
+
+    gamePge.gameUpdatePgeDirectionalInputState = async () => calls.push('updatePgeDirectionalInputState')
+    gamePge.gameRebuildPgeCollisionStateForCurrentRoom = () => calls.push('rebuildPgeCollisionState')
+    gamePge.gameRebuildActiveFramePgeList = () => calls.push('rebuildActiveFramePgeList')
+    gamePge.gameRunPgeFrameLogic = () => calls.push('runPgeFrameLogic')
+    gameCollision.gameRebuildActiveRoomCollisionSlotLookup = () => calls.push('rebuildActiveRoomCollisionSlotLookup')
+    gameDraw.gameDrawAnims = async () => calls.push('drawAnims')
+    gameDraw.gameDrawCurrentInventoryItem = () => calls.push('drawCurrentInventoryItem')
+    gameDraw.gameDrawCurrentRoomOverlay = () => calls.push('drawCurrentRoomOverlay')
+    gameDraw.gameDrawLevelTexts = () => calls.push('drawLevelTexts')
+    gameDraw.gameDrawStoryTexts = async () => calls.push('drawStoryTexts')
+    gameInventory.gameHandleConfigPanel = async () => false
+    gameInventory.gameHandleInventory = async () => calls.push('handleInventory')
+    gameWorld.gameChangeLevel = async () => calls.push('changeLevel')
+    gameWorld.gameHasLevelMap = () => true
+    gameWorld.gameLoadLevelMap = async (_game, room) => calls.push(['loadLevelMap', room])
+    gameWorld.gamePrepareAnimationsInRooms = async (_game, room) => calls.push(['prepareAnimationsInRooms', room])
+
+    try {
+        await gameMainLoop(game)
+    } finally {
+        Object.assign(gamePge, {
+            gameUpdatePgeDirectionalInputState: originals.gameUpdatePgeDirectionalInputState,
+            gameRebuildPgeCollisionStateForCurrentRoom: originals.gameRebuildPgeCollisionStateForCurrentRoom,
+            gameRebuildActiveFramePgeList: originals.gameRebuildActiveFramePgeList,
+            gameRunPgeFrameLogic: originals.gameRunPgeFrameLogic,
+        })
+        Object.assign(gameCollision, {
+            gameRebuildActiveRoomCollisionSlotLookup: originals.gameRebuildActiveRoomCollisionSlotLookup,
+        })
+        Object.assign(gameDraw, {
+            gameDrawAnims: originals.gameDrawAnims,
+            gameDrawCurrentInventoryItem: originals.gameDrawCurrentInventoryItem,
+            gameDrawCurrentRoomOverlay: originals.gameDrawCurrentRoomOverlay,
+            gameDrawLevelTexts: originals.gameDrawLevelTexts,
+            gameDrawStoryTexts: originals.gameDrawStoryTexts,
+        })
+        Object.assign(gameInventory, {
+            gameHandleConfigPanel: originals.gameHandleConfigPanel,
+            gameHandleInventory: originals.gameHandleInventory,
+        })
+        Object.assign(gameWorld, {
+            gameChangeLevel: originals.gameChangeLevel,
+            gameHasLevelMap: originals.gameHasLevelMap,
+            gameLoadLevelMap: originals.gameLoadLevelMap,
+            gamePrepareAnimationsInRooms: originals.gamePrepareAnimationsInRooms,
+        })
+    }
+
+    assert.equal(game.world.currentRoom, 8)
+    assert.equal(game.world.loadMap, false)
+    assert.equal(game._currentRoom, 99)
+    assert.equal(game._loadMap, false)
+    assert.equal(game._currentRoomOverlayCounter, 77)
+    assert.equal(game._vid.fullRefreshCalls, 1)
+    assert.equal(calls.some((entry) => Array.isArray(entry) && entry[0] === 'loadLevelMap' && entry[1] === 8), true)
+    assert.equal(calls.some((entry) => Array.isArray(entry) && entry[0] === 'prepareAnimationsInRooms' && entry[1] === 8), true)
+})

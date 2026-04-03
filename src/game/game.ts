@@ -52,27 +52,6 @@ import {
     gameSaveGameState,
 } from './game_runtime'
 import {
-    gameApplyTitleScreenSelection,
-    gameBeginFrameLoop,
-    gameBeginPlaythrough,
-    gameChangeStateSlot,
-    gameClearSaveStateCompleted,
-    gameClearValidSaveState,
-    gameCommitLoadedRoom,
-    gameCompleteFrameTiming,
-    gameConsumeLevelCutsceneSkip,
-    gameEndLoop,
-    gameMarkSaveStateCompleted,
-    gameQueueDeathCutscene,
-    gameRequestMapReload,
-    gameResetLevelLifecycle,
-    gameSetCurrentLevel,
-    gameSetSaveTimestamp,
-    gameSetStateSlot,
-    gameTickDeathCutscene,
-    gameTickRoomOverlay
-} from './game_lifecycle'
-import {
     gameClearStateRewind,
     gameInpUpdate,
     gameLoadLevelData,
@@ -93,11 +72,11 @@ import {
     gameUpdatePgeInventory
 } from './game_pge'
 import {
-    gameFindInventoryItemByObjectId,
     gameGetCurrentInventoryItemIndex,
     gameGetInventoryItemIndices,
     gameGetNextInventoryItemIndex
 } from './game_inventory'
+import type { GameServicesShape } from './game_services'
 
 type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
@@ -197,6 +176,14 @@ class Game {
     _rewindBuffer: File[]
     _rewindPtr: number
     _rewindLen: number
+    readonly services: GameServicesShape = {
+        res: null,
+        vid: null,
+        mix: null,
+        cut: null,
+        stub: null,
+        fs: null,
+    }
     readonly world: GameWorldState = {
         currentLevel: 0,
         currentRoom: 0,
@@ -318,13 +305,19 @@ class Game {
     debugStartFrame: number
 
     constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean) {
-        this._res = new Resource(fs) // there is only one resource class for the whole game
-        this._vid = new Video(this._res, stub)
-        this._cut = new Cutscene(this._res, stub, this._vid)
-        this._menu = new Menu(this._res, stub, this._vid)
-        this._mix = new Mixer(fs, stub)
-        this._stub = stub
-        this._fs = fs
+        this.services.res = new Resource(fs) // there is only one resource class for the whole game
+        this.services.vid = new Video(this.services.res, stub)
+        this.services.cut = new Cutscene(this.services.res, stub, this.services.vid)
+        this._menu = new Menu(this.services.res, stub, this.services.vid)
+        this.services.mix = new Mixer(fs, stub)
+        this.services.stub = stub
+        this.services.fs = fs
+        this._res = this.services.res
+        this._vid = this.services.vid
+        this._cut = this.services.cut
+        this._mix = this.services.mix
+        this._stub = this.services.stub
+        this._fs = this.services.fs
         this.runtimeData.livePgeStore = createLivePgeRegistry(this.runtimeData.livePgesByIndex)
         this.session.stateSlot = 1
         this.ui.skillLevel = this._menu._skill = Skill.kSkillNormal
@@ -338,92 +331,12 @@ class Game {
         this.session.startedFromLevelSelect = false
     }
 
-    private setCurrentRoom(room: number) {
-        this.world.currentRoom = room
-    }
-
-    applyTitleScreenSelection() {
-        return gameApplyTitleScreenSelection(this)
-    }
-
-    beginPlaythrough() {
-        return gameBeginPlaythrough(this)
-    }
-
-    beginFrameLoop() {
-        return gameBeginFrameLoop(this)
-    }
-
-    completeFrameTiming() {
-        return gameCompleteFrameTiming(this)
-    }
-
-    endLoop() {
-        return gameEndLoop(this)
-    }
-
-    consumeLevelCutsceneSkip() {
-        return gameConsumeLevelCutsceneSkip(this)
-    }
-
-    requestMapReload(room: number) {
-        return gameRequestMapReload(this, room)
-    }
-
-    commitLoadedRoom(room: number) {
-        return gameCommitLoadedRoom(this, room)
-    }
-
-    resetLevelLifecycle(startRoom: number) {
-        return gameResetLevelLifecycle(this, startRoom)
-    }
-
-    queueDeathCutscene(counter: number, deathCutsceneId?: number) {
-        return gameQueueDeathCutscene(this, counter, deathCutsceneId)
-    }
-
-    tickDeathCutscene() {
-        return gameTickDeathCutscene(this)
-    }
-
-    markSaveStateCompleted() {
-        return gameMarkSaveStateCompleted(this)
-    }
-
-    clearSaveStateCompleted() {
-        return gameClearSaveStateCompleted(this)
-    }
-
-    clearValidSaveState() {
-        return gameClearValidSaveState(this)
-    }
-
-    setSaveTimestamp() {
-        return gameSetSaveTimestamp(this)
-    }
-
-    setStateSlot(slot: number) {
-        return gameSetStateSlot(this, slot)
-    }
-
-    changeStateSlot(delta: number) {
-        return gameChangeStateSlot(this, delta)
-    }
-
-    setCurrentLevel(level: number) {
-        return gameSetCurrentLevel(this, level)
-    }
-
-    tickRoomOverlay() {
-        return gameTickRoomOverlay(this)
-    }
-
     loadPgeForCurrentLevel(idx: number, currentRoom: number) {
         return gameLoadPgeForCurrentLevel(this, idx, currentRoom)
     }
 
     async playMpegCutscene(path: string) {
-        const player = new Mp4CutscenePlayer(this._stub, this._fs)
+        const player = new Mp4CutscenePlayer(this.services.stub, this.services.fs)
         return player.play(path)
     }
 
@@ -526,21 +439,12 @@ class Game {
         return gameGetNextInventoryItemIndex(this, ownerPge, inventoryItemIndex)
     }
 
-    findInventoryItemByObjectId(ownerPge: LivePGE, objectId: number) {
-        return gameFindInventoryItemByObjectId(this, ownerPge, objectId)
-    }
-
-    
     removePgeFromInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
         return gameRemovePgeFromInventory(this, pge1, pge2, pge3)
     }
 
     addPgeToInventory(pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
         return gameAddPgeToInventory(this, pge1, pge2, pge3)
-    }
-
-    setCurrentInventoryPge(pge: LivePGE) {
-        return gameSetCurrentInventoryPge(this, pge)
     }
 
     resetGameState() {

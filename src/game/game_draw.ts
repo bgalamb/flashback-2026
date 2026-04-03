@@ -7,59 +7,12 @@ import { gameFindFirstMatchingCollidingObject } from './game_collision'
 import { assert } from "../core/assert"
 import { gameClearSaveStateCompleted, gameTickRoomOverlay } from './game_lifecycle'
 import { gameGetCurrentInventoryItemIndex } from './game_inventory'
+import { getGameServices } from './game_services'
+import { getGameUiState, getGameWorldState } from './game_state'
 import { gameInpUpdate } from './game_world'
 import { getRenderDataState, getRuntimeRegistryState } from './game_runtime_data'
 
 const PGE_NUM = 256
-
-type DrawGame = Record<string, unknown>
-
-type DrawWorldState = {
-    currentLevel: number
-    currentRoom: number
-    currentIcon: number
-    printLevelCodeCounter: number
-    textToDisplay: number
-    eraseBackground: boolean
-    blinkingConradCounter: number
-}
-
-type DrawUiState = {
-    currentRoomOverlayCounter: number
-    currentInventoryIconNum: number
-}
-
-function getDrawWorldState(game: Game) {
-    const drawGame = game as unknown as DrawGame
-    const groupedState = drawGame['world'] as DrawWorldState | undefined
-    return groupedState ?? {
-        get currentLevel() { return drawGame['_currentLevel'] as number },
-        set currentLevel(value: number) { drawGame['_currentLevel'] = value },
-        get currentRoom() { return drawGame['_currentRoom'] as number },
-        set currentRoom(value: number) { drawGame['_currentRoom'] = value },
-        get currentIcon() { return drawGame['_currentIcon'] as number },
-        set currentIcon(value: number) { drawGame['_currentIcon'] = value },
-        get printLevelCodeCounter() { return drawGame['_printLevelCodeCounter'] as number },
-        set printLevelCodeCounter(value: number) { drawGame['_printLevelCodeCounter'] = value },
-        get textToDisplay() { return drawGame['_textToDisplay'] as number },
-        set textToDisplay(value: number) { drawGame['_textToDisplay'] = value },
-        get eraseBackground() { return drawGame['_eraseBackground'] as boolean },
-        set eraseBackground(value: boolean) { drawGame['_eraseBackground'] = value },
-        get blinkingConradCounter() { return drawGame['_blinkingConradCounter'] as number },
-        set blinkingConradCounter(value: number) { drawGame['_blinkingConradCounter'] = value },
-    }
-}
-
-function getDrawUiState(game: Game) {
-    const drawGame = game as unknown as DrawGame
-    const groupedState = drawGame['ui'] as DrawUiState | undefined
-    return groupedState ?? {
-        get currentRoomOverlayCounter() { return drawGame['_currentRoomOverlayCounter'] as number },
-        set currentRoomOverlayCounter(value: number) { drawGame['_currentRoomOverlayCounter'] = value },
-        get currentInventoryIconNum() { return drawGame['_currentInventoryIconNum'] as number },
-        set currentInventoryIconNum(value: number) { drawGame['_currentInventoryIconNum'] = value },
-    }
-}
 
 function getLineLength(str: Uint8Array) {
     let len = 0
@@ -72,11 +25,12 @@ function getLineLength(str: Uint8Array) {
 }
 
 async function gameLoadVoiceSegment(game: Game, textId: number, segment: number) {
-    const resource = game._res as typeof game._res & {
+    const { res } = getGameServices(game)
+    const resource = res as typeof res & {
         load_VCE?: (textId: number, segment: number) => Promise<{ buf: Uint8Array; bufSize: number }>
     }
-    if (typeof game._res.loadVoiceSegment === 'function') {
-        return game._res.loadVoiceSegment(textId, segment)
+    if (typeof res.loadVoiceSegment === 'function') {
+        return res.loadVoiceSegment(textId, segment)
     }
     return resource.load_VCE(textId, segment)
 }
@@ -91,7 +45,7 @@ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, 
 }
 
 export function gameDrawCurrentInventoryItem(game: Game) {
-    const world = getDrawWorldState(game)
+    const world = getGameWorldState(game)
     const src = gameGetCurrentInventoryItemIndex(game, getRuntimeRegistryState(game).livePgesByIndex[0])
     if (src !== UINT8_MAX) {
         world.currentIcon = game._res.level.pgeAllInitialStateFromFile[src].icon_num
@@ -100,8 +54,8 @@ export function gameDrawCurrentInventoryItem(game: Game) {
 }
 
 export function gameDrawCurrentRoomOverlay(game: Game) {
-    const ui = getDrawUiState(game)
-    const world = getDrawWorldState(game)
+    const ui = getGameUiState(game)
+    const world = getGameWorldState(game)
     if (ui.currentRoomOverlayCounter <= 0 || world.currentRoom < 0 || world.currentRoom >= 0x40) {
         return
     }
@@ -110,8 +64,8 @@ export function gameDrawCurrentRoomOverlay(game: Game) {
 }
 
 export function gameDrawLevelTexts(game: Game) {
-    const world = getDrawWorldState(game)
-    const ui = getDrawUiState(game)
+    const world = getGameWorldState(game)
+    const ui = getGameUiState(game)
     const pge: LivePGE = getRuntimeRegistryState(game).livePgesByIndex[0]
     let { obj, pge_out } = gameFindFirstMatchingCollidingObject(game, pge, 3, UINT8_MAX, UINT8_MAX)
     if (obj === 0) {
@@ -139,8 +93,8 @@ export function gameDrawLevelTexts(game: Game) {
 }
 
 export async function gameDrawStoryTexts(game: Game) {
-    const world = getDrawWorldState(game)
-    const ui = getDrawUiState(game)
+    const world = getGameWorldState(game)
+    const ui = getGameUiState(game)
     if (world.textToDisplay !== UINT16_MAX) {
         console.log(`[story-text] start frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} inventoryIcon=${ui.currentInventoryIconNum}`)
         let textColor = 0xE8
@@ -236,7 +190,7 @@ export function gameDrawString(game: Game, p: Uint8Array, x: number, y: number, 
 }
 
 export async function gameDrawAnims(game: Game) {
-    const world = getDrawWorldState(game)
+    const world = getGameWorldState(game)
     const render = getRenderDataState(game)
     world.eraseBackground = false
     await game.drawAnimBuffer(2, render.animBuffer2State)
@@ -259,7 +213,7 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
         do {
             const pge: LivePGE = state[index].pge
             if (!(pge.flags & PGE_FLAG_SPECIAL_ANIM)) {
-                if (stateNum === 1 && (getDrawWorldState(game).blinkingConradCounter & 1)) {
+                if (stateNum === 1 && (getGameWorldState(game).blinkingConradCounter & 1)) {
                     break
                 }
 
@@ -382,7 +336,7 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
     const dst_offset = GAMESCREEN_W * sprite_y + sprite_x
     const sprite_col_mask = paletteColorMaskOverride >= 0 ? paletteColorMaskOverride : ((flags & 0x60) >> 1)
 
-    if (getDrawWorldState(game).eraseBackground) {
+    if (getGameWorldState(game).eraseBackground) {
         if (!(sprite_flags & 0x10)) {
             game._vid.drawSpriteSub1ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dst_offset, sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
