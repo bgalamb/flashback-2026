@@ -1,8 +1,8 @@
-import { READ_BE_UINT16, READ_LE_UINT16 } from '../core/intern'
-import { GAMESCREEN_W } from '../core/game_constants'
+import { readBeUint16, readLeUint16 } from '../core/intern'
+import { gamescreenW } from '../core/game_constants'
 
 function decodeIcon(src: Uint8Array, num: number, dst: Uint8Array) {
-    const offset = READ_LE_UINT16(src, num * 2)
+    const offset = readLeUint16(src, num * 2)
     const p = src.subarray(offset + 2)
     let index = 0
     for (let i = 0; i < 16 * 16 / 2; ++i) {
@@ -21,7 +21,7 @@ function decodeSpc(src: Uint8Array, w: number, h: number, dst: Uint8Array) {
 }
 
 function decodeSpm(dataPtr: Uint8Array, dst: Uint8Array) {
-    const len = 2 * READ_BE_UINT16(dataPtr)
+    const len = 2 * readBeUint16(dataPtr)
     dataPtr = dataPtr.subarray(2)
     let index = 0
     const dst2 = dst.subarray(1024)
@@ -60,7 +60,7 @@ function drawSpriteSub1(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         srcIndex += pitch
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 
@@ -75,7 +75,7 @@ function drawSpriteSub2(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         srcIndex += pitch
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 
@@ -89,7 +89,7 @@ function drawSpriteSub3(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         srcIndex += pitch
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 
@@ -104,7 +104,7 @@ function drawSpriteSub4(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         srcIndex += pitch
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 
@@ -118,7 +118,7 @@ function drawSpriteSub5(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         ++srcIndex
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 
@@ -133,7 +133,7 @@ function drawSpriteSub6(src: Uint8Array, dst: Uint8Array, pitch: number, h: numb
             }
         }
         ++srcIndex
-        dstIndex += GAMESCREEN_W
+        dstIndex += gamescreenW
     }
 }
 

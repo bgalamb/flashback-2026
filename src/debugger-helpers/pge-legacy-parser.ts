@@ -1,8 +1,8 @@
-import { CreateInitPGE, InitPGE, READ_LE_UINT16 } from "../core/intern"
+import { CreateInitPGE, InitPGE, readLeUint16 } from "../core/intern"
 
 function decodeLegacyPGEData(p: Uint8Array, maxPges: number): { pgeNum: number, pgeInit: InitPGE[] } {
     let index = 0
-    const pgeNum = READ_LE_UINT16(p)
+    const pgeNum = readLeUint16(p)
     index += 2
     const pgeInit: InitPGE[] = new Array(maxPges).fill(null).map(() => CreateInitPGE())
     if (pgeNum > pgeInit.length) {
@@ -10,33 +10,33 @@ function decodeLegacyPGEData(p: Uint8Array, maxPges: number): { pgeNum: number, 
     }
     for (let i = 0; i < pgeNum; ++i) {
         const pge: InitPGE = pgeInit[i]
-        pge.type = READ_LE_UINT16(p, index)
+        pge.type = readLeUint16(p, index)
         index += 2
-        pge.pos_x = READ_LE_UINT16(p, index)
+        pge.posX = readLeUint16(p, index)
         index += 2
-        pge.pos_y = READ_LE_UINT16(p, index)
+        pge.posY = readLeUint16(p, index)
         index += 2
-        pge.script_node_index = READ_LE_UINT16(p, index)
+        pge.scriptNodeIndex = readLeUint16(p, index)
         index += 2
-        pge.life = READ_LE_UINT16(p, index)
+        pge.life = readLeUint16(p, index)
         index += 2
         for (let lc = 0; lc < 4; ++lc) {
-            pge.counter_values[lc] = READ_LE_UINT16(p, index)
+            pge.counterValues[lc] = readLeUint16(p, index)
             index += 2
         }
-        pge.object_type = p[index++]
-        pge.init_room = p[index++]
-        pge.room_location = p[index++]
-        pge.init_flags = p[index++]
-        pge.colliding_icon_num = p[index++]
-        pge.icon_num = p[index++]
-        pge.object_id = p[index++]
+        pge.objectType = p[index++]
+        pge.initRoom = p[index++]
+        pge.roomLocation = p[index++]
+        pge.initFlags = p[index++]
+        pge.collidingIconNum = p[index++]
+        pge.iconNum = p[index++]
+        pge.objectId = p[index++]
         pge.skill = p[index++]
-        pge.mirror_x = p[index++]
+        pge.mirrorX = p[index++]
         pge.flags = p[index++]
-        pge.number_of_collision_segments = p[index++]
+        pge.numberOfCollisionSegments = p[index++]
         index++
-        pge.text_num = READ_LE_UINT16(p, index)
+        pge.textNum = readLeUint16(p, index)
         index += 2
     }
     return { pgeNum, pgeInit }

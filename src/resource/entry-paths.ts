@@ -20,21 +20,21 @@ function getCollisionOverrideEntryNames(levelName: string): string[] {
 
 function getCandidateEntryNames(objName: string, objType: number, extension: string): string[] {
     switch (objType) {
-        case ObjectType.OT_PGE:
+        case ObjectType.otPge:
             return [getParsedLevelDataPath(objName, 'pge')]
-        case ObjectType.OT_OBJ:
+        case ObjectType.otObj:
             return [getParsedLevelDataPath(objName, 'obj')]
-        case ObjectType.OT_TBN:
+        case ObjectType.otTbn:
             return [getParsedLevelDataPath(objName, 'tbn')]
-        case ObjectType.OT_CT:
-        case ObjectType.OT_MBK:
-        case ObjectType.OT_RP:
-        case ObjectType.OT_BNQ:
+        case ObjectType.otCt:
+        case ObjectType.otMbk:
+        case ObjectType.otRp:
+        case ObjectType.otBnq:
             return getRawLevelEntryNames(objName, extension, true)
-        case ObjectType.OT_ANI:
+        case ObjectType.otAni:
             return getRawLevelEntryNames(objName, extension, false)
-        case ObjectType.OT_SPR:
-        case ObjectType.OT_OFF:
+        case ObjectType.otSpr:
+        case ObjectType.otOff:
             return getSharedSpriteEntryNames(objName, extension)
         default:
             return [`${objName}.${extension}`]

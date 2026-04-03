@@ -2,8 +2,8 @@ import type { LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { Menu } from './menu'
 import { ObjectType, LocaleData } from '../resource/resource'
-import { DIR_DOWN, DIR_UP } from '../platform/systemstub_web'
-import { CHAR_W, GAMESCREEN_W, UINT8_MAX } from '../core/game_constants'
+import { dirDown, dirUp } from '../platform/systemstub_web'
+import { charW, gamescreenW, uint8Max } from '../core/game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
 import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
@@ -51,52 +51,52 @@ export {
 function gameLoadTextResources(game: Game) {
     const { res } = getGameServices(game)
     const legacyResource = res as typeof res & {
-        load_TEXT?: () => void
+        loadText?: () => void
     }
     if (typeof res.loadText === 'function') {
         res.loadText()
         return
     }
-    legacyResource.load_TEXT()
+    legacyResource.loadText()
 }
 
 async function gameLoadConradSpriteResources(game: Game) {
     const { res } = getGameServices(game)
     const legacyResource = res as typeof res & {
-        load_SPRITE_OFFSETS?: (name: string, spr: unknown) => Promise<void>
+        loadSpriteOffsets?: (name: string, spr: unknown) => Promise<void>
     }
     if (typeof res.loadSpriteOffsets === 'function') {
         await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
         return
     }
-    await legacyResource.load_SPRITE_OFFSETS('PERSO', res.sprites.spr1)
+    await legacyResource.loadSpriteOffsets('PERSO', res.sprites.spr1)
 }
 
 async function gameLoadSoundResources(game: Game) {
     const { res } = getGameServices(game)
     const legacyResource = res as typeof res & {
-        load_FIB?: (name: string) => Promise<void>
+        loadFib?: (name: string) => Promise<void>
     }
     if (typeof res.loadSoundEffects === 'function') {
         await res.loadSoundEffects('GLOBAL')
         return
     }
-    await legacyResource.load_FIB('GLOBAL')
+    await legacyResource.loadFib('GLOBAL')
 }
 
 async function gameBootResources(game: Game) {
     const { res, mix } = getGameServices(game)
     getGameSessionState(game).randSeed = new Date().getTime()
     gameLoadTextResources(game)
-    await res.load('FB_TXT', ObjectType.OT_FNT)
+    await res.load('FB_TXT', ObjectType.otFnt)
     mix.init()
 
     await gamePlayCutscene(game, 0x40)
     await gamePlayCutscene(game, 0x0D)
 
-    await res.load('GLOBAL', ObjectType.OT_ICN)
-    await res.load('GLOBAL', ObjectType.OT_SPC)
-    await res.load('PERSO', ObjectType.OT_SPR)
+    await res.load('GLOBAL', ObjectType.otIcn)
+    await res.load('GLOBAL', ObjectType.otSpc)
+    await res.load('PERSO', ObjectType.otSpr)
     await gameLoadConradSpriteResources(game)
     res.initializeConradVisuals()
     await gameLoadSoundResources(game)
@@ -106,7 +106,7 @@ async function gamePresentTitleScreen(game: Game) {
     const { mix, stub } = getGameServices(game)
     mix.playMusic(1)
     await game._menu.handleTitleScreen()
-    if (game._menu._selectedOption === Menu.MENU_OPTION_ITEM_QUIT || stub._pi.quit) {
+    if (game._menu._selectedOption === Menu.menuOptionItemQuit || stub._pi.quit) {
         stub._pi.quit = true
         return false
     }
@@ -158,7 +158,7 @@ async function gameProcessActiveFrame(game: Game) {
     if (session.startedFromLevelSelect && game.renders < 5) {
         const conrad = runtime.livePgesByIndex[0]
         console.log(
-            `[direct-start] frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.room_location} pos=(${conrad.pos_x},${conrad.pos_y}) state=${conrad.script_state_type}/${conrad.first_script_entry_index} anim=${conrad.anim_number} deathCounter=${world.deathCutsceneCounter} loadMap=${world.loadMap}`
+            `[direct-start] frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber} deathCounter=${world.deathCutsceneCounter} loadMap=${world.loadMap}`
         )
     }
     return oldLevel
@@ -179,16 +179,16 @@ async function gameResolvePendingMapLoad(game: Game) {
     if (!world.loadMap) {
         return
     }
-    if (world.currentRoom === UINT8_MAX || !gameHasLevelMap(game, runtime.livePgesByIndex[0].room_location)) {
+    if (world.currentRoom === uint8Max || !gameHasLevelMap(game, runtime.livePgesByIndex[0].roomLocation)) {
         const conrad = runtime.livePgesByIndex[0]
         console.warn(
-            `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.room_location} pos=(${conrad.pos_x},${conrad.pos_y}) state=${conrad.script_state_type}/${conrad.first_script_entry_index} anim=${conrad.anim_number}`
+            `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber}`
         )
         game._cut.setId(6)
         gameQueueDeathCutscene(game, 1)
         return
     }
-    const room = runtime.livePgesByIndex[0].room_location
+    const room = runtime.livePgesByIndex[0].roomLocation
     gameCommitLoadedRoom(game, room)
     await gameLoadLevelMap(game, room)
     game._vid.fullRefresh()
@@ -270,8 +270,8 @@ export function gameLoadGameState(_game: Game, _slot: number) {
 // and then hands control to gameRunPgeFrameLogic() to run that entity's frame logic.
 export function gameProcessActivePgesForFrame(game: Game, activeFramePges: LivePGE[], currentRoom: number) {
     for (const pge of activeFramePges) {
-        getGameCollisionState(game).currentPgeCollisionGridY = ((pge.pos_y / 36) >> 0) & ~1
-        getGameCollisionState(game).currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
+        getGameCollisionState(game).currentPgeCollisionGridY = ((pge.posY / 36) >> 0) & ~1
+        getGameCollisionState(game).currentPgeCollisionGridX = (pge.posX + 8) >> 4
         gameRunPgeFrameLogic(game, pge, currentRoom)
     }
 }

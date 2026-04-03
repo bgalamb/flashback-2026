@@ -1,8 +1,8 @@
 import { Color } from "../core/intern"
 import { decodeIndexedPng, encodeIndexedPng, paletteBankToColors } from "../core/indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
+import { gamescreenH, gamescreenW } from "../core/game_constants"
 
-const LAYER_TRANSPARENT_INDEX = 0xFF
+const layerTransparentIndex = 0xFF
 
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/level-generator/merge-room-layer-png.ts <backlayer.png> <frontlayer.png> <output.pixeldata.png>")
@@ -45,19 +45,19 @@ async function main() {
     const frontPng = await decodeIndexedPng(new Uint8Array(fs.readFileSync(frontPath)))
 
     if (
-        backPng.width !== GAMESCREEN_W || backPng.height !== GAMESCREEN_H ||
-        frontPng.width !== GAMESCREEN_W || frontPng.height !== GAMESCREEN_H
+        backPng.width !== gamescreenW || backPng.height !== gamescreenH ||
+        frontPng.width !== gamescreenW || frontPng.height !== gamescreenH
     ) {
         throw new Error("Layer PNG size mismatch")
     }
 
-    const mergedPixels = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
+    const mergedPixels = new Uint8Array(gamescreenW * gamescreenH)
     for (let i = 0; i < mergedPixels.length; ++i) {
         const backPixel = backPng.pixels[i]
         const frontPixel = frontPng.pixels[i]
         let mergedPixel = 0
 
-        if (backPixel !== LAYER_TRANSPARENT_INDEX) {
+        if (backPixel !== layerTransparentIndex) {
             const backSlot = backPixel >> 4
             if (backSlot !== 0x0 && backSlot !== 0x1 && backSlot !== 0x2 && backSlot !== 0x3) {
                 throw new Error(`Invalid back-layer slot ${backSlot} at pixel ${i}`)
@@ -65,7 +65,7 @@ async function main() {
             mergedPixel = backPixel
         }
 
-        if (frontPixel !== LAYER_TRANSPARENT_INDEX) {
+        if (frontPixel !== layerTransparentIndex) {
             const frontSlot = frontPixel >> 4
             if (frontSlot === 0x8 || frontSlot === 0x9 || frontSlot === 0xA || frontSlot === 0xB) {
                 mergedPixel = frontPixel
@@ -87,7 +87,7 @@ async function main() {
 
     for (let i = 0; i < frontPng.pixels.length; ++i) {
         const pixel = frontPng.pixels[i]
-        if (pixel !== LAYER_TRANSPARENT_INDEX) {
+        if (pixel !== layerTransparentIndex) {
             usedFrontSlots.add(pixel >> 4)
         }
     }
@@ -119,8 +119,8 @@ async function main() {
     }
 
     fs.writeFileSync(outputPath, Buffer.from(encodeIndexedPng(
-        GAMESCREEN_W,
-        GAMESCREEN_H,
+        gamescreenW,
+        gamescreenH,
         mergedPixels,
         mergedPalette
     )))

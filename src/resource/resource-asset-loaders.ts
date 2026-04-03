@@ -2,7 +2,7 @@ import { File } from './file'
 import { ResourceLevelState, ResourceSpriteState, ResourceTextState, ResourceUiState } from './resource-state'
 import { readFileData } from './file-access'
 import { decodeParsedObjIntoLevelState, decodeParsedPgeIntoLevelState, decodeParsedTbnIntoLevelState, loadCollisionAsset, loadPackedSpriteAsset, loadSpcAsset } from './resource-level-loaders'
-import { bytekiller_unpack } from '../core/unpack'
+import { bytekillerUnpack } from '../core/unpack'
 
 interface ResourceAssetLoaderContext {
     entryName: string
@@ -33,7 +33,7 @@ function loadParsedTbnAsset(ctx: ResourceAssetLoaderContext, file: File) {
 function loadPackedSpriteResource(ctx: ResourceAssetLoaderContext, file: File) {
     const len = file.size()
     const data = readFileData(file, ctx.entryName)
-    loadPackedSpriteAsset(ctx.sprites, data, len, ctx.numSprites, ctx.spmOffsetsTable, bytekiller_unpack)
+    loadPackedSpriteAsset(ctx.sprites, data, len, ctx.numSprites, ctx.spmOffsetsTable, bytekillerUnpack)
 }
 
 function loadSpriteMaskResource(ctx: ResourceAssetLoaderContext, file: File) {
@@ -67,7 +67,7 @@ function loadMbkResource(ctx: ResourceAssetLoaderContext, file: File) {
 function loadCollisionResource(ctx: ResourceAssetLoaderContext, file: File) {
     const len = file.size()
     const data = readFileData(file, ctx.entryName)
-    loadCollisionAsset(ctx.entryName, ctx.level.ctData, data, len, bytekiller_unpack)
+    loadCollisionAsset(ctx.entryName, ctx.level.ctData, data, len, bytekillerUnpack)
 }
 
 function loadFontResource(ctx: ResourceAssetLoaderContext, file: File) {

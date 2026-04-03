@@ -1,12 +1,12 @@
-import { UINT16_MAX } from '../core/game_constants'
+import { uint16Max } from '../core/game_constants'
 import type { Game } from './game'
 import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameClearStateRewind } from './game_world'
 
-const MIN_STATE_SLOT = 1
-const MAX_STATE_SLOT = 99
+const minStateSlot = 1
+const maxStateSlot = 99
 
-export const ROOM_OVERLAY_DURATION_FRAMES = 90
+export const roomOverlayDurationFrames = 90
 
 export function gameApplyTitleScreenSelection(game: Game) {
     const ui = getGameUiState(game)
@@ -56,7 +56,7 @@ export function gameCommitLoadedRoom(game: Game, room: number) {
     const ui = getGameUiState(game)
     world.currentRoom = room
     world.loadMap = false
-    ui.currentRoomOverlayCounter = ROOM_OVERLAY_DURATION_FRAMES
+    ui.currentRoomOverlayCounter = roomOverlayDurationFrames
 }
 
 export function gameResetRoomOverlay(game: Game) {
@@ -77,8 +77,8 @@ export function gameResetLevelLifecycle(game: Game, startRoom: number) {
     const ui = getGameUiState(game)
     const pge = getGamePgeState(game)
     world.currentRoom = startRoom
-    game._cut.setDeathCutSceneId(UINT16_MAX)
-    pge.opcodeTempVar2 = UINT16_MAX
+    game._cut.setDeathCutSceneId(uint16Max)
+    pge.opcodeTempVar2 = uint16Max
     world.deathCutsceneCounter = 0
     world.credits = 0
     ui.saveStateCompleted = false
@@ -86,7 +86,7 @@ export function gameResetLevelLifecycle(game: Game, startRoom: number) {
     world.blinkingConradCounter = 0
     pge.shouldProcessCurrentPgeObjectNode = false
     pge.opcodeTempVar1 = 0
-    world.textToDisplay = UINT16_MAX
+    world.textToDisplay = uint16Max
     gameResetRoomOverlay(game)
 }
 
@@ -130,7 +130,7 @@ export function gameSetSaveTimestamp(game: Game) {
 
 export function gameSetStateSlot(game: Game, slot: number) {
     const session = getGameSessionState(game)
-    const nextSlot = Math.max(MIN_STATE_SLOT, Math.min(MAX_STATE_SLOT, slot))
+    const nextSlot = Math.max(minStateSlot, Math.min(maxStateSlot, slot))
     session.stateSlot = nextSlot
     return nextSlot
 }

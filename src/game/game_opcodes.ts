@@ -1,8 +1,8 @@
 import { Game } from "./game"
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from "../core/game_constants"
+import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from "../core/game_constants"
 import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot, PgeZOrderComparator } from "../core/intern"
-import { col_detectHit, col_detectHitCallback3, col_detectHitCallback1, col_detectHitCallback2, col_detectGunHitCallback2, col_detectGunHitCallback1, col_detectGunHit, col_detectGunHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHitCallback6 } from '../core/collision'
-import { UINT8_MAX, UINT16_MAX, CT_ROOM_SIZE, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE, global_game_options, kIngameSaveSlot } from "../core/game_constants"
+import { colDetecthit, colDetecthitcallback3, colDetecthitcallback1, colDetecthitcallback2, colDetectgunhitcallback2, colDetectgunhitcallback1, colDetectgunhit, colDetectgunhitcallback3, colDetecthitcallback4, colDetecthitcallback5, colDetecthitcallback6 } from '../core/collision'
+import { uint8Max, uint16Max, ctRoomSize, ctGridStride, ctGridWidth, ctHeaderSize, globalGameOptions, kIngameSaveSlot } from "../core/game_constants"
 import { gameFindFirstMatchingCollidingObject, gameFindOverlappingPgeByObjectType, gameGetRoomCollisionGridData } from './game_collision'
 import { gameInitializePgeDefaultAnimation } from './game_pge'
 import { assert } from "../core/assert"
@@ -11,47 +11,47 @@ import { getRuntimeRegistryState } from './game_runtime_data'
 import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameGetRandomNumber } from './game_world'
 
-const pge_op_isInpUp = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpup = (args: PgeOpcodeArgs, game: Game) => {
 	if (1 === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpBackward = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpbackward = (args: PgeOpcodeArgs, game: Game) => {
 	let mask = 8 // right
 	if (game.pge.currentPgeFacingIsMirrored) {
 		mask = 4 // left
 	}
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpDown = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpdown = (args: PgeOpcodeArgs, game: Game) => {
 	if (2 === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpForward = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpforward = (args: PgeOpcodeArgs, game: Game) => {
 	let mask = 4
 	if (game.pge.currentPgeFacingIsMirrored) {
 		mask = 8
 	}
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpBackwardMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpbackwardmod = (args: PgeOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	let mask = Game._modifierKeyMasks[args.a]
@@ -61,24 +61,24 @@ const pge_op_isInpBackwardMod = (args: PgeOpcodeArgs, game: Game) => {
 		mask |= 8
 	}
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpDownMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpdownmod = (args: PgeOpcodeArgs, game: Game) => {
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	//assert(args->a < 3);
 	const mask = Game._modifierKeyMasks[args.a] | 2
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpForwardMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpforwardmod = (args: PgeOpcodeArgs, game: Game) => {
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	//assert(args->a < 3);
 	let mask = Game._modifierKeyMasks[args.a]
@@ -88,156 +88,156 @@ const pge_op_isInpForwardMod = (args: PgeOpcodeArgs, game: Game) => {
 		mask |= 4
 	}
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_isInpUpMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpupmod = (args: PgeOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._modifierKeyMasks[args.a] | 1
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_doesNotCollide1u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide1u = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 1, -args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0;
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide10 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide10 = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 1, 0)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide1d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide1d = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 1, args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide2u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide2u = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 2, -args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide20 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide20 = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 2, 0)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_isInpNoMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpnomod = (args: PgeOpcodeArgs, game: Game) => {
 	// assert(args->a < 3);
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._modifierKeyMasks[args.a]
 	if (((game.pge.currentPgeInputMask & 0xF) | mask) === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_getCollision0u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision0u = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 0, -args.a)
 }
 
-const pge_op_getCollision00 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision00 = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 0, 0)
 }
 
-const pge_op_getCollision0d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision0d = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 0, args.a)
 }
 
-const pge_op_isInpIdle = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpidle = (args: PgeOpcodeArgs, game: Game) => {
 	if (game.pge.currentPgeInputMask === 0) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}    
 }
 
-const pge_op_getCollision10 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision10 = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 1, 0)
 }
 
-const pge_op_getCollision1d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision1d = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 1, args.a)
 }
 
-const pge_op_getCollision2u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision2u = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 2, -args.a)
 }
 
-const pge_op_getCollision20 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision20 = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 2, 0)
 }
 
-const pge_op_getCollision2d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision2d = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 2, args.a)
 }
 
-const pge_op_doesNotCollide0u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide0u = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 0, -args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide00 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide00 = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 0, 0)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_doesNotCollide0d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide0d = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 0, args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const pge_op_getCollision1u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpGetcollision1u = (args: PgeOpcodeArgs, game: Game) => {
 	return gameGetRoomCollisionGridData(game, args.pge, 1, -args.a)
 }
 
-const pge_ZOrderByNumber = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderbynumber = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	return 0
 	// return pge1 - pge2
 }
 
-const pge_ZOrderIfIndex = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderifindex = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (pge1.index !== comp2) {
 		game.queuePgeGroupSignal(pge2.index, pge1.index, comp)
 		return 1
@@ -245,66 +245,66 @@ const pge_ZOrderIfIndex = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: nu
 	return 0
 }
 
-const pge_ZOrderIfSameDirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderifsamedirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (pge1 !== pge2) {
 		if ((pge1.flags & 1) === (pge2.flags & 1)) {
 			game.pge.opcodeComparisonResult2 = 1
 			game.queuePgeGroupSignal(pge2.index, pge1.index, comp)
 			if (pge2.index === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
 	return 0
 }
 
-const pge_ZOrderIfDifferentDirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderifdifferentdirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (pge1 !== pge2) {
 		if ((pge1.flags & 1) !== (pge2.flags & 1)) {
 			game.pge.opcodeComparisonResult1 = 1
 			game.queuePgeGroupSignal(pge2.index, pge1.index, comp)
 			if (pge2.index === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
 	return 0
 }
 
-const pge_ZOrderByAnimYIfType = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
-	if (pge1.init_PGE.object_type === comp2) {
-		if (game._res.getAniData(pge1.script_state_type)[3] === comp) {
+const pgeZorderbyanimyiftype = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+	if (pge1.initPge.objectType === comp2) {
+		if (game._res.getAniData(pge1.scriptStateType)[3] === comp) {
 			return 1
 		}
 	}
 	return 0
 }
 
-const pge_ZOrderByAnimY = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderbyanimy = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (pge1 !== pge2) {
-		if (game._res.getAniData(pge1.script_state_type)[3] === comp) {
+		if (game._res.getAniData(pge1.scriptStateType)[3] === comp) {
 			return 1
 		}
 	}
 	return 0
 }
 
-const pge_ZOrderByIndex = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderbyindex = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (pge1 !== pge2) {
 		game.queuePgeGroupSignal(pge2.index, pge1.index, comp)
-		game.pge.opcodeComparisonResult1 = UINT16_MAX
+		game.pge.opcodeComparisonResult1 = uint16Max
 	}
 
 	return 0
 }
 
-const pge_ZOrderByObj = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+const pgeZorderbyobj = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
 	if (comp === 10) {
-		if (pge1.init_PGE.object_type === comp && pge1.life >= 0) {
+		if (pge1.initPge.objectType === comp && pge1.life >= 0) {
 			return 1
 		}
 	} else {
-		if (pge1.init_PGE.object_type === comp) {
+		if (pge1.initPge.objectType === comp) {
 			return 1
 		}
 	}
@@ -312,8 +312,8 @@ const pge_ZOrderByObj = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: numb
 	return 0
 }
 
-const pge_ZOrderIfTypeAndDifferentDirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
-	if (pge1.init_PGE.object_type === comp) {
+const pgeZorderiftypeanddifferentdirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+	if (pge1.initPge.objectType === comp) {
 		if ((pge1.flags & 1) !== (pge2.flags & 1)) {
 			return 1
 		}
@@ -321,8 +321,8 @@ const pge_ZOrderIfTypeAndDifferentDirection = (pge1: LivePGE, pge2: LivePGE, com
 	return 0
 }
 
-const pge_ZOrderIfTypeAndSameDirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
-	if (pge1.init_PGE.object_type === comp) {
+const pgeZorderiftypeandsamedirection = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+	if (pge1.initPge.objectType === comp) {
 		if ((pge1.flags & 1) === (pge2.flags & 1)) {
 			return 1
 		}
@@ -330,15 +330,15 @@ const pge_ZOrderIfTypeAndSameDirection = (pge1: LivePGE, pge2: LivePGE, comp: nu
 	return 0
 }
 
-const pge_ZOrder = (pge: LivePGE, num: number, compare: PgeZOrderComparator, unk: number, game: Game) => {
-	let collisionGridPositionIndex = pge.collision_slot
-	while (collisionGridPositionIndex !== UINT16_MAX) {
+const pgeZorder = (pge: LivePGE, num: number, compare: PgeZOrderComparator, unk: number, game: Game) => {
+	let collisionGridPositionIndex = pge.collisionSlot
+	while (collisionGridPositionIndex !== uint16Max) {
 		const slotBucket = game.collision.dynamicPgeCollisionSlotsByPosition.get(collisionGridPositionIndex)
 		if (!slotBucket) {
 			return 0
 		}
 		const currentPositionKey = collisionGridPositionIndex
-		collisionGridPositionIndex = UINT16_MAX
+		collisionGridPositionIndex = uint16Max
 		for (const slot of slotBucket) {
 			if (compare(slot.pge, pge, num, unk, game) !== 0) {
 				return 1
@@ -367,30 +367,30 @@ const getActiveRoomCollisionSlotHeadsByArea = (game: Game, area: number) => {
 	}
 }
 
-const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, game: Game) => {
-	let pge_collision_segments = pge.init_PGE.number_of_collision_segments
-	if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
-        const grid_data = game._res.level.ctData.subarray(CT_HEADER_SIZE)
-		let dataIndex = CT_GRID_STRIDE * pge.room_location
-		let pge_pos_y = (((pge.pos_y / 36)>>0) & ~1) + pge_dy
-		let pge_pos_x = (pge.pos_x + 8) >> 4
+const pgeUpdatecollisionstate = (pge: LivePGE, pgeDy: number, var8: number, game: Game) => {
+	let pgeCollisionSegments = pge.initPge.numberOfCollisionSegments
+	if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
+        const gridData = game._res.level.ctData.subarray(ctHeaderSize)
+		let dataIndex = ctGridStride * pge.roomLocation
+		let pgePosY = (((pge.posY / 36)>>0) & ~1) + pgeDy
+		let pgePosX = (pge.posX + 8) >> 4
 
-		dataIndex += pge_pos_x + pge_pos_y * CT_GRID_WIDTH
+		dataIndex += pgePosX + pgePosY * ctGridWidth
 
 		let slot1: RoomCollisionGridPatchRestoreSlot = game.collision.activeRoomCollisionGridPatchRestoreSlots
 		let i = 255
-		pge_pos_x = i
+		pgePosX = i
 		if (game.pge.currentPgeFacingIsMirrored) {
-			i = pge_collision_segments - 1
+			i = pgeCollisionSegments - 1
 			dataIndex -= i
 		}
-        let while_i = 0
+        let whileI = 0
 		while (slot1) {
-			if (slot1.patchedGridDataView.buffer === grid_data.buffer && slot1.patchedGridDataView.byteOffset === (grid_data.byteOffset + dataIndex)) {
-				slot1.patchedCellCount = pge_collision_segments - 1
-                assert(!(pge_collision_segments >= CT_GRID_STRIDE), `Assertion failed: ${pge_collision_segments} < ${CT_GRID_STRIDE}`)
-                grid_data.subarray(dataIndex).fill(var8, 0, pge_collision_segments)
-				dataIndex += pge_collision_segments
+			if (slot1.patchedGridDataView.buffer === gridData.buffer && slot1.patchedGridDataView.byteOffset === (gridData.byteOffset + dataIndex)) {
+				slot1.patchedCellCount = pgeCollisionSegments - 1
+                assert(!(pgeCollisionSegments >= ctGridStride), `Assertion failed: ${pgeCollisionSegments} < ${ctGridStride}`)
+                gridData.subarray(dataIndex).fill(var8, 0, pgeCollisionSegments)
+				dataIndex += pgeCollisionSegments
 				return 1
 			} else {
 				++i
@@ -404,17 +404,17 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
         const slotIndex = game.collision.roomCollisionGridPatchRestoreSlotPool.findIndex((slot) => slot === game.collision.nextFreeRoomCollisionGridPatchRestoreSlot)
 		if (slotIndex < 255) {
 			slot1 = game.collision.nextFreeRoomCollisionGridPatchRestoreSlot
-			slot1.patchedGridDataView = grid_data.subarray(dataIndex)
-			slot1.patchedCellCount = pge_collision_segments - 1
+			slot1.patchedGridDataView = gridData.subarray(dataIndex)
+			slot1.patchedCellCount = pgeCollisionSegments - 1
 			const dst = slot1.originalGridCellValues
-			const src = grid_data.subarray(dataIndex)
+			const src = gridData.subarray(dataIndex)
             let srcIndex = 0
             let dstIndex = 0
-			let n = pge_collision_segments
-            assert(!(n >= CT_GRID_WIDTH), `Assertion failed: ${n} < ${CT_GRID_WIDTH}`)
+			let n = pgeCollisionSegments
+            assert(!(n >= ctGridWidth), `Assertion failed: ${n} < ${ctGridWidth}`)
 			while (n--) {
                 // int8 -> uint8
-				dst[dstIndex++] = src[srcIndex] & UINT8_MAX
+				dst[dstIndex++] = src[srcIndex] & uint8Max
                 // uint8 -> int8
 				src[srcIndex++] = (var8 << 24 >> 24)
 			}
@@ -427,149 +427,149 @@ const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, ga
 	return 1
 }
 
-const pge_op_nop = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpNop = (args: PgeOpcodeArgs, game: Game) => {
 	return 1
 }
 
-const pge_op_pickupObject = (args:PgeOpcodeArgs, game: Game) => {
+const pgeOpPickupobject = (args:PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = gameFindOverlappingPgeByObjectType(game, args.pge, 3)
 	if (pge) {
 		game.queuePgeGroupSignal(args.pge.index, pge.index, args.a)
-		return UINT16_MAX
+		return uint16Max
 	}
 	return 0
 }
 
-const pge_op_addItemToInventory = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpAdditemtoinventory = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	game.updatePgeInventory(runtime.livePgesByIndex[args.a], args.pge)
-	args.pge.room_location = UINT8_MAX
-	return UINT16_MAX
+	args.pge.roomLocation = uint8Max
+	return uint16Max
 }
 
-const pge_op_copyPge = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpCopypge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const src:LivePGE = runtime.livePgesByIndex[args.a]
 	const dst:LivePGE = args.pge
 
-	dst.pos_x = src.pos_x
-	dst.pos_y = src.pos_y
-	dst.room_location = src.room_location
+	dst.posX = src.posX
+	dst.posY = src.posY
+	dst.roomLocation = src.roomLocation
 
 	dst.flags &= 0xFE
 	if (src.flags & 1) {
 		dst.flags |= 1
 	}
 	game.reorderPgeInventory(args.pge)
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_canUseCurrentInventoryItem = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpCanusecurrentinventoryitem = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge:LivePGE = runtime.livePgesByIndex[0]
 	const currentInventoryItemIndex = game.getCurrentInventoryItemIndex(pge)
-	if (currentInventoryItemIndex !== UINT8_MAX && game._res.level.pgeAllInitialStateFromFile[currentInventoryItemIndex].object_id === args.a) {
+	if (currentInventoryItemIndex !== uint8Max && game._res.level.pgeAllInitialStateFromFile[currentInventoryItemIndex].objectId === args.a) {
 		return 1
 	}
 
 	return 0
 }
 
-const pge_op_removeItemFromInventory = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpRemoveitemfrominventory = (args: PgeOpcodeArgs, game: Game) => {
 	const currentInventoryItemIndex = game.getCurrentInventoryItemIndex(args.pge)
-	if (currentInventoryItemIndex !== UINT8_MAX) {
+	if (currentInventoryItemIndex !== uint8Max) {
 		game.queuePgeGroupSignal(args.pge.index, currentInventoryItemIndex, args.a)
 	}
 
 	return 1
 }
 
-const pge_o_unk0x3C = (args: PgeOpcodeArgs, game: Game) => {
-    return pge_ZOrder(args.pge, args.a, pge_ZOrderByAnimYIfType, args.b, game)
+const pgeOUnk0x3c = (args: PgeOpcodeArgs, game: Game) => {
+    return pgeZorder(args.pge, args.a, pgeZorderbyanimyiftype, args.b, game)
 }
 
-const pge_o_unk0x3D = (args: PgeOpcodeArgs, game: Game) => {
-	const res = pge_ZOrder(args.pge, args.a, pge_ZOrderByAnimY, 0, game)
+const pgeOUnk0x3d = (args: PgeOpcodeArgs, game: Game) => {
+	const res = pgeZorder(args.pge, args.a, pgeZorderbyanimy, 0, game)
     return res
 }
 
-const pge_op_setPgeCounter = (args: PgeOpcodeArgs, game: Game) => {
-	args.pge.counter_value = args.a
+const pgeOpSetpgecounter = (args: PgeOpcodeArgs, game: Game) => {
+	args.pge.counterValue = args.a
 	return 1
 }
 
-const pge_op_decPgeCounter = (args: PgeOpcodeArgs, game: Game) => {
-	args.pge.counter_value -= 1
-	if (args.a === args.pge.counter_value) {
-		return UINT16_MAX
+const pgeOpDecpgecounter = (args: PgeOpcodeArgs, game: Game) => {
+	args.pge.counterValue -= 1
+	if (args.a === args.pge.counterValue) {
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
-	let pge_room = args.pge.room_location
-	if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
+const pgeOUnk0x40 = (args: PgeOpcodeArgs, game: Game) => {
+	let pgeRoom = args.pge.roomLocation
+	if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
         return 0
     }
-	let col_area
-	if (game.world.currentRoom === pge_room) {
-		col_area = 1
-	} else if (game.collision.activeCollisionLeftRoom === pge_room) {
-		col_area = 0
-	} else if (game.collision.activeCollisionRightRoom === pge_room) {
-		col_area = 2
+	let colArea
+	if (game.world.currentRoom === pgeRoom) {
+		colArea = 1
+	} else if (game.collision.activeCollisionLeftRoom === pgeRoom) {
+		colArea = 0
+	} else if (game.collision.activeCollisionRightRoom === pgeRoom) {
+		colArea = 2
 	} else {
 		return 0
 	}
 
-	let grid_pos_x = (args.pge.pos_x + 8) >> 4
-	let grid_pos_y = (args.pge.pos_y / 72) >> 0
+	let gridPosX = (args.pge.posX + 8) >> 4
+	let gridPosY = (args.pge.posY / 72) >> 0
 
-	if (grid_pos_y >= 0 && grid_pos_y <= 2) {
-		grid_pos_y *= CT_GRID_WIDTH
+	if (gridPosY >= 0 && gridPosY <= 2) {
+		gridPosY *= ctGridWidth
 		let _cx = args.a
 		if (game.pge.currentPgeFacingIsMirrored) {
 			_cx = -_cx
 		}
 		let _bl
 		if (_cx >= 0) {
-				if (_cx > CT_GRID_WIDTH) {
-					_cx = CT_GRID_WIDTH
+				if (_cx > ctGridWidth) {
+					_cx = ctGridWidth
 				}
             let var2 = new Int8Array(game._res.level.ctData.buffer)
-            let var2Index = game._res.level.ctData.byteOffset + CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
+            let var2Index = game._res.level.ctData.byteOffset + ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
 
-	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-	            let activeRoomSlotIndex = grid_pos_y + grid_pos_x
+	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+	            let activeRoomSlotIndex = gridPosY + gridPosX
 
-				let var12 = grid_pos_x
+				let var12 = gridPosX
 				--_cx
 
 				do {
 					--var12
 					if (var12 < 0) {
-						--col_area
-						if (col_area < 0) {
+						--colArea
+						if (colArea < 0) {
 	                        return 0
 	                    }
-						pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
-						if (pge_room < 0) {
+						pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+						if (pgeRoom < 0) {
 	                        return 0
 	                    }
-						var12 = CT_GRID_WIDTH - 1
+						var12 = ctGridWidth - 1
 						var2 = new Int8Array(game._res.level.ctData.buffer)
-	                    var2Index = game._res.level.ctData.byteOffset + CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + (CT_GRID_WIDTH - 1) + CT_GRID_WIDTH
-						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-						activeRoomSlotIndex = grid_pos_y + CT_GRID_WIDTH
+	                    var2Index = game._res.level.ctData.byteOffset + ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + (ctGridWidth - 1) + ctGridWidth
+						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+						activeRoomSlotIndex = gridPosY + ctGridWidth
 					}
 					--activeRoomSlotIndex
 					const activeCollisionSlotHead = activeRoomSlotHeads ? activeRoomSlotHeads[activeRoomSlotIndex] : null
 
 					if (activeCollisionSlotHead) {
-						for (const col_slot of activeCollisionSlotHead) {
-							if (args.pge !== col_slot.pge && (col_slot.pge.flags & 4)) {
-								if (col_slot.pge.init_PGE.object_type === args.b) {
+						for (const colSlot of activeCollisionSlotHead) {
+							if (args.pge !== colSlot.pge && (colSlot.pge.flags & 4)) {
+								if (colSlot.pge.initPge.objectType === args.b) {
 									return 1
 								}
 							}
@@ -583,40 +583,40 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 			} while (_cx >= 0);
 		} else {
 			_cx = -_cx
-				if (_cx > CT_GRID_WIDTH) {
-					_cx = CT_GRID_WIDTH
+				if (_cx > ctGridWidth) {
+					_cx = ctGridWidth
 				}
 
-	            let var2 = game._res.level.ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x)
+	            let var2 = game._res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX)
 				let var2Index = 0
-	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-	            let activeRoomSlotIndex = grid_pos_y + grid_pos_x
-	            let var12 = grid_pos_x
+	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+	            let activeRoomSlotIndex = gridPosY + gridPosX
+	            let var12 = gridPosX
 				--_cx
 				do {
 					++var12
-						if (var12 === CT_GRID_WIDTH) {
-					++col_area
-					if (col_area > 2) {
+						if (var12 === ctGridWidth) {
+					++colArea
+					if (colArea > 2) {
                         return 0
                     }
-					pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
-					if (pge_room < 0) {
+					pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
+					if (pgeRoom < 0) {
                         return 0
                     }
 
 						var12 = 0
-						var2 = game._res.level.ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH)
+						var2 = game._res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth)
 	                    var2Index = 0
-						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-						activeRoomSlotIndex = grid_pos_y - 1
+						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+						activeRoomSlotIndex = gridPosY - 1
 					}
 					activeRoomSlotIndex++
 					const activeCollisionSlotHead = activeRoomSlotHeads ? activeRoomSlotHeads[activeRoomSlotIndex] : null
 					if (activeCollisionSlotHead) {
-						for (const col_slot of activeCollisionSlotHead) {
-							if (args.pge !== col_slot.pge && (col_slot.pge.flags & 4)) {
-								if (col_slot.pge.init_PGE.object_type === args.b) {
+						for (const colSlot of activeCollisionSlotHead) {
+							if (args.pge !== colSlot.pge && (colSlot.pge.flags & 4)) {
+								if (colSlot.pge.initPge.objectType === args.b) {
 									return 1
 								}
 							}
@@ -635,10 +635,10 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_wakeUpPge = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpWakeuppge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	if (args.a <= 3) {
-		const num = args.pge.init_PGE.counter_values[args.a]
+		const num = args.pge.initPge.counterValues[args.a]
 		if (num >= 0) {
 			const pge: LivePGE = runtime.livePgesByIndex[num]
 			pge.flags |= 4
@@ -648,10 +648,10 @@ const pge_op_wakeUpPge = (args: PgeOpcodeArgs, game: Game) => {
 	return 1
 }
 
-const pge_op_removePge = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpRemovepge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	if (args.a <= 3) {
-		const num = args.pge.init_PGE.counter_values[args.a]
+		const num = args.pge.initPge.counterValues[args.a]
 		if (num >= 0) {
 			runtime.livePgeStore.activeFrameByIndex[num] = null
 			runtime.livePgesByIndex[num].flags &= ~4
@@ -660,80 +660,80 @@ const pge_op_removePge = (args: PgeOpcodeArgs, game: Game) => {
 	return 1
 }
 
-const pge_op_killPge = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpKillpge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const ui = getGameUiState(game)
 	const pge:LivePGE = args.pge
-	pge.room_location = 0xFE
+	pge.roomLocation = 0xFE
 	pge.flags &= ~4
 	runtime.livePgeStore.activeFrameByIndex[pge.index] = null
-	if (pge.init_PGE.object_type === 10) {
+	if (pge.initPge.objectType === 10) {
 		ui.score += 200
 	}
 
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_isInCurrentRoom = (args: PgeOpcodeArgs, game: Game) => {
-	return (args.pge.room_location === game.world.currentRoom) ? 1 : 0
+const pgeOpIsincurrentroom = (args: PgeOpcodeArgs, game: Game) => {
+	return (args.pge.roomLocation === game.world.currentRoom) ? 1 : 0
 }
 
-const pge_op_isNotInCurrentRoom = (args: PgeOpcodeArgs, game: Game) => {
-	const res = (args.pge.room_location === game.world.currentRoom) ? 0 : 1
+const pgeOpIsnotincurrentroom = (args: PgeOpcodeArgs, game: Game) => {
+	const res = (args.pge.roomLocation === game.world.currentRoom) ? 0 : 1
     return res
 }
 
-const pge_op_scrollPosY = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpScrollposy = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	let pge: LivePGE = args.pge
-	args.pge.pos_y += args.a
+	args.pge.posY += args.a
 	for (const inventoryItemIndex of game.getInventoryItemIndices(pge)) {
 		pge = runtime.livePgesByIndex[inventoryItemIndex]
-		pge.pos_y += args.a
+		pge.posY += args.a
 	}
 	return 1
 }
 
-const pge_op_playDefaultDeathCutscene = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpPlaydefaultdeathcutscene = (args: PgeOpcodeArgs, game: Game) => {
 	gameQueueDeathCutscene(game, args.a)
 	return 1
 }
 
-const pge_op_isNotFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsnotfacingconrad = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge:LivePGE = args.pge
-	const pge_conrad:LivePGE = runtime.livePgesByIndex[0]
-	if ((pge.pos_y / 72) >> 0 === ((pge_conrad.pos_y - 8) / 72) >> 0)  { // same grid cell
-		if (pge.room_location === pge_conrad.room_location) {
+	const pgeConrad:LivePGE = runtime.livePgesByIndex[0]
+	if ((pge.posY / 72) >> 0 === ((pgeConrad.posY - 8) / 72) >> 0)  { // same grid cell
+		if (pge.roomLocation === pgeConrad.roomLocation) {
 			if (args.a === 0) {
 				if (game.pge.currentPgeFacingIsMirrored) {
-					if (pge.pos_x < pge_conrad.pos_x) {
-						return UINT16_MAX
+					if (pge.posX < pgeConrad.posX) {
+						return uint16Max
 					}
 				} else {
-					if (pge.pos_x > pge_conrad.pos_x) {
-						return UINT16_MAX
+					if (pge.posX > pgeConrad.posX) {
+						return uint16Max
 					}
 				}
 			} else {
 				let dx;
 				if (game.pge.currentPgeFacingIsMirrored) {
-					dx = pge_conrad.pos_x - pge.pos_x
+					dx = pgeConrad.posX - pge.posX
 				} else {
-					dx = pge.pos_x - pge_conrad.pos_x
+					dx = pge.posX - pgeConrad.posX
 				}
 				if (dx > 0 && dx < args.a * 16) {
-					return UINT16_MAX
+					return uint16Max
 				}
 			}
 		} else if (args.a === 0) {
-			if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
+			if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
 				if (game.pge.currentPgeFacingIsMirrored) {
-					if (pge_conrad.room_location === game._res.level.ctData[CT_RIGHT_ROOM + pge.room_location])
-						return UINT16_MAX
+					if (pgeConrad.roomLocation === game._res.level.ctData[ctRightRoom + pge.roomLocation])
+						return uint16Max
 				} else {
-					if (pge_conrad.room_location === game._res.level.ctData[CT_LEFT_ROOM + pge.room_location])
-						return UINT16_MAX
+					if (pgeConrad.roomLocation === game._res.level.ctData[ctLeftRoom + pge.roomLocation])
+						return uint16Max
 				}
 			}
 		}
@@ -741,41 +741,41 @@ const pge_op_isNotFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_isFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsfacingconrad = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge:LivePGE = args.pge
-	const pge_conrad:LivePGE = runtime.livePgesByIndex[0]
-	if ((pge.pos_y / 72) >> 0 === ((pge_conrad.pos_y - 8) / 72) >> 0) {
-		if (pge.room_location === pge_conrad.room_location) {
+	const pgeConrad:LivePGE = runtime.livePgesByIndex[0]
+	if ((pge.posY / 72) >> 0 === ((pgeConrad.posY - 8) / 72) >> 0) {
+		if (pge.roomLocation === pgeConrad.roomLocation) {
 			if (args.a === 0) {
 				if (game.pge.currentPgeFacingIsMirrored) {
-					if (pge.pos_x > pge_conrad.pos_x) {
-						return UINT16_MAX
+					if (pge.posX > pgeConrad.posX) {
+						return uint16Max
 					}
 				} else {
-					if (pge.pos_x <= pge_conrad.pos_x) {
-						return UINT16_MAX
+					if (pge.posX <= pgeConrad.posX) {
+						return uint16Max
 					}
 				}
 			} else {
 				let dx;
 				if (game.pge.currentPgeFacingIsMirrored) {
-					dx = pge.pos_x - pge_conrad.pos_x
+					dx = pge.posX - pgeConrad.posX
 				} else {
-					dx = pge_conrad.pos_x - pge.pos_x
+					dx = pgeConrad.posX - pge.posX
 				}
 				if (dx > 0 && dx < args.a * 16) {
-					return UINT16_MAX
+					return uint16Max
 				}
 			}
 		} else if (args.a === 0) {
-			if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
+			if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
 				if (game.pge.currentPgeFacingIsMirrored) {
-					if (pge_conrad.room_location === game._res.level.ctData[CT_LEFT_ROOM + pge.room_location])
-						return UINT16_MAX
+					if (pgeConrad.roomLocation === game._res.level.ctData[ctLeftRoom + pge.roomLocation])
+						return uint16Max
 				} else {
-					if (pge_conrad.room_location === game._res.level.ctData[CT_RIGHT_ROOM + pge.room_location])
-						return UINT16_MAX
+					if (pgeConrad.roomLocation === game._res.level.ctData[ctRightRoom + pge.roomLocation])
+						return uint16Max
 				}
 			}
 
@@ -785,70 +785,70 @@ const pge_op_isFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides4u = (args: PgeOpcodeArgs, game: Game) => {
-	return gameGetRoomCollisionGridData(game, args.pge, 4, -args.a) !== 0 ? UINT16_MAX : 0
+const pgeOpCollides4u = (args: PgeOpcodeArgs, game: Game) => {
+	return gameGetRoomCollisionGridData(game, args.pge, 4, -args.a) !== 0 ? uint16Max : 0
 }
 
-const pge_op_doesNotCollide4u = (args: PgeOpcodeArgs, game: Game) => {
-	return gameGetRoomCollisionGridData(game, args.pge, 4, -args.a) === 0 ? UINT16_MAX : 0
+const pgeOpDoesnotcollide4u = (args: PgeOpcodeArgs, game: Game) => {
+	return gameGetRoomCollisionGridData(game, args.pge, 4, -args.a) === 0 ? uint16Max : 0
 }
 
-const pge_op_isBelowConrad = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsbelowconrad = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge = args.pge
 	const conrad = runtime.livePgesByIndex[0]
-	if (conrad.room_location === pge.room_location) {
-		if ((((conrad.pos_y - 8) / 72) >> 0) < ((pge.pos_y / 72) >> 0)) {
-			return UINT16_MAX
+	if (conrad.roomLocation === pge.roomLocation) {
+		if ((((conrad.posY - 8) / 72) >> 0) < ((pge.posY / 72) >> 0)) {
+			return uint16Max
 		}
-	} else if (pge.room_location < CT_ROOM_SIZE) {
-		if (conrad.room_location === game._res.level.ctData[CT_UP_ROOM + pge.room_location]) {
-			return UINT16_MAX
+	} else if (pge.roomLocation < ctRoomSize) {
+		if (conrad.roomLocation === game._res.level.ctData[ctUpRoom + pge.roomLocation]) {
+			return uint16Max
 		}
 	}
 	return 0
 }
 
-const pge_op_isAboveConrad = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsaboveconrad = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge = args.pge
 	const conrad = runtime.livePgesByIndex[0]
-	if (conrad.room_location === pge.room_location) {
-		if ((((conrad.pos_y - 8) / 72) >> 0) > ((pge.pos_y / 72) >> 0)) {
-			return UINT16_MAX
+	if (conrad.roomLocation === pge.roomLocation) {
+		if ((((conrad.posY - 8) / 72) >> 0) > ((pge.posY / 72) >> 0)) {
+			return uint16Max
 		}
-	} else if (pge.room_location < CT_ROOM_SIZE) {
-		if (conrad.room_location === game._res.level.ctData[CT_DOWN_ROOM + pge.room_location]) {
-			return UINT16_MAX
+	} else if (pge.roomLocation < ctRoomSize) {
+		if (conrad.roomLocation === game._res.level.ctData[ctDownRoom + pge.roomLocation]) {
+			return uint16Max
 		}
 	}
 	return 0
 }
 
-const pge_op_collides2u1u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpCollides2u1u = (args: PgeOpcodeArgs, game: Game) => {
 	if (gameGetRoomCollisionGridData(game, args.pge, 1, -args.a) === 0) {
-		if (gameGetRoomCollisionGridData(game, args.pge, 2, -(args.a + 1)) & UINT16_MAX) {
-			return UINT16_MAX
+		if (gameGetRoomCollisionGridData(game, args.pge, 2, -(args.a + 1)) & uint16Max) {
+			return uint16Max
 		}
 	}
 	return 0
 }
 
-const pge_op_displayText = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDisplaytext = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
-	console.log(`[pge-text] frame=${game.renders} currentRoom=${world.currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.room_location} text=${args.a} previousText=${world.textToDisplay}`)
+	console.log(`[pge-text] frame=${game.renders} currentRoom=${world.currentRoom} pge=${args.pge.index} pgeRoom=${args.pge.roomLocation} text=${args.a} previousText=${world.textToDisplay}`)
 	world.textToDisplay = args.a
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_o_unk0x7C = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x7c = (args: PgeOpcodeArgs, game: Game) => {
 	let pge:LivePGE = gameFindOverlappingPgeByObjectType(game, args.pge, 3)
 	if (pge === null) {
 		pge = gameFindOverlappingPgeByObjectType(game, args.pge, 5)
 		if (pge == null) {
 			pge = gameFindOverlappingPgeByObjectType(game, args.pge, 9)
 			if (pge === null) {
-				pge = gameFindOverlappingPgeByObjectType(game, args.pge, UINT16_MAX)
+				pge = gameFindOverlappingPgeByObjectType(game, args.pge, uint16Max)
 			}
 		}
 	}
@@ -858,59 +858,59 @@ const pge_o_unk0x7C = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_playSound = (args: PgeOpcodeArgs, game: Game) => {
-	const sfxId = args.a & UINT8_MAX
+const pgeOpPlaysound = (args: PgeOpcodeArgs, game: Game) => {
+	const sfxId = args.a & uint8Max
 	const softVol = args.a >> 8
 	game.playSound(sfxId, softVol)
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_o_unk0x7E = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x7e = (args: PgeOpcodeArgs, game: Game) => {
 	game.pge.opcodeComparisonResult1 = 0
-	pge_ZOrder(args.pge, args.a, pge_ZOrderByIndex, 0, game)
+	pgeZorder(args.pge, args.a, pgeZorderbyindex, 0, game)
 	return game.pge.opcodeComparisonResult1
 }
 
-const pge_op_hasInventoryItem = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpHasinventoryitem = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const inventoryItemIndex of game.getInventoryItemIndices(runtime.livePgesByIndex[0])) {
 		const pge = runtime.livePgesByIndex[inventoryItemIndex]
-		if (pge.init_PGE.object_id === args.a) {
-			return UINT16_MAX
+		if (pge.initPge.objectId === args.a) {
+			return uint16Max
 		}
 	}
 	return 0
 }
 
-const pge_op_updateGroup0 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpUpdategroup0 = (args: PgeOpcodeArgs, game: Game) => {
 	const pge: LivePGE = args.pge
-	game.queuePgeGroupSignal(pge.index, pge.init_PGE.counter_values[0], args.a)
-	return UINT16_MAX;
+	game.queuePgeGroupSignal(pge.index, pge.initPge.counterValues[0], args.a)
+	return uint16Max;
 }
 
-const pge_op_updateGroup1 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpUpdategroup1 = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
-	game.queuePgeGroupSignal(pge.index, pge.init_PGE.counter_values[1], args.a)
-	return UINT16_MAX
+	game.queuePgeGroupSignal(pge.index, pge.initPge.counterValues[1], args.a)
+	return uint16Max
 }
 
-const pge_op_updateGroup2 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpUpdategroup2 = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
-	game.queuePgeGroupSignal(pge.index, pge.init_PGE.counter_values[2], args.a)
-	return UINT16_MAX
+	game.queuePgeGroupSignal(pge.index, pge.initPge.counterValues[2], args.a)
+	return uint16Max
 }
 
-const pge_op_updateGroup3 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpUpdategroup3 = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
-	game.queuePgeGroupSignal(pge.index, pge.init_PGE.counter_values[3], args.a)
-	return UINT16_MAX
+	game.queuePgeGroupSignal(pge.index, pge.initPge.counterValues[3], args.a)
+	return uint16Max
 }
 
-const pge_op_isPgeDead = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIspgedead = (args: PgeOpcodeArgs, game: Game) => {
 	const ui = getGameUiState(game)
 	const pge:LivePGE = args.pge
 	if (pge.life <= 0) {
-		if (pge.init_PGE.object_type === 10) {
+		if (pge.initPge.objectType === 10) {
 			ui.score += 100
 		}
 		return 1
@@ -919,62 +919,62 @@ const pge_op_isPgeDead = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides1u2o = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) & UINT16_MAX) {
+const pgeOpCollides1u2o = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) === 0) {
-			return UINT16_MAX
+			return uint16Max
 		}
 	}
 
 	return 0
 }
 
-const pge_op_collides1u1o = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) & UINT16_MAX) {
+const pgeOpCollides1u1o = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a) === 0) {
-			return UINT16_MAX
+			return uint16Max
 		}
 	}
 
 	return 0
 }
 
-const pge_op_collides1o1u = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpCollides1o1u = (args: PgeOpcodeArgs, game: Game) => {
 	if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) === 0) {
-		if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a) & UINT16_MAX) {
-			return UINT16_MAX
+		if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a) & uint16Max) {
+			return uint16Max
 		}
 	}
 
 	return 0
 }
 
-const pge_o_unk0x2B = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_ZOrder(args.pge, args.a, pge_ZOrderIfTypeAndDifferentDirection, 0, game)
+const pgeOUnk0x2b = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeZorder(args.pge, args.a, pgeZorderiftypeanddifferentdirection, 0, game)
 }
 
-const pge_o_unk0x2C = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_ZOrder(args.pge, args.a, pge_ZOrderIfTypeAndSameDirection, 0, game)
+const pgeOUnk0x2c = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeZorder(args.pge, args.a, pgeZorderiftypeandsamedirection, 0, game)
 }
 
-const pge_o_unk0x2D = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_ZOrder(args.pge, args.a, pge_ZOrderByObj, 0, game) ^ 1
+const pgeOUnk0x2d = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeZorder(args.pge, args.a, pgeZorderbyobj, 0, game) ^ 1
 }
 
-const pge_op_doesNotCollide2d = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDoesnotcollide2d = (args: PgeOpcodeArgs, game: Game) => {
 	const r = gameGetRoomCollisionGridData(game, args.pge, 2, args.a)
-	if (r & UINT16_MAX) {
+	if (r & uint16Max) {
 		return 0;
 	} else {
-		return UINT16_MAX;
+		return uint16Max;
 	}
 }
 
-const pge_op_collides0o0d = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a) & UINT16_MAX) {
+const pgeOpCollides0o0d = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a + 1) === 0) {
 			if (gameGetRoomCollisionGridData(game, args.pge, -1, args.a) === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
@@ -982,11 +982,11 @@ const pge_op_collides0o0d = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides2o2d = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) & UINT16_MAX) {
+const pgeOpCollides2o2d = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a + 1) === 0) {
 			if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a) === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
@@ -994,11 +994,11 @@ const pge_op_collides2o2d = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides0o0u = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a) & UINT16_MAX) {
+const pgeOpCollides0o0u = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 0, args.a - 1) === 0) {
 			if (gameGetRoomCollisionGridData(game, args.pge, -1, args.a) === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
@@ -1006,11 +1006,11 @@ const pge_op_collides0o0u = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides2o2u = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) & UINT16_MAX) {
+const pgeOpCollides2o2u = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a - 1) === 0) {
 			if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a) === 0) {
-				return UINT16_MAX
+				return uint16Max
 			}
 		}
 	}
@@ -1018,11 +1018,11 @@ const pge_op_collides2o2u = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_collides2u2o = (args: PgeOpcodeArgs, game: Game) => {
-	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a - 1) & UINT16_MAX) {
+const pgeOpCollides2u2o = (args: PgeOpcodeArgs, game: Game) => {
+	if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a - 1) & uint16Max) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 2, args.a) === 0) {
 			if (gameGetRoomCollisionGridData(game, args.pge, 1, args.a - 1) === 0) {
-                return UINT16_MAX
+                return uint16Max
 			}
 		}
 	}
@@ -1030,30 +1030,30 @@ const pge_op_collides2u2o = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_isInGroup = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsingroup = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(args.pge.index) ?? []) {
 		if (pendingGroup.signalId === args.a) {
-			return UINT16_MAX
+			return uint16Max
 		}
 	}
 
 	return 0
 }
 
-const pge_o_unk0x50 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_ZOrder(args.pge, args.a, pge_ZOrderByObj, 0, game)
+const pgeOUnk0x50 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeZorder(args.pge, args.a, pgeZorderbyobj, 0, game)
 }
 
-const pge_o_unk0x52 = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback4, col_detectHitCallback1, 0, 0, game)
+const pgeOUnk0x52 = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback4, colDetecthitcallback1, 0, 0, game)
 }
 
-const pge_o_unk0x53 = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback5, col_detectHitCallback1, 0, 0, game)
+const pgeOUnk0x53 = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback5, colDetecthitcallback1, 0, 0, game)
 }
 
-const pge_op_isPgeNear = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIspgenear = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	if (gameFindOverlappingPgeByObjectType(game, runtime.livePgesByIndex[0], args.a) !== null) {
 		return 1
@@ -1061,22 +1061,22 @@ const pge_op_isPgeNear = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_setLife = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSetlife = (args: PgeOpcodeArgs, game: Game) => {
 	args.pge.life = args.a
 	return 1
 }
 
-const pge_op_incLife = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpInclife = (args: PgeOpcodeArgs, game: Game) => {
 	args.pge.life += args.a
 	return 1
 }
 
-const pge_op_setPgeDefaultAnim = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSetpgedefaultanim = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
 	assert(!(args.a < 0 || args.a >= 4), `Assertion failed: ${args.a} >= 0 && ${args.a} < 4`)
 
-	const r = args.pge.init_PGE.counter_values[args.a]
-	args.pge.room_location = r
+	const r = args.pge.initPge.counterValues[args.a]
+	args.pge.roomLocation = r
 	if (r === 1) {
 		// this happens after death tower, on earth, when Conrad passes
 		// by the first policeman who's about to shoot him in the back
@@ -1086,41 +1086,41 @@ const pge_op_setPgeDefaultAnim = (args: PgeOpcodeArgs, game: Game) => {
 	return 1
 }
 
-const pge_o_unk0x34 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x34 = (args: PgeOpcodeArgs, game: Game) => {
 	const mask = (game.pge.currentPgeInputMask & 0xF) | Game._modifierKeyMasks[0]
 	if (mask === game.pge.currentPgeInputMask) {
 		if (gameGetRoomCollisionGridData(game, args.pge, 2, -args.a) === 0) {
-			return UINT16_MAX
+			return uint16Max
 		}
 	}
 
 	return 0
 }
 
-const pge_op_isInpMod = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsinpmod = (args: PgeOpcodeArgs, game: Game) => {
     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
 	const mask = Game._modifierKeyMasks[args.a]
 	if (mask === game.pge.currentPgeInputMask) {
-		return UINT16_MAX
+		return uint16Max
 	} else {
 		return 0
 	}
 }
 
-const pge_op_setCollisionState1 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_updateCollisionState(args.pge, args.a, 1, game)
+const pgeOpSetcollisionstate1 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeUpdatecollisionstate(args.pge, args.a, 1, game)
 }
 
-const pge_op_setCollisionState0 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_updateCollisionState(args.pge, args.a, 0, game)
+const pgeOpSetcollisionstate0 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeUpdatecollisionstate(args.pge, args.a, 0, game)
 }
 
-const pge_isInGroup = (pge_dst: LivePGE, signalId: number, counter: number, game: Game) => {
+const pgeIsingroup = (pgeDst: LivePGE, signalId: number, counter: number, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	assert(!(counter < 1 || counter > 4), `Assertion failed: ${counter} >= 1 1 && ${counter} <= 4`)
 
-	const c = pge_dst.init_PGE.counter_values[counter - 1]
-	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(pge_dst.index) ?? []) {
+	const c = pgeDst.initPge.counterValues[counter - 1]
+	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(pgeDst.index) ?? []) {
 		if (pendingGroup.signalId === signalId && pendingGroup.senderPgeIndex === c) {
 			return 1
 		}
@@ -1128,92 +1128,92 @@ const pge_isInGroup = (pge_dst: LivePGE, signalId: number, counter: number, game
 	return 0
 }
 
-const pge_op_isInGroup1 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_isInGroup(args.pge, args.a, 1, game)
+const pgeOpIsingroup1 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeIsingroup(args.pge, args.a, 1, game)
 }
 
-const pge_op_isInGroup2 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_isInGroup(args.pge, args.a, 2, game)
+const pgeOpIsingroup2 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeIsingroup(args.pge, args.a, 2, game)
 }
 
-const pge_op_isInGroup3 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_isInGroup(args.pge, args.a, 3, game)
+const pgeOpIsingroup3 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeIsingroup(args.pge, args.a, 3, game)
 }
 
-const pge_op_isInGroup4 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_isInGroup(args.pge, args.a, 4, game)
+const pgeOpIsingroup4 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeIsingroup(args.pge, args.a, 4, game)
 }
 
-const pge_op_removePgeIfNotNear = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpRemovepgeifnotnear = (args: PgeOpcodeArgs, game: Game) => {
     const world = getGameWorldState(game)
     const runtime = getRuntimeRegistryState(game)
-    const skip_pge = () => {
+    const skipPge = () => {
         game._shouldPlayPgeAnimationSound = false
         return 1
     }
-    const kill_pge = () => {
+    const killPge = () => {
         pge.flags &= ~4
-        pge.collision_slot = UINT16_MAX
+        pge.collisionSlot = uint16Max
         runtime.livePgeStore.activeFrameByIndex[pge.index] = null
-        return skip_pge()
+        return skipPge()
     }
 
 	const pge: LivePGE = args.pge
-	if (!(pge.init_PGE.flags & 4)) {
-        return kill_pge()
+	if (!(pge.initPge.flags & 4)) {
+        return killPge()
     }
 	if (world.currentRoom & 0x80) {
-        return skip_pge()
+        return skipPge()
     }
-	if (pge.room_location & 0x80) {
-        return kill_pge()
+	if (pge.roomLocation & 0x80) {
+        return killPge()
     }
-	if (pge.room_location > 0x3F) {
-        return kill_pge()
+	if (pge.roomLocation > 0x3F) {
+        return killPge()
     }
-	if (pge.room_location === world.currentRoom) {
-        return skip_pge()
+	if (pge.roomLocation === world.currentRoom) {
+        return skipPge()
     }
-	if (pge.room_location === game._res.level.ctData[CT_UP_ROOM + world.currentRoom]) {
-        return skip_pge()
+	if (pge.roomLocation === game._res.level.ctData[ctUpRoom + world.currentRoom]) {
+        return skipPge()
     }
-	if (pge.room_location === game._res.level.ctData[CT_DOWN_ROOM + world.currentRoom]) {
-        return skip_pge()
+	if (pge.roomLocation === game._res.level.ctData[ctDownRoom + world.currentRoom]) {
+        return skipPge()
     }
-	if (pge.room_location === game._res.level.ctData[CT_RIGHT_ROOM + world.currentRoom]) {
-        return skip_pge()
+	if (pge.roomLocation === game._res.level.ctData[ctRightRoom + world.currentRoom]) {
+        return skipPge()
     }
-	if (pge.room_location === game._res.level.ctData[CT_LEFT_ROOM + world.currentRoom]) {
-        return skip_pge()
+	if (pge.roomLocation === game._res.level.ctData[ctLeftRoom + world.currentRoom]) {
+        return skipPge()
     }
 
-    return kill_pge()
+    return killPge()
 }
 
-const pge_op_loadPgeCounter = (args: PgeOpcodeArgs, game: Game) => {
-	args.pge.counter_value = args.pge.init_PGE.counter_values[args.a]
+const pgeOpLoadpgecounter = (args: PgeOpcodeArgs, game: Game) => {
+	args.pge.counterValue = args.pge.initPge.counterValues[args.a]
 	return 1
 }
 
-const pge_o_unk0x45 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_ZOrder(args.pge, args.a, pge_ZOrderByNumber, 0, game)
+const pgeOUnk0x45 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeZorder(args.pge, args.a, pgeZorderbynumber, 0, game)
 }
 
-const pge_o_unk0x46 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x46 = (args: PgeOpcodeArgs, game: Game) => {
 	game.pge.opcodeComparisonResult1 = 0
-	pge_ZOrder(args.pge, args.a, pge_ZOrderIfDifferentDirection, 0, game)
+	pgeZorder(args.pge, args.a, pgeZorderifdifferentdirection, 0, game)
 	return game.pge.opcodeComparisonResult1
 }
 
-const pge_o_unk0x47 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x47 = (args: PgeOpcodeArgs, game: Game) => {
 	game.pge.opcodeComparisonResult2 = 0
-	pge_ZOrder(args.pge, args.a, pge_ZOrderIfSameDirection, 0, game)
+	pgeZorder(args.pge, args.a, pgeZorderifsamedirection, 0, game)
 	return game.pge.opcodeComparisonResult2
 }
 
-const pge_o_unk0x48 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x48 = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
-	const pge:LivePGE = gameFindOverlappingPgeByObjectType(game, runtime.livePgesByIndex[0], args.pge.init_PGE.counter_values[0])
+	const pge:LivePGE = gameFindOverlappingPgeByObjectType(game, runtime.livePgesByIndex[0], args.pge.initPge.counterValues[0])
 	if (pge && pge.life === args.pge.life) {
 		game.queuePgeGroupSignal(args.pge.index, pge.index, args.a)
 		return 1
@@ -1221,45 +1221,45 @@ const pge_o_unk0x48 = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x49 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x49 = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
-	return pge_ZOrder(runtime.livePgesByIndex[0], args.a, pge_ZOrderIfIndex, args.pge.init_PGE.counter_values[0], game)
+	return pgeZorder(runtime.livePgesByIndex[0], args.a, pgeZorderifindex, args.pge.initPge.counterValues[0], game)
 }
 
-const pge_o_unk0x4A = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x4a = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge: LivePGE = args.pge
-	pge.room_location = 0xFE
+	pge.roomLocation = 0xFE
 	pge.flags &= ~4
 	runtime.livePgeStore.activeFrameByIndex[pge.index] = null
-	const inv_pge:LivePGE = game.findInventoryItemBeforePge(runtime.livePgesByIndex[args.a], pge)
-	if (inv_pge === runtime.livePgesByIndex[args.a]) {
-		if (pge.index !== game.getCurrentInventoryItemIndex(inv_pge)) {
+	const invPge:LivePGE = game.findInventoryItemBeforePge(runtime.livePgesByIndex[args.a], pge)
+	if (invPge === runtime.livePgesByIndex[args.a]) {
+		if (pge.index !== game.getCurrentInventoryItemIndex(invPge)) {
 			return 1
 		}
 	} else {
-		if (pge.index !== game.getNextInventoryItemIndex(runtime.livePgesByIndex[args.a], inv_pge.index)) {
+		if (pge.index !== game.getNextInventoryItemIndex(runtime.livePgesByIndex[args.a], invPge.index)) {
 			return 1
 		}
 	}
-	game.removePgeFromInventory(inv_pge, pge, runtime.livePgesByIndex[args.a])
+	game.removePgeFromInventory(invPge, pge, runtime.livePgesByIndex[args.a])
 	return 1
 }
 
-const pge_o_unk0x7F = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x7f = (args: PgeOpcodeArgs, game: Game) => {
 	const _si: LivePGE = args.pge
-	let var4 = _si.collision_slot
+	let var4 = _si.collisionSlot
 	let var2 = _si.index
 
-	while (var4 !== UINT16_MAX) {
+	while (var4 !== uint16Max) {
 		const slotBucket = game.collision.dynamicPgeCollisionSlotsByPosition.get(var4)
 		if (!slotBucket) {
 			return 1
 		}
-		let nextCollisionGridPositionIndex = UINT16_MAX
+		let nextCollisionGridPositionIndex = uint16Max
 		for (const slot of slotBucket) {
 			if (slot.pge !== args.pge) {
-				if (slot.pge.init_PGE.object_type === 3 && var2 !== slot.pge.unkF) {
+				if (slot.pge.initPge.objectType === 3 && var2 !== slot.pge.unkF) {
 					return 0
 				}
 			}
@@ -1270,109 +1270,109 @@ const pge_o_unk0x7F = (args: PgeOpcodeArgs, game: Game) => {
 		var4 = nextCollisionGridPositionIndex
 	}
 
-	return UINT16_MAX;
+	return uint16Max;
 }
 
-const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x6a = (args: PgeOpcodeArgs, game: Game) => {
 	let _si: LivePGE = args.pge
-	let pge_room = _si.room_location
-	if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
+	let pgeRoom = _si.roomLocation
+	if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
 		return 0
 	}
 	let _bl
-	let col_area = 0
-	let ct_data:Int8Array = null
+	let colArea = 0
+	let ctData:Int8Array = null
 	let ctIndex = 0
-	if (game.world.currentRoom === pge_room) {
-		col_area = 1
-	} else if (game.collision.activeCollisionLeftRoom === pge_room) {
-		col_area = 0
-	} else if (game.collision.activeCollisionRightRoom === pge_room) {
-		col_area = 2
+	if (game.world.currentRoom === pgeRoom) {
+		colArea = 1
+	} else if (game.collision.activeCollisionLeftRoom === pgeRoom) {
+		colArea = 0
+	} else if (game.collision.activeCollisionRightRoom === pgeRoom) {
+		colArea = 2
 	} else {
 		return 0
 	}
-	let grid_pos_x = (_si.pos_x + 8) >> 4
-	let grid_pos_y = (_si.pos_y / 72) >> 0
-	if (grid_pos_y >= 0 && grid_pos_y <= 2) {
-		grid_pos_y *= CT_GRID_WIDTH
+	let gridPosX = (_si.posX + 8) >> 4
+	let gridPosY = (_si.posY / 72) >> 0
+	if (gridPosY >= 0 && gridPosY <= 2) {
+		gridPosY *= ctGridWidth
 		let _cx = args.a
 		if (game.pge.currentPgeFacingIsMirrored) {
 			_cx = -_cx
 		}
 		if (_cx >= 0) {
-				if (_cx > CT_GRID_WIDTH) {
-					_cx = CT_GRID_WIDTH
+				if (_cx > ctGridWidth) {
+					_cx = ctGridWidth
 				}
 
-				ct_data = game._res.level.ctData
-				ctIndex = CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
-				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-				let activeRoomSlotIndex = grid_pos_y + grid_pos_x + 1
+				ctData = game._res.level.ctData
+				ctIndex = ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
+				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+				let activeRoomSlotIndex = gridPosY + gridPosX + 1
 				++ctIndex
-				let varA = grid_pos_x
+				let varA = gridPosX
 				do {
 				--varA
 				if (varA < 0) {
-					--col_area
-					if (col_area < 0) {
+					--colArea
+					if (colArea < 0) {
 						return 0
 					}
-					pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
-					if (pge_room < 0) {
+					pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+					if (pgeRoom < 0) {
 							return 0
 						}
-							varA = CT_GRID_WIDTH - 1
-							ctIndex = CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + varA
-						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-						activeRoomSlotIndex = grid_pos_y + CT_GRID_WIDTH
+							varA = ctGridWidth - 1
+							ctIndex = ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + varA
+						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+						activeRoomSlotIndex = gridPosY + ctGridWidth
 					}
 					--activeRoomSlotIndex
 					const activeCollisionSlotHead = activeRoomSlotHeads ? activeRoomSlotHeads[activeRoomSlotIndex] : null
 						if (activeCollisionSlotHead) {
-							for (const collision_slot of activeCollisionSlotHead) {
-								_si = collision_slot.pge
+							for (const collisionSlot of activeCollisionSlotHead) {
+								_si = collisionSlot.pge
 								if (args.pge !== _si && (_si.flags & 4) && _si.life >= 0) {
-									if (_si.init_PGE.object_type === 1 || _si.init_PGE.object_type === 10) {
+									if (_si.initPge.objectType === 1 || _si.initPge.objectType === 10) {
 										return 1
 									}
 								}
 							}
 						}
 					--ctIndex
-					if (ct_data[ctIndex] !== 0) {
+					if (ctData[ctIndex] !== 0) {
 						return 0
 				}
 				--_cx
 			} while (_cx >= 0)
 		} else {
 			_cx = -_cx
-				if (_cx > CT_GRID_WIDTH) {
-					_cx = CT_GRID_WIDTH
+				if (_cx > ctGridWidth) {
+					_cx = ctGridWidth
 				}
 
-				ct_data = game._res.level.ctData
-				ctIndex = CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
-				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-				let activeRoomSlotIndex = grid_pos_y + grid_pos_x + 1
-				let varA = grid_pos_x
+				ctData = game._res.level.ctData
+				ctIndex = ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
+				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+				let activeRoomSlotIndex = gridPosY + gridPosX + 1
+				let varA = gridPosX
 				let firstRun = true
 				do {
 				if (!firstRun) {
 					++varA
-						if (varA === CT_GRID_WIDTH) {
-						++col_area
-						if (col_area > 2) {
+						if (varA === ctGridWidth) {
+						++colArea
+						if (colArea > 2) {
 							return 0
 							}
-							pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
-						if (pge_room < 0) {
+							pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
+						if (pgeRoom < 0) {
 							return 0
 							}
 							varA = 0
-								ctIndex = CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + varA
-							activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
-							activeRoomSlotIndex = grid_pos_y
+								ctIndex = ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + varA
+							activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+							activeRoomSlotIndex = gridPosY
 						}
 					}
 					firstRun = false
@@ -1380,16 +1380,16 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 					const activeCollisionSlotHead = activeRoomSlotHeads ? activeRoomSlotHeads[activeRoomSlotIndex] : null
 					++activeRoomSlotIndex
 						if (activeCollisionSlotHead) {
-							for (const collision_slot of activeCollisionSlotHead) {
-								_si = collision_slot.pge
+							for (const collisionSlot of activeCollisionSlotHead) {
+								_si = collisionSlot.pge
 								if (args.pge !== _si && (_si.flags & 4) && _si.life >= 0) {
-									if (_si.init_PGE.object_type === 1 || _si.init_PGE.object_type === 10) {
+									if (_si.initPge.objectType === 1 || _si.initPge.objectType === 10) {
 										return 1
 									}
 								}
 							}
 						}
-					_bl = ct_data[ctIndex] << 24 >> 24
+					_bl = ctData[ctIndex] << 24 >> 24
 				++ctIndex
 				if (_bl !== 0) {
 					return 0
@@ -1402,7 +1402,7 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_op_isInGroupSlice = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIsingroupslice = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge:LivePGE = args.pge
 	if (args.a === 0) {
@@ -1422,16 +1422,16 @@ const pge_op_isInGroupSlice = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x5F = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x5f = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = args.pge
 
-	let pge_room = pge.room_location
-	if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
+	let pgeRoom = pge.roomLocation
+	if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
         return 0
     }
 
 	let dx
-	let _cx = pge.init_PGE.counter_values[0]
+	let _cx = pge.initPge.counterValues[0]
 	if (_cx <= 0) {
 		dx = 1
 		_cx = -_cx
@@ -1441,54 +1441,54 @@ const pge_o_unk0x5F = (args: PgeOpcodeArgs, game: Game) => {
 	if (game.pge.currentPgeFacingIsMirrored) {
 		dx = -dx
 	}
-	let grid_pos_x = (pge.pos_x + 8) >> 4
-	let grid_pos_y = 0
+	let gridPosX = (pge.posX + 8) >> 4
+	let gridPosY = 0
 
 	do {
-		let _ax = gameGetRoomCollisionGridData(game, pge, 1, -grid_pos_y)
+		let _ax = gameGetRoomCollisionGridData(game, pge, 1, -gridPosY)
 		if (_ax !== 0) {
 			if (!(_ax & 2) || args.a !== 1) {
-				pge.room_location = pge_room
-					pge.pos_x = grid_pos_x * CT_GRID_WIDTH
+				pge.roomLocation = pgeRoom
+					pge.posX = gridPosX * ctGridWidth
 
 				return 1
 			}
 		}
-		if (grid_pos_x < 0) {
-			pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
-			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
+		if (gridPosX < 0) {
+			pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+			if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
                 return 0
             }
-				grid_pos_x += CT_GRID_WIDTH
-			} else if (grid_pos_x > CT_GRID_WIDTH - 1) {
-			pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
-			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
+				gridPosX += ctGridWidth
+			} else if (gridPosX > ctGridWidth - 1) {
+			pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
+			if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
                 return 0
             }
-				grid_pos_x -= CT_GRID_WIDTH
+				gridPosX -= ctGridWidth
 		}
-		grid_pos_x += dx
-		++grid_pos_y
-	} while (grid_pos_y <= _cx)
+		gridPosX += dx
+		++gridPosY
+	} while (gridPosY <= _cx)
 
 	return 0
 }
 
-const pge_op_findAndCopyPge = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpFindandcopypge = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(args.pge.index) ?? []) {
 		if (pendingGroup.signalId === args.a) {
 			args.a = pendingGroup.senderPgeIndex
 			args.b = 0
-			pge_op_copyPge(args, game)
+			pgeOpCopypge(args, game)
 			return 1
 		}
 	}
 	return 0
 }
 
-const pge_op_isInRandomRange = (args: PgeOpcodeArgs, game: Game) => {
-	let n = args.a & UINT16_MAX
+const pgeOpIsinrandomrange = (args: PgeOpcodeArgs, game: Game) => {
+	let n = args.a & uint16Max
 	if (n !== 0) {
 		const randomNumber = typeof (game as unknown as { getRandomNumber?: () => number }).getRandomNumber === 'function'
 			? (game as unknown as { getRandomNumber: () => number }).getRandomNumber()
@@ -1501,60 +1501,60 @@ const pge_op_isInRandomRange = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x62 = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback3, col_detectHitCallback1, 0, -1, game)
+const pgeOUnk0x62 = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback3, colDetecthitcallback1, 0, -1, game)
 }
 
-const pge_o_unk0x63 = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback2, col_detectHitCallback1, 0, -1, game)
+const pgeOUnk0x63 = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback2, colDetecthitcallback1, 0, -1, game)
 }
 
-const pge_o_unk0x64 = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectGunHit(args.pge, args.a, args.b, col_detectGunHitCallback3, col_detectGunHitCallback1, 1, -1, game)
+const pgeOUnk0x64 = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetectgunhit(args.pge, args.a, args.b, colDetectgunhitcallback3, colDetectgunhitcallback1, 1, -1, game)
 }
 
-const pge_op_addToCredits = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpAddtocredits = (args: PgeOpcodeArgs, game: Game) => {
     const world = getGameWorldState(game)
     const runtime = getRuntimeRegistryState(game)
-    const creditsInventoryPgeIndex = args.pge.init_PGE.counter_values[0]
-    const pickedUpCreditAmount = args.pge.init_PGE.counter_values[1]
+    const creditsInventoryPgeIndex = args.pge.initPge.counterValues[0]
+    const pickedUpCreditAmount = args.pge.initPge.counterValues[1]
     const creditsInventoryPge = runtime.livePgesByIndex[creditsInventoryPgeIndex]
 
     world.credits += pickedUpCreditAmount
     creditsInventoryPge.life = world.credits
-    args.pge.room_location = UINT8_MAX
-    return UINT16_MAX
+    args.pge.roomLocation = uint8Max
+    return uint16Max
 }
 
-const pge_op_subFromCredits = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSubfromcredits = (args: PgeOpcodeArgs, game: Game) => {
 	game.world.credits -= args.a;
 	return game.world.credits >= 0 ? 1: 0
 }
 
-const pge_o_unk0x67 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x67 = (args: PgeOpcodeArgs, game: Game) => {
 	if (gameGetRoomCollisionGridData(game, args.pge, 1, -args.a) & 2) {
-		return UINT16_MAX
+		return uint16Max
 	}
 
 	return 0
 }
 
-const pge_op_setCollisionState2 = (args: PgeOpcodeArgs, game: Game) => {
-	return pge_updateCollisionState(args.pge, args.a, 2, game)
+const pgeOpSetcollisionstate2 = (args: PgeOpcodeArgs, game: Game) => {
+	return pgeUpdatecollisionstate(args.pge, args.a, 2, game)
 }
 
-const pge_op_saveState = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSavestate = (args: PgeOpcodeArgs, game: Game) => {
 	const session = getGameSessionState(game)
 	gameMarkSaveStateCompleted(game)
 	game.saveGameState(kIngameSaveSlot)
-	if (session.validSaveState && global_game_options.play_gamesaved_sound) {
+	if (session.validSaveState && globalGameOptions.playGamesavedSound) {
 		game.playSound(68, 0)
 	}
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_isCollidingObject = (args: PgeOpcodeArgs, game: Game) => {
-	const { obj } = gameFindFirstMatchingCollidingObject(game, args.pge, 3, UINT8_MAX, UINT8_MAX)
+const pgeOpIscollidingobject = (args: PgeOpcodeArgs, game: Game) => {
+	const { obj } = gameFindFirstMatchingCollidingObject(game, args.pge, 3, uint8Max, uint8Max)
 	if (obj === args.a) {
 		return 1
 	} else {
@@ -1562,7 +1562,7 @@ const pge_op_isCollidingObject = (args: PgeOpcodeArgs, game: Game) => {
 	}
 }
 
-const pge_isToggleable = (args: PgeOpcodeArgs, game: Game) => {
+const pgeIstoggleable = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(args.pge.index) ?? []) {
 		if (args.a === 0) {
@@ -1576,9 +1576,9 @@ const pge_isToggleable = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x6C = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x6c = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
-	const pge = gameFindOverlappingPgeByObjectType(game, runtime.livePgesByIndex[0], args.pge.init_PGE.counter_values[0])
+	const pge = gameFindOverlappingPgeByObjectType(game, runtime.livePgesByIndex[0], args.pge.initPge.counterValues[0])
 	if (pge && pge.life <= args.pge.life) {
 		game.queuePgeGroupSignal(args.pge.index, pge.index, args.a)
 		return 1
@@ -1587,18 +1587,18 @@ const pge_o_unk0x6C = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 // elevator
-const pge_o_unk0x6E = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x6e = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(args.pge.index) ?? []) {
 		if (pendingGroup.signalId === args.a) {
 			game.updatePgeInventory(runtime.livePgesByIndex[pendingGroup.senderPgeIndex], args.pge)
-			return UINT16_MAX
+			return uint16Max
 		}
 	}
 	return 0
 }
 
-const pge_o_unk0x6F = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x6f = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const pge:LivePGE = args.pge
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(pge.index) ?? []) {
@@ -1611,7 +1611,7 @@ const pge_o_unk0x6F = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x70 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x70 = (args: PgeOpcodeArgs, game: Game) => {
 	for (const inventoryItemIndex of game.getInventoryItemIndices(args.pge)) {
 		game.queuePgeGroupSignal(args.pge.index, inventoryItemIndex, args.a)
 	}
@@ -1619,7 +1619,7 @@ const pge_o_unk0x70 = (args: PgeOpcodeArgs, game: Game) => {
 }
 
 // elevator
-const pge_o_unk0x71 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x71 = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	for (const pendingGroup of runtime.pendingSignalsByTargetPgeIndex.get(args.pge.index) ?? []) {
 		if (pendingGroup.signalId === args.a) {
@@ -1630,15 +1630,15 @@ const pge_o_unk0x71 = (args: PgeOpcodeArgs, game: Game) => {
 	return 0
 }
 
-const pge_o_unk0x72 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x72 = (args: PgeOpcodeArgs, game: Game) => {
 	const roomCollisionGrid = new Int8Array(
 		game._res.level.ctData.buffer,
-		game._res.level.ctData.byteOffset + CT_HEADER_SIZE + args.pge.room_location * CT_GRID_STRIDE,
-		CT_GRID_STRIDE
+		game._res.level.ctData.byteOffset + ctHeaderSize + args.pge.roomLocation * ctGridStride,
+		ctGridStride
 	)
-	const pgeCollisionGridY = (((args.pge.pos_y / 36) >> 0) & ~1) + args.a
-	const pgeCollisionGridX = (args.pge.pos_x + 8) >> 4
-	const patchedGridOffset = pgeCollisionGridY * CT_GRID_WIDTH + pgeCollisionGridX
+	const pgeCollisionGridY = (((args.pge.posY / 36) >> 0) & ~1) + args.a
+	const pgeCollisionGridX = (args.pge.posX + 8) >> 4
+	const patchedGridOffset = pgeCollisionGridY * ctGridWidth + pgeCollisionGridX
 
 	let restoreSlot = game.collision.activeRoomCollisionGridPatchRestoreSlots
 	let count = 256
@@ -1656,31 +1656,31 @@ const pge_o_unk0x72 = (args: PgeOpcodeArgs, game: Game) => {
 		restoreSlot = restoreSlot.nextPatchedRegionRestoreSlot
 		--count
 	}
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_o_unk0x73 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOUnk0x73 = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = gameFindOverlappingPgeByObjectType(game, args.pge, args.a)
 	if (pge !== null) {
 		game.updatePgeInventory(pge, args.pge)
-		return UINT16_MAX
+		return uint16Max
 	}
 	return 0
 }
 
-const pge_op_setLifeCounter = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSetlifecounter = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
-	runtime.livePgesByIndex[args.a].life = args.pge.init_PGE.counter_values[0]
+	runtime.livePgesByIndex[args.a].life = args.pge.initPge.counterValues[0]
 	return 1
 }
 
-const pge_op_decLifeCounter = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpDeclifecounter = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	args.pge.life = runtime.livePgesByIndex[args.a].life - 1
 	return 1
 }
 
-const pge_op_playCutscene = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpPlaycutscene = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
 	if (world.deathCutsceneCounter === 0) {
 		game._cut.setId(args.a)
@@ -1689,83 +1689,83 @@ const pge_op_playCutscene = (args: PgeOpcodeArgs, game: Game) => {
 	return 1
 }
 
-const pge_op_compareUnkVar = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpCompareunkvar = (args: PgeOpcodeArgs, game: Game) => {
 	return args.a === -1 ? 1 : 0
 }
 
-const pge_op_playDeathCutscene = (args: PgeOpcodeArgs, game: Game) => {
-	gameQueueDeathCutscene(game, args.pge.init_PGE.counter_values[3] + 1, args.a)
+const pgeOpPlaydeathcutscene = (args: PgeOpcodeArgs, game: Game) => {
+	gameQueueDeathCutscene(game, args.pge.initPge.counterValues[3] + 1, args.a)
 	return 1
 }
 
-const pge_o_unk0x5D = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback4, col_detectHitCallback6, 0, 0, game)
+const pgeOUnk0x5d = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback4, colDetecthitcallback6, 0, 0, game)
 }
 
-const pge_o_unk0x5E = (args: PgeOpcodeArgs, game: Game) => {
-	return col_detectHit(args.pge, args.a, args.b, col_detectHitCallback5, col_detectHitCallback6, 0, 0, game)
+const pgeOUnk0x5e = (args: PgeOpcodeArgs, game: Game) => {
+	return colDetecthit(args.pge, args.a, args.b, colDetecthitcallback5, colDetecthitcallback6, 0, 0, game)
 }
 
-const pge_o_unk0x86 = (args:PgeOpcodeArgs, game: Game) => {
-	return col_detectGunHit(args.pge, args.a, args.b, col_detectGunHitCallback2, col_detectGunHitCallback1, 1, 0, game)
+const pgeOUnk0x86 = (args:PgeOpcodeArgs, game: Game) => {
+	return colDetectgunhit(args.pge, args.a, args.b, colDetectgunhitcallback2, colDetectgunhitcallback1, 1, 0, game)
 }
 
-const pge_op_playSoundGroup = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpPlaysoundgroup = (args: PgeOpcodeArgs, game: Game) => {
     assert(!(args.a >= 4), `Assertion failed: ${args.a} < 4`)
-	const c = args.pge.init_PGE.counter_values[args.a] & UINT16_MAX
-	const sfxId = c & UINT8_MAX
+	const c = args.pge.initPge.counterValues[args.a] & uint16Max
+	const sfxId = c & uint8Max
 	const softVol = c >> 8
 	game.playSound(sfxId, softVol)
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_adjustPos = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpAdjustpos = (args: PgeOpcodeArgs, game: Game) => {
 	const pge: LivePGE = args.pge
-	pge.pos_x &= 0xFFF0
-	if (pge.pos_y !== 70 && pge.pos_y != 142 && pge.pos_y !== 214) {
-		pge.pos_y = (((pge.pos_y / 72) >> 0) + 1) * 72 - 2
+	pge.posX &= 0xFFF0
+	if (pge.posY !== 70 && pge.posY != 142 && pge.posY !== 214) {
+		pge.posY = (((pge.posY / 72) >> 0) + 1) * 72 - 2
 	}
 
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_setPgePosX = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSetpgeposx = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const ownerPgeIndex = args.pge.unkF
-	if (ownerPgeIndex !== UINT8_MAX) {
-		args.pge.pos_x = runtime.livePgesByIndex[ownerPgeIndex].pos_x
+	if (ownerPgeIndex !== uint8Max) {
+		args.pge.posX = runtime.livePgesByIndex[ownerPgeIndex].posX
 	}
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_setPgePosModX = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSetpgeposmodx = (args: PgeOpcodeArgs, game: Game) => {
 	const runtime = getRuntimeRegistryState(game)
 	const ownerPgeIndex = args.pge.unkF
-	if (ownerPgeIndex !== UINT8_MAX) {
-		let dx = runtime.livePgesByIndex[ownerPgeIndex].pos_x % 256
-		if (dx >= args.pge.pos_x) {
-			dx -= args.pge.pos_x
+	if (ownerPgeIndex !== uint8Max) {
+		let dx = runtime.livePgesByIndex[ownerPgeIndex].posX % 256
+		if (dx >= args.pge.posX) {
+			dx -= args.pge.posX
 		}
-		args.pge.pos_x += dx
+		args.pge.posX += dx
 	}
-	return UINT16_MAX
+	return uint16Max
 }
 
 // taxi and teleporter
-const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpChangeroom = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
 	const runtime = getRuntimeRegistryState(game)
-	const destinationPgeIndex = args.pge.init_PGE.counter_values[args.a]
-	const sourcePgeIndex = args.pge.init_PGE.counter_values[args.a + 1]
+	const destinationPgeIndex = args.pge.initPge.counterValues[args.a]
+	const sourcePgeIndex = args.pge.initPge.counterValues[args.a + 1]
 	const destinationPge = runtime.livePgesByIndex[destinationPgeIndex]
 	const sourcePge = runtime.livePgesByIndex[sourcePgeIndex]
-	if (sourcePge.room_location >= 0 && sourcePge.room_location < CT_ROOM_SIZE) {
-		const previousRoom = destinationPge.room_location
-		destinationPge.pos_x = sourcePge.pos_x
-		destinationPge.pos_y = sourcePge.pos_y
-		destinationPge.room_location = sourcePge.room_location
+	if (sourcePge.roomLocation >= 0 && sourcePge.roomLocation < ctRoomSize) {
+		const previousRoom = destinationPge.roomLocation
+		destinationPge.posX = sourcePge.posX
+		destinationPge.posY = sourcePge.posY
+		destinationPge.roomLocation = sourcePge.roomLocation
 
-		if (previousRoom !== destinationPge.room_location) {
+		if (previousRoom !== destinationPge.roomLocation) {
 			const previousRoomList = runtime.livePgeStore.liveByRoom[previousRoom]
 			if (previousRoomList) {
 				const previousRoomIndex = previousRoomList.indexOf(destinationPge)
@@ -1773,235 +1773,235 @@ const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
 					previousRoomList.splice(previousRoomIndex, 1)
 				}
 			}
-			const nextRoomList = runtime.livePgeStore.liveByRoom[destinationPge.room_location]
+			const nextRoomList = runtime.livePgeStore.liveByRoom[destinationPge.roomLocation]
 			if (nextRoomList) {
 				nextRoomList.push(destinationPge)
 			}
 		}
 
-		if (destinationPge.init_PGE.script_node_index === sourcePge.init_PGE.script_node_index) {
+		if (destinationPge.initPge.scriptNodeIndex === sourcePge.initPge.scriptNodeIndex) {
 			destinationPge.flags &= ~1
 			if (sourcePge.flags & 1) {
 				destinationPge.flags |= 1
 			}
-			destinationPge.script_state_type = sourcePge.script_state_type
-			destinationPge.anim_seq = 0
-			const objectNode = game._res.level.objectNodesMap[destinationPge.init_PGE.script_node_index]
+			destinationPge.scriptStateType = sourcePge.scriptStateType
+			destinationPge.animSeq = 0
+			const objectNode = game._res.level.objectNodesMap[destinationPge.initPge.scriptNodeIndex]
 			let firstObjNumber = 0
-			while (objectNode.objects[firstObjNumber].type !== destinationPge.script_state_type) {
+			while (objectNode.objects[firstObjNumber].type !== destinationPge.scriptStateType) {
 				++firstObjNumber
 			}
-			destinationPge.first_script_entry_index = firstObjNumber
+			destinationPge.firstScriptEntryIndex = firstObjNumber
 		}
 
-		if (destinationPge.init_PGE.object_type === 1 && world.currentRoom !== destinationPge.room_location) {
-			gameRequestMapReload(game, destinationPge.room_location)
+		if (destinationPge.initPge.objectType === 1 && world.currentRoom !== destinationPge.roomLocation) {
+			gameRequestMapReload(game, destinationPge.roomLocation)
 		}
 		gameInitializePgeDefaultAnimation(game, destinationPge)
 	}
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_changeLevel = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpChangelevel = (args: PgeOpcodeArgs, game: Game) => {
 	const world = getGameWorldState(game)
 	gameSetCurrentLevel(game, args.a - 1)
 	return world.currentLevel
 }
 
-const pge_op_shakeScreen = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpShakescreen = (args: PgeOpcodeArgs, game: Game) => {
 	game._vid.setShakeOffset(gameGetRandomNumber(game) & 7)
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_setTempVar1 = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpSettempvar1 = (args: PgeOpcodeArgs, game: Game) => {
 	getGamePgeState(game).opcodeTempVar1 = args.a
 
-	return UINT16_MAX
+	return uint16Max
 }
 
-const pge_op_isTempVar1Set = (args: PgeOpcodeArgs, game: Game) => {
+const pgeOpIstempvar1set = (args: PgeOpcodeArgs, game: Game) => {
 	if (getGamePgeState(game).opcodeTempVar1 !== args.a) {
 		return 0
 	} else {
-		return UINT16_MAX
+		return uint16Max
 	}
 }
 
-const _pge_opcodeTable = [
+const _pgeOpcodetable = [
     null,
-    pge_op_isInpUp, // this.pge_op_isInpUp.bind(this),
-    pge_op_isInpBackward, // this.pge_op_isInpBackward.bind(this),
-    pge_op_isInpDown, // this.pge_op_isInpDown.bind(this),
+    pgeOpIsinpup, // this.pge_op_isInpUp.bind(this),
+    pgeOpIsinpbackward, // this.pge_op_isInpBackward.bind(this),
+    pgeOpIsinpdown, // this.pge_op_isInpDown.bind(this),
     // /* 0x04 */
-    pge_op_isInpForward, // this.pge_op_isInpForward.bind(this),
-    pge_op_isInpUpMod, // this.pge_op_isInpUpMod.bind(this),
-    pge_op_isInpBackwardMod, // this.pge_op_isInpBackwardMod.bind(this),
-    pge_op_isInpDownMod, // this.pge_op_isInpDownMod.bind(this),
+    pgeOpIsinpforward, // this.pge_op_isInpForward.bind(this),
+    pgeOpIsinpupmod, // this.pge_op_isInpUpMod.bind(this),
+    pgeOpIsinpbackwardmod, // this.pge_op_isInpBackwardMod.bind(this),
+    pgeOpIsinpdownmod, // this.pge_op_isInpDownMod.bind(this),
     // /* 0x08 */
-    pge_op_isInpForwardMod, // this.pge_op_isInpForwardMod.bind(this),
-    pge_op_isInpIdle, // this.pge_op_isInpIdle.bind(this),
-    pge_op_isInpNoMod, // this.pge_op_isInpNoMod.bind(this),
-    pge_op_getCollision0u, // this.pge_op_getCollision0u.bind(this),
+    pgeOpIsinpforwardmod, // this.pge_op_isInpForwardMod.bind(this),
+    pgeOpIsinpidle, // this.pge_op_isInpIdle.bind(this),
+    pgeOpIsinpnomod, // this.pge_op_isInpNoMod.bind(this),
+    pgeOpGetcollision0u, // this.pge_op_getCollision0u.bind(this),
     // /* 0x0C */
-    pge_op_getCollision00, // this.pge_op_getCollision00.bind(this),
-    pge_op_getCollision0d, // this.pge_op_getCollision0d.bind(this),
-    pge_op_getCollision1u, // this.pge_op_getCollision1u.bind(this),
-    pge_op_getCollision10, // this.pge_op_getCollision10.bind(this),
+    pgeOpGetcollision00, // this.pge_op_getCollision00.bind(this),
+    pgeOpGetcollision0d, // this.pge_op_getCollision0d.bind(this),
+    pgeOpGetcollision1u, // this.pge_op_getCollision1u.bind(this),
+    pgeOpGetcollision10, // this.pge_op_getCollision10.bind(this),
     // /* 0x10 */
-    pge_op_getCollision1d, // this.pge_op_getCollision1d.bind(this),
-    pge_op_getCollision2u, // this.pge_op_getCollision2u.bind(this),
-    pge_op_getCollision20, // this.pge_op_getCollision20.bind(this),
-    pge_op_getCollision2d, // this.pge_op_getCollision2d.bind(this),
+    pgeOpGetcollision1d, // this.pge_op_getCollision1d.bind(this),
+    pgeOpGetcollision2u, // this.pge_op_getCollision2u.bind(this),
+    pgeOpGetcollision20, // this.pge_op_getCollision20.bind(this),
+    pgeOpGetcollision2d, // this.pge_op_getCollision2d.bind(this),
     // /* 0x14 */
-    pge_op_doesNotCollide0u, // this.pge_op_doesNotCollide0u.bind(this),
-    pge_op_doesNotCollide00, // this.pge_op_doesNotCollide00.bind(this),
-    pge_op_doesNotCollide0d, // this.pge_op_doesNotCollide0d.bind(this),
-    pge_op_doesNotCollide1u, // this.pge_op_doesNotCollide1u.bind(this),
+    pgeOpDoesnotcollide0u, // this.pge_op_doesNotCollide0u.bind(this),
+    pgeOpDoesnotcollide00, // this.pge_op_doesNotCollide00.bind(this),
+    pgeOpDoesnotcollide0d, // this.pge_op_doesNotCollide0d.bind(this),
+    pgeOpDoesnotcollide1u, // this.pge_op_doesNotCollide1u.bind(this),
     // /* 0x18 */
-    pge_op_doesNotCollide10, // this.pge_op_doesNotCollide10.bind(this),
-    pge_op_doesNotCollide1d, // this.pge_op_doesNotCollide1d.bind(this),
-    pge_op_doesNotCollide2u, // this.pge_op_doesNotCollide2u.bind(this),
-    pge_op_doesNotCollide20, // this.pge_op_doesNotCollide20.bind(this),
+    pgeOpDoesnotcollide10, // this.pge_op_doesNotCollide10.bind(this),
+    pgeOpDoesnotcollide1d, // this.pge_op_doesNotCollide1d.bind(this),
+    pgeOpDoesnotcollide2u, // this.pge_op_doesNotCollide2u.bind(this),
+    pgeOpDoesnotcollide20, // this.pge_op_doesNotCollide20.bind(this),
     // /* 0x1C */
-    pge_op_doesNotCollide2d, // this.pge_op_doesNotCollide2d.bind(this),
-    pge_op_collides0o0d, // this.pge_op_collides0o0d.bind(this),
-    pge_op_collides2o2d, // this.pge_op_collides2o2d.bind(this),
-    pge_op_collides0o0u, // this.pge_op_collides0o0u.bind(this),
+    pgeOpDoesnotcollide2d, // this.pge_op_doesNotCollide2d.bind(this),
+    pgeOpCollides0o0d, // this.pge_op_collides0o0d.bind(this),
+    pgeOpCollides2o2d, // this.pge_op_collides2o2d.bind(this),
+    pgeOpCollides0o0u, // this.pge_op_collides0o0u.bind(this),
     // /* 0x20 */
-    pge_op_collides2o2u, // this.pge_op_collides2o2u.bind(this),
-    pge_op_collides2u2o, // this.pge_op_collides2u2o.bind(this),
-    pge_op_isInGroup, // this.pge_op_isInGroup.bind(this),
-    pge_op_updateGroup0, // this.pge_op_updateGroup0.bind(this),
+    pgeOpCollides2o2u, // this.pge_op_collides2o2u.bind(this),
+    pgeOpCollides2u2o, // this.pge_op_collides2u2o.bind(this),
+    pgeOpIsingroup, // this.pge_op_isInGroup.bind(this),
+    pgeOpUpdategroup0, // this.pge_op_updateGroup0.bind(this),
     // /* 0x24 */
-    pge_op_updateGroup1, // this.pge_op_updateGroup1.bind(this),
-    pge_op_updateGroup2, // this.pge_op_updateGroup2.bind(this),
-    pge_op_updateGroup3, // this.pge_op_updateGroup3.bind(this),
-    pge_op_isPgeDead, // this.pge_op_isPgeDead.bind(this),
+    pgeOpUpdategroup1, // this.pge_op_updateGroup1.bind(this),
+    pgeOpUpdategroup2, // this.pge_op_updateGroup2.bind(this),
+    pgeOpUpdategroup3, // this.pge_op_updateGroup3.bind(this),
+    pgeOpIspgedead, // this.pge_op_isPgeDead.bind(this),
     // /* 0x28 */
-    pge_op_collides1u2o, // this.pge_op_collides1u2o.bind(this),
-    pge_op_collides1u1o, // this.pge_op_collides1u1o.bind(this),
-    pge_op_collides1o1u, // this.pge_op_collides1o1u.bind(this),
-    pge_o_unk0x2B, // this.pge_o_unk0x2B.bind(this),
+    pgeOpCollides1u2o, // this.pge_op_collides1u2o.bind(this),
+    pgeOpCollides1u1o, // this.pge_op_collides1u1o.bind(this),
+    pgeOpCollides1o1u, // this.pge_op_collides1o1u.bind(this),
+    pgeOUnk0x2b, // this.pge_o_unk0x2B.bind(this),
     // /* 0x2C */
-    pge_o_unk0x2C, // this.pge_o_unk0x2C.bind(this),
-    pge_o_unk0x2D, // this.pge_o_unk0x2D.bind(this),
-    pge_op_nop, // this.pge_op_nop.bind(this),
-    pge_op_pickupObject, // this.pge_op_pickupObject.bind(this),
+    pgeOUnk0x2c, // this.pge_o_unk0x2C.bind(this),
+    pgeOUnk0x2d, // this.pge_o_unk0x2D.bind(this),
+    pgeOpNop, // this.pge_op_nop.bind(this),
+    pgeOpPickupobject, // this.pge_op_pickupObject.bind(this),
     // /* 0x30 */
-    pge_op_addItemToInventory, // this.pge_op_addItemToInventory.bind(this),
-    pge_op_copyPge, // this.pge_op_copyPge.bind(this),
-    pge_op_canUseCurrentInventoryItem, // this.pge_op_canUseCurrentInventoryItem.bind(this),
-    pge_op_removeItemFromInventory, // this.pge_op_removeItemFromInventory.bind(this),
+    pgeOpAdditemtoinventory, // this.pge_op_addItemToInventory.bind(this),
+    pgeOpCopypge, // this.pge_op_copyPge.bind(this),
+    pgeOpCanusecurrentinventoryitem, // this.pge_op_canUseCurrentInventoryItem.bind(this),
+    pgeOpRemoveitemfrominventory, // this.pge_op_removeItemFromInventory.bind(this),
     // /* 0x34 */
-    pge_o_unk0x34, // this.pge_o_unk0x34.bind(this),
-    pge_op_isInpMod, // this.pge_op_isInpMod.bind(this),
-    pge_op_setCollisionState1, // this.pge_op_setCollisionState1.bind(this),
-    pge_op_setCollisionState0, // this.pge_op_setCollisionState0.bind(this),
+    pgeOUnk0x34, // this.pge_o_unk0x34.bind(this),
+    pgeOpIsinpmod, // this.pge_op_isInpMod.bind(this),
+    pgeOpSetcollisionstate1, // this.pge_op_setCollisionState1.bind(this),
+    pgeOpSetcollisionstate0, // this.pge_op_setCollisionState0.bind(this),
     // /* 0x38 */
-    pge_op_isInGroup1, // this.pge_op_isInGroup1.bind(this),
-    pge_op_isInGroup2, // this.pge_op_isInGroup2.bind(this),
-    pge_op_isInGroup3, // this.pge_op_isInGroup3.bind(this),
-    pge_op_isInGroup4, // this.pge_op_isInGroup4.bind(this),
+    pgeOpIsingroup1, // this.pge_op_isInGroup1.bind(this),
+    pgeOpIsingroup2, // this.pge_op_isInGroup2.bind(this),
+    pgeOpIsingroup3, // this.pge_op_isInGroup3.bind(this),
+    pgeOpIsingroup4, // this.pge_op_isInGroup4.bind(this),
     // /* 0x3C */
-    pge_o_unk0x3C, // this.pge_o_unk0x3C.bind(this),
-    pge_o_unk0x3D, // this.pge_o_unk0x3D.bind(this),
-    pge_op_setPgeCounter, // this.pge_op_setPgeCounter.bind(this),
-    pge_op_decPgeCounter, // this.pge_op_decPgeCounter.bind(this),
+    pgeOUnk0x3c, // this.pge_o_unk0x3C.bind(this),
+    pgeOUnk0x3d, // this.pge_o_unk0x3D.bind(this),
+    pgeOpSetpgecounter, // this.pge_op_setPgeCounter.bind(this),
+    pgeOpDecpgecounter, // this.pge_op_decPgeCounter.bind(this),
     // /* 0x40 */
-    pge_o_unk0x40, // this.pge_o_unk0x40.bind(this),
-    pge_op_wakeUpPge, // this.pge_op_wakeUpPge.bind(this),
-    pge_op_removePge, // this.pge_op_removePge.bind(this),
-    pge_op_removePgeIfNotNear, // this.pge_op_removePgeIfNotNear.bind(this),
+    pgeOUnk0x40, // this.pge_o_unk0x40.bind(this),
+    pgeOpWakeuppge, // this.pge_op_wakeUpPge.bind(this),
+    pgeOpRemovepge, // this.pge_op_removePge.bind(this),
+    pgeOpRemovepgeifnotnear, // this.pge_op_removePgeIfNotNear.bind(this),
     // /* 0x44 */
-    pge_op_loadPgeCounter, // this.pge_op_loadPgeCounter.bind(this),
-    pge_o_unk0x45, // this.pge_o_unk0x45.bind(this),
-    pge_o_unk0x46, // this.pge_o_unk0x46.bind(this),
-    pge_o_unk0x47, // this.pge_o_unk0x47.bind(this),
+    pgeOpLoadpgecounter, // this.pge_op_loadPgeCounter.bind(this),
+    pgeOUnk0x45, // this.pge_o_unk0x45.bind(this),
+    pgeOUnk0x46, // this.pge_o_unk0x46.bind(this),
+    pgeOUnk0x47, // this.pge_o_unk0x47.bind(this),
     // /* 0x48 */
-    pge_o_unk0x48, // this.pge_o_unk0x48.bind(this),
-    pge_o_unk0x49, // this.pge_o_unk0x49.bind(this),
-    pge_o_unk0x4A, // this.pge_o_unk0x4A.bind(this),
-    pge_op_killPge, // this.pge_op_killPge.bind(this),
+    pgeOUnk0x48, // this.pge_o_unk0x48.bind(this),
+    pgeOUnk0x49, // this.pge_o_unk0x49.bind(this),
+    pgeOUnk0x4a, // this.pge_o_unk0x4A.bind(this),
+    pgeOpKillpge, // this.pge_op_killPge.bind(this),
     // /* 0x4C */
-    pge_op_isInCurrentRoom, // this.pge_op_isInCurrentRoom.bind(this),
-    pge_op_isNotInCurrentRoom, // this.pge_op_isNotInCurrentRoom.bind(this),
-    pge_op_scrollPosY, // this.pge_op_scrollPosY.bind(this),
-    pge_op_playDefaultDeathCutscene, // this.pge_op_playDefaultDeathCutscene.bind(this),
+    pgeOpIsincurrentroom, // this.pge_op_isInCurrentRoom.bind(this),
+    pgeOpIsnotincurrentroom, // this.pge_op_isNotInCurrentRoom.bind(this),
+    pgeOpScrollposy, // this.pge_op_scrollPosY.bind(this),
+    pgeOpPlaydefaultdeathcutscene, // this.pge_op_playDefaultDeathCutscene.bind(this),
     // /* 0x50 */
-    pge_o_unk0x50, // this.pge_o_unk0x50.bind(this),
+    pgeOUnk0x50, // this.pge_o_unk0x50.bind(this),
     null,
-    pge_o_unk0x52, // this.pge_o_unk0x52.bind(this),
-    pge_o_unk0x53, // this.pge_o_unk0x53.bind(this),
+    pgeOUnk0x52, // this.pge_o_unk0x52.bind(this),
+    pgeOUnk0x53, // this.pge_o_unk0x53.bind(this),
     // /* 0x54 */
-    pge_op_isPgeNear, // this.pge_op_isPgeNear.bind(this),
-    pge_op_setLife, // this.pge_op_setLife.bind(this),
-    pge_op_incLife, // this.pge_op_incLife.bind(this),
-    pge_op_setPgeDefaultAnim, // this.pge_op_setPgeDefaultAnim.bind(this),
+    pgeOpIspgenear, // this.pge_op_isPgeNear.bind(this),
+    pgeOpSetlife, // this.pge_op_setLife.bind(this),
+    pgeOpInclife, // this.pge_op_incLife.bind(this),
+    pgeOpSetpgedefaultanim, // this.pge_op_setPgeDefaultAnim.bind(this),
     // /* 0x58 */
-    pge_op_setLifeCounter, // this.pge_op_setLifeCounter.bind(this),
-    pge_op_decLifeCounter, // this.pge_op_decLifeCounter.bind(this),
-    pge_op_playCutscene, // this.pge_op_playCutscene.bind(this),
-    pge_op_compareUnkVar, // this.pge_op_compareUnkVar.bind(this),
+    pgeOpSetlifecounter, // this.pge_op_setLifeCounter.bind(this),
+    pgeOpDeclifecounter, // this.pge_op_decLifeCounter.bind(this),
+    pgeOpPlaycutscene, // this.pge_op_playCutscene.bind(this),
+    pgeOpCompareunkvar, // this.pge_op_compareUnkVar.bind(this),
     // /* 0x5C */
-    pge_op_playDeathCutscene, // this.pge_op_playDeathCutscene.bind(this),
-    pge_o_unk0x5D, // this.pge_o_unk0x5D.bind(this),
-    pge_o_unk0x5E, // this.pge_o_unk0x5E.bind(this),
-    pge_o_unk0x5F, // this.pge_o_unk0x5F.bind(this),
+    pgeOpPlaydeathcutscene, // this.pge_op_playDeathCutscene.bind(this),
+    pgeOUnk0x5d, // this.pge_o_unk0x5D.bind(this),
+    pgeOUnk0x5e, // this.pge_o_unk0x5E.bind(this),
+    pgeOUnk0x5f, // this.pge_o_unk0x5F.bind(this),
     // /* 0x60 */
-    pge_op_findAndCopyPge, // this.pge_op_findAndCopyPge.bind(this),
-    pge_op_isInRandomRange, // this.pge_op_isInRandomRange.bind(this),
-    pge_o_unk0x62, // this.pge_o_unk0x62.bind(this),
-    pge_o_unk0x63, // this.pge_o_unk0x63.bind(this),
+    pgeOpFindandcopypge, // this.pge_op_findAndCopyPge.bind(this),
+    pgeOpIsinrandomrange, // this.pge_op_isInRandomRange.bind(this),
+    pgeOUnk0x62, // this.pge_o_unk0x62.bind(this),
+    pgeOUnk0x63, // this.pge_o_unk0x63.bind(this),
     // /* 0x64 */
-    pge_o_unk0x64, // this.pge_o_unk0x64.bind(this),
-	pge_op_addToCredits, // this.pge_op_addToCredits.bind(this),
-	pge_op_subFromCredits, // this.pge_op_subFromCredits.bind(this),
-    pge_o_unk0x67, // this.pge_o_unk0x67.bind(this),
+    pgeOUnk0x64, // this.pge_o_unk0x64.bind(this),
+	pgeOpAddtocredits, // this.pge_op_addToCredits.bind(this),
+	pgeOpSubfromcredits, // this.pge_op_subFromCredits.bind(this),
+    pgeOUnk0x67, // this.pge_o_unk0x67.bind(this),
     // /* 0x68 */
-    pge_op_setCollisionState2, // this.pge_op_setCollisionState2.bind(this),
-    pge_op_saveState, // this.pge_op_saveState.bind(this),
-    pge_o_unk0x6A, // this.pge_o_unk0x6A.bind(this),
-    pge_isToggleable, // this.pge_isToggleable.bind(this),
+    pgeOpSetcollisionstate2, // this.pge_op_setCollisionState2.bind(this),
+    pgeOpSavestate, // this.pge_op_saveState.bind(this),
+    pgeOUnk0x6a, // this.pge_o_unk0x6A.bind(this),
+    pgeIstoggleable, // this.pge_isToggleable.bind(this),
     // /* 0x6C */
-    pge_o_unk0x6C, // this.pge_o_unk0x6C.bind(this),
-    pge_op_isCollidingObject, // this.pge_op_isCollidingObject.bind(this),
-    pge_o_unk0x6E, // this.pge_o_unk0x6E.bind(this),
-    pge_o_unk0x6F, // this.pge_o_unk0x6F.bind(this),
+    pgeOUnk0x6c, // this.pge_o_unk0x6C.bind(this),
+    pgeOpIscollidingobject, // this.pge_op_isCollidingObject.bind(this),
+    pgeOUnk0x6e, // this.pge_o_unk0x6E.bind(this),
+    pgeOUnk0x6f, // this.pge_o_unk0x6F.bind(this),
     // /* 0x70 */
-    pge_o_unk0x70, // this.pge_o_unk0x70.bind(this),
-    pge_o_unk0x71, // this.pge_o_unk0x71.bind(this),
-    pge_o_unk0x72, // this.pge_o_unk0x72.bind(this),
-    pge_o_unk0x73, // this.pge_o_unk0x73.bind(this),
+    pgeOUnk0x70, // this.pge_o_unk0x70.bind(this),
+    pgeOUnk0x71, // this.pge_o_unk0x71.bind(this),
+    pgeOUnk0x72, // this.pge_o_unk0x72.bind(this),
+    pgeOUnk0x73, // this.pge_o_unk0x73.bind(this),
     // /* 0x74 */
-    pge_op_collides4u, // this.pge_op_collides4u.bind(this),
-    pge_op_doesNotCollide4u, // this.pge_op_doesNotCollide4u.bind(this),
-    pge_op_isBelowConrad, // this.pge_op_isBelowConrad.bind(this),
-    pge_op_isAboveConrad, // this.pge_op_isAboveConrad.bind(this),
+    pgeOpCollides4u, // this.pge_op_collides4u.bind(this),
+    pgeOpDoesnotcollide4u, // this.pge_op_doesNotCollide4u.bind(this),
+    pgeOpIsbelowconrad, // this.pge_op_isBelowConrad.bind(this),
+    pgeOpIsaboveconrad, // this.pge_op_isAboveConrad.bind(this),
     // /* 0x78 */
-    pge_op_isNotFacingConrad, // this.pge_op_isNotFacingConrad.bind(this),
-    pge_op_isFacingConrad, // this.pge_op_isFacingConrad.bind(this),
-    pge_op_collides2u1u, // this.pge_op_collides2u1u.bind(this),
-    pge_op_displayText, // this.pge_op_displayText.bind(this),
+    pgeOpIsnotfacingconrad, // this.pge_op_isNotFacingConrad.bind(this),
+    pgeOpIsfacingconrad, // this.pge_op_isFacingConrad.bind(this),
+    pgeOpCollides2u1u, // this.pge_op_collides2u1u.bind(this),
+    pgeOpDisplaytext, // this.pge_op_displayText.bind(this),
     // /* 0x7C */
-    pge_o_unk0x7C, // this.pge_o_unk0x7C.bind(this),
-    pge_op_playSound, // this.pge_op_playSound.bind(this),
-    pge_o_unk0x7E, // this.pge_o_unk0x7E.bind(this),
-    pge_o_unk0x7F, // this.pge_o_unk0x7F.bind(this),
+    pgeOUnk0x7c, // this.pge_o_unk0x7C.bind(this),
+    pgeOpPlaysound, // this.pge_op_playSound.bind(this),
+    pgeOUnk0x7e, // this.pge_o_unk0x7E.bind(this),
+    pgeOUnk0x7f, // this.pge_o_unk0x7F.bind(this),
     // /* 0x80 */
-    pge_op_setPgePosX, // this.pge_op_setPgePosX.bind(this),
-    pge_op_setPgePosModX, // this.pge_op_setPgePosModX.bind(this),
-    pge_op_changeRoom, // this.pge_op_changeRoom.bind(this),
-    pge_op_hasInventoryItem, // this.pge_op_hasInventoryItem.bind(this),
+    pgeOpSetpgeposx, // this.pge_op_setPgePosX.bind(this),
+    pgeOpSetpgeposmodx, // this.pge_op_setPgePosModX.bind(this),
+    pgeOpChangeroom, // this.pge_op_changeRoom.bind(this),
+    pgeOpHasinventoryitem, // this.pge_op_hasInventoryItem.bind(this),
     // /* 0x84 */
-    pge_op_changeLevel, // this.pge_op_changeLevel.bind(this),
-    pge_op_shakeScreen, // this.pge_op_shakeScreen.bind(this),
-    pge_o_unk0x86, // this.pge_o_unk0x86.bind(this),
-    pge_op_playSoundGroup, // this.pge_op_playSoundGroup.bind(this),
+    pgeOpChangelevel, // this.pge_op_changeLevel.bind(this),
+    pgeOpShakescreen, // this.pge_op_shakeScreen.bind(this),
+    pgeOUnk0x86, // this.pge_o_unk0x86.bind(this),
+    pgeOpPlaysoundgroup, // this.pge_op_playSoundGroup.bind(this),
     // /* 0x88 */
-    pge_op_adjustPos, // this.pge_op_adjustPos.bind(this),
+    pgeOpAdjustpos, // this.pge_op_adjustPos.bind(this),
     null,
-    pge_op_setTempVar1, // this.pge_op_setTempVar1.bind(this),
-    pge_op_isTempVar1Set, // this.pge_op_isTempVar1Set.bind(this)
+    pgeOpSettempvar1, // this.pge_op_setTempVar1.bind(this),
+    pgeOpIstempvar1set, // this.pge_op_isTempVar1Set.bind(this)
 ]
 
-export { _pge_opcodeTable }
+export { _pgeOpcodetable }

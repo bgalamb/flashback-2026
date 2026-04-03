@@ -1,7 +1,7 @@
 import { assert } from "../core/assert"
-import { READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16 } from "../core/intern"
-import { CT_ROOM_SIZE, GAMESCREEN_H, GAMESCREEN_W, UINT8_MAX } from "../core/game_constants"
-import { bytekiller_unpack } from "../core/unpack"
+import { readBeUint16, readBeUint32, readLeUint16 } from "../core/intern"
+import { ctRoomSize, gamescreenH, gamescreenW, uint8Max } from "../core/game_constants"
+import { bytekillerUnpack } from "../core/unpack"
 import { Video } from "../video/video"
 import { _gameLevels } from "../core/staticres"
 import { Color } from "../core/intern"
@@ -12,7 +12,7 @@ import { getLevelAssetBaseName, getLevelAssetPathCandidates } from "../core/leve
 // Loads a room from LEV/MBK-or-BNQ/PAL/SGD assets, decodes the Amiga front layer,
 // applies the room palettes, and writes rendered PNG artifacts.
 class AmigaLevelImageExporter {
-    private static readonly LAYER_TRANSPARENT_INDEX = 0xFF
+    private static readonly layerTransparentIndex = 0xFF
     private _mbk: Uint8Array
     private _pal: Uint8Array
     private _sgd: Uint8Array
@@ -185,28 +185,28 @@ class AmigaLevelImageExporter {
     }
 
     private static roomExists(lev: Uint8Array, room: number): boolean {
-        if (room < 0 || room >= CT_ROOM_SIZE) {
+        if (room < 0 || room >= ctRoomSize) {
             return false
         }
         const offset = room * 4
         if ((offset + 4) > lev.length) {
             return false
         }
-        return READ_BE_UINT32(lev, offset) !== 0
+        return readBeUint32(lev, offset) !== 0
     }
 
     private static isPlaceholderMbk(data: Uint8Array): boolean {
         if (data.length < 12) {
             return false
         }
-        const firstOffset = READ_BE_UINT32(data) & 0xFFFF
-        const firstSize = READ_BE_UINT16(data, 4)
+        const firstOffset = readBeUint32(data) & 0xFFFF
+        const firstSize = readBeUint16(data, 4)
         if (firstSize !== 0) {
             return false
         }
         for (let i = 1; i < 8; ++i) {
-            const entryOffset = READ_BE_UINT32(data, i * 6) & 0xFFFF
-            const entrySize = READ_BE_UINT16(data, i * 6 + 4)
+            const entryOffset = readBeUint32(data, i * 6) & 0xFFFF
+            const entrySize = readBeUint16(data, i * 6 + 4)
             if (entryOffset !== firstOffset || entrySize !== firstSize) {
                 return false
             }
@@ -284,18 +284,18 @@ class AmigaLevelImageExporter {
 
     decodeRoom(lev: Uint8Array, level: number, room: number): Uint8Array {
         const leveldataScratch = new Uint8Array(320 * 224 + 1024)
-        const offset = READ_BE_UINT32(lev, room * 4)
-        if (!bytekiller_unpack(leveldataScratch, leveldataScratch.length, lev, offset)) {
+        const offset = readBeUint32(lev, room * 4)
+        if (!bytekillerUnpack(leveldataScratch, leveldataScratch.length, lev, offset)) {
             throw new Error(`Bad CRC for room ${room}`)
         }
 
-        let sgdOffset = READ_BE_UINT16(leveldataScratch, 10)
-        const offset12 = READ_BE_UINT16(leveldataScratch, 12)
-        let bankDataChunkOffset = READ_BE_UINT16(leveldataScratch, 14)
-        const mapPaletteOffsetSlot1 = READ_BE_UINT16(leveldataScratch, 2)
-        const mapPaletteOffsetSlot2 = READ_BE_UINT16(leveldataScratch, 4)
-        const mapPaletteOffsetSlot3 = READ_BE_UINT16(leveldataScratch, 6)
-        const mapPaletteOffsetSlot4 = READ_BE_UINT16(leveldataScratch, 8)
+        let sgdOffset = readBeUint16(leveldataScratch, 10)
+        const offset12 = readBeUint16(leveldataScratch, 12)
+        let bankDataChunkOffset = readBeUint16(leveldataScratch, 14)
+        const mapPaletteOffsetSlot1 = readBeUint16(leveldataScratch, 2)
+        const mapPaletteOffsetSlot2 = readBeUint16(leveldataScratch, 4)
+        const mapPaletteOffsetSlot3 = readBeUint16(leveldataScratch, 6)
+        const mapPaletteOffsetSlot4 = readBeUint16(leveldataScratch, 8)
 
         const kTempMbkSize = 1024
         const tileDataBuffer = new Uint8Array(kTempMbkSize * 32)
@@ -303,7 +303,7 @@ class AmigaLevelImageExporter {
         let size = 32
 
         for (let loop = true; loop;) {
-            let bankDataId = READ_BE_UINT16(leveldataScratch, bankDataChunkOffset)
+            let bankDataId = readBeUint16(leveldataScratch, bankDataChunkOffset)
             bankDataChunkOffset += 2
             if (bankDataId & 0x8000) {
                 bankDataId &= ~0x8000
@@ -314,7 +314,7 @@ class AmigaLevelImageExporter {
             const bankDataSize = bankData.length
             const chunkNumber = leveldataScratch[bankDataChunkOffset++]
 
-            if (chunkNumber === UINT8_MAX) {
+            if (chunkNumber === uint8Max) {
                 assert(!(size + bankDataSize > kTempMbkSize * 32), `Assertion failed: ${size + bankDataSize} <= ${kTempMbkSize * 32}`)
                 tileDataBuffer.set(bankData.subarray(0, bankDataSize), size)
                 size += bankDataSize
@@ -328,7 +328,7 @@ class AmigaLevelImageExporter {
             }
         }
 
-        const frontLayer = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
+        const frontLayer = new Uint8Array(gamescreenW * gamescreenH)
         if (leveldataScratch[1] !== 0) {
             assert(!!this._sgd, `Assertion failed: ${this._sgd}`)
             AmigaLevelImageExporter.decodeSgd(frontLayer, new Uint8Array(leveldataScratch.buffer, leveldataScratch.byteOffset + sgdOffset), this._sgd)
@@ -374,14 +374,14 @@ class AmigaLevelImageExporter {
             body[dstOffset + 1] = this._rgbPalette[srcOffset + 1]
             body[dstOffset + 2] = this._rgbPalette[srcOffset + 2]
         }
-        fs.writeFileSync(outputPath, Buffer.from(encodeRgbPng(GAMESCREEN_W, GAMESCREEN_H, body)))
+        fs.writeFileSync(outputPath, Buffer.from(encodeRgbPng(gamescreenW, gamescreenH, body)))
     }
 
     private writeIndexedPng(outputPath: string, frontLayer: Uint8Array) {
         const fs = require("fs")
         fs.writeFileSync(outputPath, Buffer.from(encodeIndexedPng(
-            GAMESCREEN_W,
-            GAMESCREEN_H,
+            gamescreenW,
+            gamescreenH,
             frontLayer,
             this.buildPaletteFromRgbPalette()
         )))
@@ -390,7 +390,7 @@ class AmigaLevelImageExporter {
     private writeIndexedPngLayerGroup(outputPath: string, frontLayer: Uint8Array, layerGroup: "back" | "front") {
         const fs = require("fs")
         const pixels = new Uint8Array(frontLayer.length)
-        pixels.fill(AmigaLevelImageExporter.LAYER_TRANSPARENT_INDEX)
+        pixels.fill(AmigaLevelImageExporter.layerTransparentIndex)
 
         for (let i = 0; i < frontLayer.length; ++i) {
             const value = frontLayer[i]
@@ -408,8 +408,8 @@ class AmigaLevelImageExporter {
         }
 
         fs.writeFileSync(outputPath, Buffer.from(encodeIndexedPng(
-            GAMESCREEN_W,
-            GAMESCREEN_H,
+            gamescreenW,
+            gamescreenH,
             pixels,
             this.buildLayerPalette(layerGroup),
             this.buildLayerPaletteAlpha()
@@ -451,7 +451,7 @@ class AmigaLevelImageExporter {
     private buildLayerPaletteAlpha() {
         const alpha = new Uint8Array(256)
         alpha.fill(255)
-        alpha[AmigaLevelImageExporter.LAYER_TRANSPARENT_INDEX] = 0
+        alpha[AmigaLevelImageExporter.layerTransparentIndex] = 0
         return alpha
     }
 
@@ -469,7 +469,7 @@ class AmigaLevelImageExporter {
     private setPaletteSlotBE(paletteSlot: number, palOffset: number) {
         let p = palOffset * 32
         for (let i = 0; i < 16; ++i) {
-            const color = READ_BE_UINT16(this._pal, p)
+            const color = readBeUint16(this._pal, p)
             p += 2
             const rgb = AmigaLevelImageExporter.amigaConvertColor(color, true)
             const dst = (paletteSlot * 16 + i) * 3
@@ -479,8 +479,8 @@ class AmigaLevelImageExporter {
         }
     }
 
-    private static AMIGA_decodeRle(dst: Uint8Array, src: Uint8Array) {
-        const size = READ_BE_UINT16(src) & 0x7FFF
+    private static amigaDecoderle(dst: Uint8Array, src: Uint8Array) {
+        const size = readBeUint16(src) & 0x7FFF
         let dstIndex = 0
         src = src.subarray(2)
         for (let i = 0; i < size;) {
@@ -501,24 +501,24 @@ class AmigaLevelImageExporter {
         }
     }
 
-    private static PC_drawTileMask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
+    private static pcDrawtilemask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
         assert(!(size !== (w * 2 * h)), `Assertion failed: ${size} === ${w * 2 * h}`)
         let mIndex = 0
         let pIndex = 0
         for (let y = 0; y < h; ++y) {
             for (let x = 0; x < w; ++x) {
-                const bits = READ_BE_UINT16(m, mIndex)
+                const bits = readBeUint16(m, mIndex)
                 mIndex += 2
                 for (let bit = 0; bit < 8; ++bit) {
                     const j = y0 + y
                     const i = x0 + 2 * (x * 8 + bit)
-                    if (i >= 0 && i < GAMESCREEN_W && j >= 0 && j < GAMESCREEN_H) {
+                    if (i >= 0 && i < gamescreenW && j >= 0 && j < gamescreenH) {
                         const color = p[pIndex]
                         if (bits & (1 << (15 - (bit * 2)))) {
-                            dst[j * GAMESCREEN_W + i] = color >> 4
+                            dst[j * gamescreenW + i] = color >> 4
                         }
                         if (bits & (1 << (15 - (bit * 2 + 1)))) {
-                            dst[j * GAMESCREEN_W + i + 1] = color & 15
+                            dst[j * gamescreenW + i + 1] = color & 15
                         }
                     }
                     ++pIndex
@@ -530,56 +530,56 @@ class AmigaLevelImageExporter {
     private static decodeSgd(dst: Uint8Array, src: Uint8Array, data: Uint8Array) {
         let num = -1
         let index = 0
-        const buf = new Uint8Array(GAMESCREEN_W * 32)
-        let count = READ_BE_UINT16(src) - 1
+        const buf = new Uint8Array(gamescreenW * 32)
+        let count = readBeUint16(src) - 1
         index += 2
         do {
-            let d2 = READ_BE_UINT16(src, index)
+            let d2 = readBeUint16(src, index)
             index += 2
-            const d0 = READ_BE_UINT16(src, index) << 16 >> 16
+            const d0 = readBeUint16(src, index) << 16 >> 16
             index += 2
-            const d1 = READ_BE_UINT16(src, index) << 16 >> 16
+            const d1 = readBeUint16(src, index) << 16 >> 16
             index += 2
 
             if (d2 !== 0xFFFF) {
                 d2 &= ~(1 << 15)
-                const signedOffset = READ_BE_UINT32(data, d2 * 4) | 0
+                const signedOffset = readBeUint32(data, d2 * 4) | 0
                 if (signedOffset < 0) {
                     const ptrOffset = data.byteOffset - signedOffset
                     const hasEmbeddedPtr = ptrOffset >= 0 && (ptrOffset + 2) <= data.buffer.byteLength
                     if (hasEmbeddedPtr) {
                         const ptr = new Uint8Array(data.buffer, ptrOffset)
                         let ptrIndex = 0
-                        const size = READ_BE_UINT16(ptr, ptrIndex)
+                        const size = readBeUint16(ptr, ptrIndex)
                         ptrIndex += 2
                         if (num !== d2) {
                             num = d2
                             buf.set(ptr.subarray(ptrIndex, size + ptrIndex))
                         }
                     } else {
-                        const offset = READ_BE_UINT32(data, d2 * 4) & 0xFFFFFF
+                        const offset = readBeUint32(data, d2 * 4) & 0xFFFFFF
                         if (num !== d2) {
                             num = d2
-                            AmigaLevelImageExporter.AMIGA_decodeRle(buf, data.subarray(offset))
+                            AmigaLevelImageExporter.amigaDecoderle(buf, data.subarray(offset))
                         }
                     }
                 } else {
                     if (num !== d2) {
                         num = d2
-                        AmigaLevelImageExporter.AMIGA_decodeRle(buf, data.subarray(signedOffset))
+                        AmigaLevelImageExporter.amigaDecoderle(buf, data.subarray(signedOffset))
                     }
                 }
             }
 
             const w = (buf[0] + 1) >> 1
             const h = buf[1] + 1
-            const planarSize = READ_BE_UINT16(buf, 2)
-            AmigaLevelImageExporter.PC_drawTileMask(dst, d0, d1, w, h, buf.subarray(4), buf.subarray(4 + planarSize), planarSize)
+            const planarSize = readBeUint16(buf, 2)
+            AmigaLevelImageExporter.pcDrawtilemask(dst, d0, d1, w, h, buf.subarray(4), buf.subarray(4 + planarSize), planarSize)
         } while (--count >= 0)
     }
 
-    private static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
-        let pitch = GAMESCREEN_W
+    private static pcDrawtile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
+        let pitch = gamescreenW
         let dstIndex = 0
         let srcIndex = 0
         if (yflip) {
@@ -610,9 +610,9 @@ class AmigaLevelImageExporter {
     private static decodeLevHelper(dst: Uint8Array, src: Uint8Array, sgdOffset: number, offset12: number, tileDataBuffer: Uint8Array, sgdBuf: boolean, isPC: boolean) {
         if (sgdOffset !== 0) {
             let a0 = sgdOffset
-            for (let y = 0; y < GAMESCREEN_H; y += 8) {
-                for (let x = 0; x < GAMESCREEN_W; x += 8) {
-                    const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
+            for (let y = 0; y < gamescreenH; y += 8) {
+                for (let x = 0; x < gamescreenW; x += 8) {
+                    const d3 = isPC ? readLeUint16(src, a0) : readBeUint16(src, a0)
                     a0 += 2
                     const d0 = d3 & 0x7FF
                     if (d0 !== 0) {
@@ -623,7 +623,7 @@ class AmigaLevelImageExporter {
                         if ((d3 & 0x8000) !== 0) {
                             mask = 0x80 + ((d3 >> 6) & 0x10)
                         }
-                        AmigaLevelImageExporter.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), tileData, mask, xflip, yflip, -1)
+                        AmigaLevelImageExporter.pcDrawtile(dst.subarray(y * gamescreenW + x), tileData, mask, xflip, yflip, -1)
                     }
                 }
             }
@@ -631,9 +631,9 @@ class AmigaLevelImageExporter {
 
         if (offset12 !== 0) {
             let a0 = offset12
-            for (let y = 0; y < GAMESCREEN_H; y += 8) {
-                for (let x = 0; x < GAMESCREEN_W; x += 8) {
-                    const d3 = isPC ? READ_LE_UINT16(src, a0) : READ_BE_UINT16(src, a0)
+            for (let y = 0; y < gamescreenH; y += 8) {
+                for (let x = 0; x < gamescreenW; x += 8) {
+                    const d3 = isPC ? readLeUint16(src, a0) : readBeUint16(src, a0)
                     a0 += 2
                     let d0 = d3 & 0x7FF
                     if (d0 !== 0 && sgdBuf) {
@@ -649,7 +649,7 @@ class AmigaLevelImageExporter {
                         } else if ((d3 & 0x8000) !== 0) {
                             mask = 0x80 + ((d3 >> 6) & 0x10)
                         }
-                        AmigaLevelImageExporter.PC_drawTile(dst.subarray(y * GAMESCREEN_W + x), tileData, mask, xflip, yflip, 0)
+                        AmigaLevelImageExporter.pcDrawtile(dst.subarray(y * gamescreenW + x), tileData, mask, xflip, yflip, 0)
                     }
                 }
             }
@@ -674,7 +674,7 @@ class AmigaLevelImageExporter {
     }
 
     private getBankDataSize(num: number): number {
-        let len = READ_BE_UINT16(this._mbk, num * 6 + 4)
+        let len = readBeUint16(this._mbk, num * 6 + 4)
         if (len & 0x8000) {
             if (this._usesBnqFormat) {
                 len = -(len << 16 >> 16)
@@ -692,19 +692,19 @@ class AmigaLevelImageExporter {
         }
 
         const ptr = this._mbk.subarray(num * 6)
-        let dataOffset = READ_BE_UINT32(ptr) & 0xFFFF
+        let dataOffset = readBeUint32(ptr) & 0xFFFF
         const size = this.getBankDataSize(num)
         const data = this._mbk.subarray(dataOffset)
 
         let decoded: Uint8Array
-        if (READ_BE_UINT16(ptr, 4) & 0x8000) {
+        if (readBeUint16(ptr, 4) & 0x8000) {
             decoded = data.slice(0, size)
         } else {
             assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
-            const expectedSize = READ_BE_UINT32(data.buffer, data.byteOffset - 4) | 0
+            const expectedSize = readBeUint32(data.buffer, data.byteOffset - 4) | 0
             assert(!(size !== expectedSize), `Assertion failed: ${size} === ${expectedSize}`)
             decoded = new Uint8Array(size)
-            if (!bytekiller_unpack(decoded, size, data, 0)) {
+            if (!bytekillerUnpack(decoded, size, data, 0)) {
                 throw new Error(`Bad CRC for bank data ${num}`)
             }
         }

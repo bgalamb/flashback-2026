@@ -1,6 +1,6 @@
-import { READ_LE_UINT16 } from "../core/intern"
+import { readLeUint16 } from "../core/intern"
 import type { Game } from "../game/game"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
+import { gamescreenH, gamescreenW } from "../core/game_constants"
 import { Video } from "../video/video"
 
 type RenderedSpriteImage = {
@@ -26,11 +26,11 @@ class SpriteImageVisualizer {
         const spritePayload = rawSpriteEntry.subarray(4)
         const paletteColorMaskOverride = paletteSlot << 4
 
-        const offscreenLayer = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
+        const offscreenLayer = new Uint8Array(gamescreenW * gamescreenH)
         this._game._vid.withFrontLayer(offscreenLayer, () => {
             let renderData = spritePayload
             if (!(encodedWidth & 0x80)) {
-                this._game._vid.PC_decodeSpm(spritePayload, this._game._res.scratchBuffer)
+                this._game._vid.pcDecodespm(spritePayload, this._game._res.scratchBuffer)
                 renderData = this._game._res.scratchBuffer
             }
             this._game.drawCharacter(renderData, 0, 0, encodedHeight, encodedWidth, flags, paletteColorMaskOverride)
@@ -101,14 +101,14 @@ class SpriteImageVisualizer {
     }
 
     private buildImageFromIndexedLayer(indexedLayer: Uint8Array, palette: Uint8Array): RenderedSpriteImage {
-        let minX = GAMESCREEN_W
-        let minY = GAMESCREEN_H
+        let minX = gamescreenW
+        let minY = gamescreenH
         let maxX = -1
         let maxY = -1
 
-        for (let y = 0; y < GAMESCREEN_H; ++y) {
-            for (let x = 0; x < GAMESCREEN_W; ++x) {
-                if (indexedLayer[y * GAMESCREEN_W + x] !== 0) {
+        for (let y = 0; y < gamescreenH; ++y) {
+            for (let x = 0; x < gamescreenW; ++x) {
+                if (indexedLayer[y * gamescreenW + x] !== 0) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
                     if (y < minY) minY = y
@@ -131,13 +131,13 @@ class SpriteImageVisualizer {
 
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
-                const indexedPixel = indexedLayer[(minY + y) * GAMESCREEN_W + minX + x]
+                const indexedPixel = indexedLayer[(minY + y) * gamescreenW + minX + x]
                 const dstOffset = (y * width + x) * 4
                 if (indexedPixel === 0) {
                     pixels[dstOffset + 3] = 0
                     continue
                 }
-                const color = Video.AMIGA_convertColor(READ_LE_UINT16(palette, (indexedPixel & 0x0F) * 2))
+                const color = Video.amigaConvertcolor(readLeUint16(palette, (indexedPixel & 0x0F) * 2))
                 pixels[dstOffset + 0] = color.r
                 pixels[dstOffset + 1] = color.g
                 pixels[dstOffset + 2] = color.b

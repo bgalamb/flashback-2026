@@ -3,9 +3,9 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { Video, GAMESCREEN_W, GAMESCREEN_H } = require('../src/video/video.ts')
+const { Video, gamescreenW, gamescreenH } = require('../src/video/video.ts')
 const { encodeIndexedPng } = require('../src/core/indexed-png.ts')
-const { SCREENBLOCK_W, SCREENBLOCK_H } = require('../src/core/game_constants.ts')
+const { screenblockW, screenblockH } = require('../src/core/game_constants.ts')
 
 function createPaletteBank(bankIndex) {
     return Array.from({ length: 16 }, (_, colorIndex) => ({
@@ -114,10 +114,10 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
     const roomPalette = createPalette256()
     const headerSlotColors = [createPaletteBank(1), createPaletteBank(2), createPaletteBank(3), createPaletteBank(4)]
     const headerOffsets = [10, 20, 30, 40]
-    const pixels = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
+    const pixels = new Uint8Array(gamescreenW * gamescreenH)
     pixels.fill(0x8F)
     pixels[1] = 0x21
-    const png = encodeIndexedPng(GAMESCREEN_W, GAMESCREEN_H, pixels, roomPalette)
+    const png = encodeIndexedPng(gamescreenW, gamescreenH, pixels, roomPalette)
     const headerJson = new TextEncoder().encode(createPaletteHeaderJson(headerOffsets, headerSlotColors))
     const { video, paletteEntries } = createVideoFixture()
     const fetch = installFetch({
@@ -126,7 +126,7 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
     })
 
     try {
-        await video.PC_decodeMap(level, room)
+        await video.pcDecodemap(level, room)
     } finally {
         fetch.restore()
     }
@@ -143,7 +143,7 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
     assert.deepEqual(paletteEntries.get(0x90), roomPalette[9 * 16 + 0])
     assert.deepEqual(paletteEntries.get(0xC0), headerSlotColors[2][0])
     assert.deepEqual(paletteEntries.get(0xD0), headerSlotColors[3][0])
-    assert.deepEqual(paletteEntries.get(0x40), Video.AMIGA_convertColor(0x111))
+    assert.deepEqual(paletteEntries.get(0x40), Video.amigaConvertcolor(0x111))
 })
 
 test('PC_decodeMap falls back to a blank front layer when the room png is missing', async () => {
@@ -159,7 +159,7 @@ test('PC_decodeMap falls back to a blank front layer when the room png is missin
     })
 
     try {
-        await video.PC_decodeMap(level, room)
+        await video.pcDecodemap(level, room)
     } finally {
         fetch.restore()
     }
@@ -170,8 +170,8 @@ test('PC_decodeMap falls back to a blank front layer when the room png is missin
 
 test('palette-header JSON is cached across room decodes for the same level', async () => {
     const roomPalette = createPalette256()
-    const pixels = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
-    const png = encodeIndexedPng(GAMESCREEN_W, GAMESCREEN_H, pixels, roomPalette)
+    const pixels = new Uint8Array(gamescreenW * gamescreenH)
+    const png = encodeIndexedPng(gamescreenW, gamescreenH, pixels, roomPalette)
     const headerJson = new TextEncoder().encode(createPaletteHeaderJson(
         [10, 20, 30, 40],
         [createPaletteBank(1), createPaletteBank(2), createPaletteBank(3), createPaletteBank(4)]
@@ -184,8 +184,8 @@ test('palette-header JSON is cached across room decodes for the same level', asy
     })
 
     try {
-        await video.PC_decodeMap(1, 3)
-        await video.PC_decodeMap(1, 4)
+        await video.pcDecodemap(1, 3)
+        await video.pcDecodemap(1, 4)
     } finally {
         fetch.restore()
     }
@@ -198,12 +198,12 @@ test('markBlockAsDirty and updateScreen refresh only the touched screen blocks',
     const { video, stub } = createVideoFixture()
 
     video.screen.fullRefresh = false
-    video.markBlockAsDirty(0, 0, SCREENBLOCK_W * 2, SCREENBLOCK_H, 1)
+    video.markBlockAsDirty(0, 0, screenblockW * 2, screenblockH, 1)
 
     await video.updateScreen()
 
     assert.deepEqual(stub.copyRectCalls, [
-        [0, 0, SCREENBLOCK_W * 2, SCREENBLOCK_H, video.layers.frontLayer, video.layers.w],
+        [0, 0, screenblockW * 2, screenblockH, video.layers.frontLayer, video.layers.w],
     ])
     assert.deepEqual(stub.updateScreenCalls, [0])
     assert.equal(video.screen.screenBlocks[0], 1)
@@ -211,7 +211,7 @@ test('markBlockAsDirty and updateScreen refresh only the touched screen blocks',
 })
 
 test('PC_drawTile respects x/y flips and color-key transparency', () => {
-    const dst = new Uint8Array(GAMESCREEN_W * 8)
+    const dst = new Uint8Array(gamescreenW * 8)
     const src = Uint8Array.from([
         0x12, 0x34, 0x50, 0x67,
         0x89, 0xAB, 0xCD, 0xEF,
@@ -223,8 +223,8 @@ test('PC_drawTile respects x/y flips and color-key transparency', () => {
         0x89, 0xAB, 0xCD, 0xEF,
     ])
 
-    Video.PC_drawTile(dst, src, 0x80, true, true, 0)
+    Video.pcDrawtile(dst, src, 0x80, true, true, 0)
 
-    assert.deepEqual(Array.from(dst.slice(GAMESCREEN_W * 7, GAMESCREEN_W * 7 + 8)), [0x87, 0x86, 0x00, 0x85, 0x84, 0x83, 0x82, 0x81])
+    assert.deepEqual(Array.from(dst.slice(gamescreenW * 7, gamescreenW * 7 + 8)), [0x87, 0x86, 0x00, 0x85, 0x84, 0x83, 0x82, 0x81])
     assert.deepEqual(Array.from(dst.slice(0, 8)), [0x8F, 0x8E, 0x8D, 0x8C, 0x8B, 0x8A, 0x89, 0x88])
 })

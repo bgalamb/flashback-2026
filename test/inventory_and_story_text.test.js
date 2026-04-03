@@ -6,7 +6,7 @@ const assert = require('node:assert/strict')
 const { gameHandleInventory } = require('../src/game/game_inventory.ts')
 const { gameDrawStoryTexts } = require('../src/game/game_draw.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { UINT16_MAX, UINT8_MAX } = require('../src/core/game_constants.ts')
+const { uint16Max, uint8Max } = require('../src/core/game_constants.ts')
 
 function createPlayerInput() {
     return {
@@ -35,15 +35,15 @@ function createInventoryGame(overrides = {}) {
         _inventoryItemIndicesByOwner: new Map([[0, [1, 2]]]),
         _livePgesByIndex: [
             { index: 0, life: 10 },
-            { index: 1, life: 5, init_PGE: { object_id: 11 } },
-            { index: 2, life: 9, init_PGE: { object_id: 12 } },
+            { index: 1, life: 5, initPge: { objectId: 11 } },
+            { index: 2, life: 9, initPge: { objectId: 12 } },
         ],
         _res: {
             level: {
                 pgeAllInitialStateFromFile: [
                     {},
-                    { icon_num: 10, text_num: 101, init_flags: 4 },
-                    { icon_num: 11, text_num: 102, init_flags: 0 },
+                    { iconNum: 10, textNum: 101, initFlags: 4 },
+                    { iconNum: 11, textNum: 102, initFlags: 0 },
                 ],
             },
             getTextString(_level, textNum) {
@@ -51,9 +51,9 @@ function createInventoryGame(overrides = {}) {
             },
             getMenuString(id) {
                 return {
-                    [LocaleData.Id.LI_06_LEVEL]: 'LEVEL',
-                    [LocaleData.Id.LI_13_EASY + 1]: 'NORMAL',
-                }[id] || `TEXT_${id}`
+                    [LocaleData.Id.li06Level]: 'LEVEL',
+                    [LocaleData.Id.li13Easy + 1]: 'NORMAL',
+                }[id] || `text${id}`
             },
         },
         _stub: {
@@ -97,7 +97,7 @@ function createInventoryGame(overrides = {}) {
         playSound(sound, channel) {
             playSoundCalls.push([sound, channel])
         },
-        async inp_update() {},
+        async inpUpdate() {},
         setCurrentInventoryPge(pge) {
             selectedPge = pge
         },
@@ -142,7 +142,7 @@ function createStoryGame(overrides = {}) {
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 voiceLoads.push([textId, segment])
                 return { buf: null, bufSize: 0 }
             },
@@ -173,7 +173,7 @@ function createStoryGame(overrides = {}) {
         drawIcon(iconNum, x, y, pal) {
             drawIconCalls.push([iconNum, x, y, pal])
         },
-        async inp_update() {},
+        async inpUpdate() {},
         drawIconCalls,
         videoDrawStringCalls,
         voiceLoads,
@@ -189,7 +189,7 @@ test('gameHandleInventory draws the selected item overlay and picks the highligh
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -211,7 +211,7 @@ test('gameHandleInventory toggles to the score view and draws score and level st
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.enter = true
         } else if (iteration === 1) {
@@ -232,7 +232,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0x0A, 87, 79, 82, 76, 68, 0])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 game.voiceLoads.push([textId, segment])
                 return { buf: null, bufSize: 0 }
             },
@@ -240,7 +240,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
     })
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -256,7 +256,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
     ])
     assert.deepEqual(game.voiceLoads, [[33, 0]])
     assert.equal(game._stub._pi.backspace, false)
-    assert.equal(game._textToDisplay, UINT16_MAX)
+    assert.equal(game._textToDisplay, uint16Max)
 })
 
 test('gameDrawStoryTexts applies color control codes, plays voice, and restores the UI layer between segments', async () => {
@@ -265,12 +265,12 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
         _res: {
             getGameString() {
                 return Uint8Array.from([
-                    UINT8_MAX, 0xED, 0,
+                    uint8Max, 0xED, 0,
                     72, 73, 0x0B,
                     66, 89, 69, 0,
                 ])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 game.voiceLoads.push([textId, segment])
                 return segment === 0 ? { buf: voiceBuffer, bufSize: voiceBuffer.length } : { buf: null, bufSize: 0 }
             },
@@ -278,7 +278,7 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     })
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         } else if (iteration === 1) {

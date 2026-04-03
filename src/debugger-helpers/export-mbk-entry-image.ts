@@ -1,6 +1,6 @@
 import { assert } from "../core/assert"
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
-import { bytekiller_unpack } from "../core/unpack"
+import { readBeUint16, readBeUint32 } from "../core/intern"
+import { bytekillerUnpack } from "../core/unpack"
 import { encodeRgbPng } from "../core/png-rgb"
 
 type RgbColor = {
@@ -97,7 +97,7 @@ function loadPalette(palPath: string, paletteSlot: number): RgbColor[] {
     }
     const colors: RgbColor[] = []
     for (let i = 0; i < 16; ++i) {
-        colors.push(amigaConvertColor(READ_BE_UINT16(pal, slotOffset + i * 2), true))
+        colors.push(amigaConvertColor(readBeUint16(pal, slotOffset + i * 2), true))
     }
     return colors
 }
@@ -109,8 +109,8 @@ function decodeMbkEntry(mbk: Uint8Array, entryIndex: number): Uint8Array {
     }
 
     const ptr = mbk.subarray(entryIndex * 6)
-    const dataOffset = READ_BE_UINT32(ptr) & 0xFFFF
-    let len = READ_BE_UINT16(ptr, 4)
+    const dataOffset = readBeUint32(ptr) & 0xFFFF
+    let len = readBeUint16(ptr, 4)
     const isDirect = (len & 0x8000) !== 0
     if (isDirect) {
         len &= 0x7FFF
@@ -124,10 +124,10 @@ function decodeMbkEntry(mbk: Uint8Array, entryIndex: number): Uint8Array {
         return data.slice(0, size)
     }
     assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
-    const expectedSize = READ_BE_UINT32(data.buffer, data.byteOffset - 4) | 0
+    const expectedSize = readBeUint32(data.buffer, data.byteOffset - 4) | 0
     assert(!(size !== expectedSize), `Assertion failed: ${size} === ${expectedSize}`)
     const decoded = new Uint8Array(size)
-    if (!bytekiller_unpack(decoded, size, data, 0)) {
+    if (!bytekillerUnpack(decoded, size, data, 0)) {
         throw new Error(`Bad CRC for MBK entry ${entryIndex}`)
     }
     return decoded
@@ -140,8 +140,8 @@ function decodeBnqEntry(bnq: Uint8Array, entryIndex: number): Uint8Array {
     }
 
     const ptr = bnq.subarray(entryIndex * 6)
-    const dataOffset = READ_BE_UINT32(ptr) & 0xFFFF
-    let len = READ_BE_UINT16(ptr, 4)
+    const dataOffset = readBeUint32(ptr) & 0xFFFF
+    let len = readBeUint16(ptr, 4)
     const isDirect = (len & 0x8000) !== 0
     if (isDirect) {
         len = -((len << 16) >> 16)
@@ -155,10 +155,10 @@ function decodeBnqEntry(bnq: Uint8Array, entryIndex: number): Uint8Array {
         return data.slice(0, size)
     }
     assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
-    const expectedSize = READ_BE_UINT32(data.buffer, data.byteOffset - 4) | 0
+    const expectedSize = readBeUint32(data.buffer, data.byteOffset - 4) | 0
     assert(!(size !== expectedSize), `Assertion failed: ${size} === ${expectedSize}`)
     const decoded = new Uint8Array(size)
-    if (!bytekiller_unpack(decoded, size, data, 0)) {
+    if (!bytekillerUnpack(decoded, size, data, 0)) {
         throw new Error(`Bad CRC for BNQ entry ${entryIndex}`)
     }
     return decoded
@@ -166,23 +166,23 @@ function decodeBnqEntry(bnq: Uint8Array, entryIndex: number): Uint8Array {
 
 function writePngForEntry(outputPath: string, bankData: Uint8Array, palette: RgbColor[], tilesPerRow: number = 16) {
     const fs = require("fs")
-    const TILE_SIZE = 8
-    const TILE_FRAME = 1
-    const TILE_STRIDE = TILE_SIZE + TILE_FRAME * 2
+    const tileSize = 8
+    const tileFrame = 1
+    const tileStride = tileSize + tileFrame * 2
     const tileCount = Math.max(1, bankData.length >> 5)
-    const width = tilesPerRow * TILE_STRIDE
+    const width = tilesPerRow * tileStride
     const rows = Math.max(1, Math.ceil(tileCount / tilesPerRow))
-    const height = rows * TILE_STRIDE
+    const height = rows * tileStride
     const indexed = new Uint8Array(width * height)
 
     let tileIndex = 0
     for (let offset = 0; offset + 32 <= bankData.length; offset += 32) {
-        const x = (tileIndex % tilesPerRow) * TILE_STRIDE + TILE_FRAME
-        const y = ((tileIndex / tilesPerRow) >> 0) * TILE_STRIDE + TILE_FRAME
+        const x = (tileIndex % tilesPerRow) * tileStride + tileFrame
+        const y = ((tileIndex / tilesPerRow) >> 0) * tileStride + tileFrame
         let srcIndex = offset
-        for (let row = 0; row < TILE_SIZE; ++row) {
+        for (let row = 0; row < tileSize; ++row) {
             let dstIndex = (y + row) * width + x
-            for (let col = 0; col < TILE_SIZE; col += 2) {
+            for (let col = 0; col < tileSize; col += 2) {
                 const value = bankData[srcIndex++]
                 indexed[dstIndex++] = value >> 4
                 indexed[dstIndex++] = value & 0x0F

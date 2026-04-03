@@ -1,8 +1,8 @@
-import { Color, READ_BE_UINT16, READ_LE_UINT16 } from "../core/intern"
+import { Color, readBeUint16, readLeUint16 } from "../core/intern"
 import { Resource } from "../resource/resource"
 import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
 import { SystemStub } from "../platform/systemstub_web"
-import { SCREENBLOCK_W, SCREENBLOCK_H, GAMESCREEN_W, GAMESCREEN_H, CHAR_H, CHAR_W, UINT16_MAX, UINT8_MAX, global_game_options } from '../core/game_constants'
+import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
 import { writeLayerImages, writeLayerPixelData } from "../debugger-helpers/front-layer-image"
 import { assert } from "../core/assert"
 import { applyLevelPalettes, readRoomPaletteOffsets, tryLoadFrontLayerFromFile } from "./video-palette"
@@ -89,15 +89,15 @@ class Video {
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
         const fnt = this._res.ui.fnt
         drawStringLenToFrontLayer(this.layers, this.text, fnt, str, len, x, y, color)
-        this.markBlockAsDirty(x, y, len * CHAR_W, CHAR_H, 1)
+        this.markBlockAsDirty(x, y, len * charW, charH, 1)
     }
 
-    PC_drawChar(c: number, y: number, x: number) {
+    pcDrawchar(c: number, y: number, x: number) {
         const fnt = this._res.ui.fnt
         drawUiCharToFrontLayer(this.layers, this.text, fnt, c, y, x)
     }
 
-    static AMIGA_convertColor(color: number, bgr: boolean = false) {
+    static amigaConvertcolor(color: number, bgr: boolean = false) {
         let r = (color & 0xF00) >> 8
         const g = (color & 0xF0)  >> 4
         let b =  color & 0xF
@@ -113,15 +113,15 @@ class Video {
         }
     }
 
-    static PC_decodeMapPlane(sz: number, src: Uint8Array, dst: Uint8Array) {
+    static pcDecodemapplane(sz: number, src: Uint8Array, dst: Uint8Array) {
         decodeMapPlane(sz, src, dst)
     }
 
-    static AMIGA_decodeRle(dst: Uint8Array, src: Uint8Array) {
+    static amigaDecoderle(dst: Uint8Array, src: Uint8Array) {
         decodeAmigaRle(dst, src)
     }
 
-    static PC_drawTileMask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
+    static pcDrawtilemask(dst: Uint8Array, x0: number, y0: number, w: number, h: number, m: Uint8Array, p: Uint8Array, size: number) {
         drawTileMask(dst, x0, y0, w, h, m, p, size)
     }
 
@@ -220,12 +220,12 @@ pitch = 16
 
 
 */
-    static PC_drawTile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
+    static pcDrawtile(dst: Uint8Array, src: Uint8Array, mask: number, xflip: boolean, yflip: boolean, colorKey: number) {
         drawTile(dst, src, mask, xflip, yflip, colorKey)
     }
 
-    static decodeLevHelper(dst: Uint8Array, src: Uint8Array, sgd_offset: number, offset12: number, tile_data_buffer: Uint8Array, sgdBuf: boolean, isPC: boolean) {
-        decodeLevelTiles(dst, src, sgd_offset, offset12, tile_data_buffer, sgdBuf, isPC)
+    static decodeLevHelper(dst: Uint8Array, src: Uint8Array, sgdOffset: number, offset12: number, tileDataBuffer: Uint8Array, sgdBuf: boolean, isPC: boolean) {
+        decodeLevelTiles(dst, src, sgdOffset, offset12, tileDataBuffer, sgdBuf, isPC)
     }
 
     fillRect(x: number, y: number, w: number, h: number, color: number) {
@@ -240,12 +240,12 @@ pitch = 16
     drawString(str: string, x: number, y: number, col: number): string {
         const fnt =  this._res.ui.fnt
         const len = drawStringToFrontLayer(this.layers, this.text, fnt, str, x, y, col)
-        this.markBlockAsDirty(x, y, len * CHAR_W, CHAR_H, 1)
+        this.markBlockAsDirty(x, y, len * charW, charH, 1)
 
         return str
     }
 
-    async PC_decodeMap(level: number, room: number) {
+    async pcDecodemap(level: number, room: number) {
         await readRoomPaletteOffsets(this._res, this.palette, level, room)
 
         if (!(await tryLoadFrontLayerFromFile(this._res, this.layers, this.palette, level, room))) {
@@ -253,12 +253,12 @@ pitch = 16
             this.layers.frontLayer.fill(0)
         }
         this.copyFrontLayerToBack()
-        this.PC_setLevelPalettes(level)
+        this.pcSetlevelpalettes(level)
         writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette)
         writeLayerPixelData(level, room, this.layers.frontLayer)
     }
 
-    PC_setLevelPalettes(level: number) {
+    pcSetlevelpalettes(level: number) {
         applyLevelPalettes(
             this._res,
             this._stub,
@@ -269,7 +269,7 @@ pitch = 16
         )
     }
 
-    PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
+    pcDrawstringchar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
         drawStringChar(dst, pitch, x, y, src, color, chr)
     }
 
@@ -283,28 +283,28 @@ pitch = 16
 
     setPaletteSlotLE(palSlot: number, palData: Uint8Array) {
         for (let i = 0; i < 16; ++i) {
-            const color = READ_LE_UINT16(palData, i * 2)
-            const c: Color = Video.AMIGA_convertColor(color)
+            const color = readLeUint16(palData, i * 2)
+            const c: Color = Video.amigaConvertcolor(color)
             this._stub.setPaletteEntry(palSlot * 16 + i, c)
         }
 
-        if (palSlot === 4 && global_game_options.use_white_tshirt) {
-            const color12: Color = Video.AMIGA_convertColor(0x888)
+        if (palSlot === 4 && globalGameOptions.useWhiteTshirt) {
+            const color12: Color = Video.amigaConvertcolor(0x888)
             const conradDarkShirtVisual = this._res.sprites.loadedConradVisualsByVariantId.get(2)
-            const color13: Color = Video.AMIGA_convertColor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)
+            const color13: Color = Video.amigaConvertcolor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)
             this._stub.setPaletteEntry(palSlot * 16 + 12, color12)
             this._stub.setPaletteEntry(palSlot * 16 + 13, color13)
         }
     }
 
-    setPaletteSlotBE(palette_color_slot: number, pal_offset: number) {
-        let p = pal_offset * 32
+    setPaletteSlotBE(paletteColorSlot: number, palOffset: number) {
+        let p = palOffset * 32
         const pal = this._res.level.pal
         for (let i = 0; i < 16; ++i) {
-            const color = READ_BE_UINT16(pal, p)
+            const color = readBeUint16(pal, p)
             p += 2
-            const c: Color = Video.AMIGA_convertColor(color, true)
-            this._stub.setPaletteEntry(palette_color_slot * 16 + i, c)
+            const c: Color = Video.amigaConvertcolor(color, true)
+            this._stub.setPaletteEntry(paletteColorSlot * 16 + i, c)
         }
     }
 
@@ -325,15 +325,15 @@ pitch = 16
         }
     }
 
-    PC_decodeIcn(src:Uint8Array, num: number, dst: Uint8Array) {
+    pcDecodeicn(src:Uint8Array, num: number, dst: Uint8Array) {
         decodeIcon(src, num, dst)
     }
     
-    PC_decodeSpc(src: Uint8Array, w: number, h: number, dst: Uint8Array) {
+    pcDecodespc(src: Uint8Array, w: number, h: number, dst: Uint8Array) {
         decodeSpc(src, w, h, dst)
     }
     
-    PC_decodeSpm(dataPtr: Uint8Array, dst: Uint8Array) {
+    pcDecodespm(dataPtr: Uint8Array, dst: Uint8Array) {
         decodeSpm(dataPtr, dst)
     }
 
@@ -394,4 +394,4 @@ pitch = 16
     }
 }
 
-export { Video, GAMESCREEN_W, GAMESCREEN_H }
+export { Video, gamescreenW, gamescreenH }

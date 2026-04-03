@@ -1,4 +1,4 @@
-import { LoadedConradVisual, ResolvedSpriteSet, READ_BE_UINT32 } from '../core/intern'
+import { LoadedConradVisual, ResolvedSpriteSet, readBeUint32 } from '../core/intern'
 import { assert } from '../core/assert'
 import { buildResolvedSpriteViewsByIndex } from './parsers'
 
@@ -27,7 +27,7 @@ function decodePackedSpriteSet(
     spmOffsetsTable: Uint32Array,
     unpack: (dst: Uint8Array, dstSize: number, src: Uint8Array, srcSize: number) => boolean
 ): { spr1: Uint8Array, sprm: Uint8Array, resolvedSpriteSet: ResolvedSpriteSet } {
-    const packedSize = READ_BE_UINT32(data, dataLength - 4)
+    const packedSize = readBeUint32(data, dataLength - 4)
     const sprm = new Uint8Array(kMonsterSpriteBufferSize)
     let spr1: Uint8Array | null = null
 

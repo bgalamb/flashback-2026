@@ -5,7 +5,7 @@ import type { Game } from '../game/game'
 import { createAudioContext, initializeAudioNodes, postWorkletMessage, resumeAudioContext } from './systemstub-audio'
 import { applyCanvasStyles, copyIndexedRectToScreenBuffer, copyRgb24RectToScreenBuffer, drawRectOutline, getClippedScaleFactor, getPaletteEntry as readPaletteEntry, getRootCanvasElement, presentScreen, resolveScaler, setPalette as writePalette, setPaletteColor as writePaletteColor } from './systemstub-canvas'
 import { applyKeyDown, applyKeyUp, queueBrowserEvent, resetPlayerInput } from './systemstub-input'
-import { defaultScaleParameters, DF_DBLOCKS, DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from './systemstub-types'
+import { defaultScaleParameters, dfDblocks, dfFastmode, dfSetlife, dirDown, dirLeft, dirRight, dirUp } from './systemstub-types'
 import type { PlayerInput, ScalerParameters } from './systemstub-types'
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void
@@ -186,7 +186,7 @@ class SystemStub {
 		this._screenBuffer = this._imageData.data
 
 		if (!this._screenBuffer) {
-			throw(`SystemStub_Web::setScreenSize() Unable to allocate offscreen buffer, w=${w}, h=${h}`)
+			throw(`systemstubWeb::setScreenSize() Unable to allocate offscreen buffer, w=${w}, h=${h}`)
 		}
 		this._screenW = w
 		this._screenH = h
@@ -211,7 +211,7 @@ class SystemStub {
 
 	copyRect(x: number, y: number, w: number, h: number, buf: Uint8Array, pitch: number) {
 		copyIndexedRectToScreenBuffer(this._rgbPalette, this._screenBuffer, this._screenW, this._screenH, x, y, w, h, buf, pitch)
-		if (this._pi.dbgMask & DF_DBLOCKS) {
+		if (this._pi.dbgMask & dfDblocks) {
 			throw('not implemented!')
 		}
 	}
@@ -238,7 +238,7 @@ class SystemStub {
 
 	copyRectRgb24(x: number, y: number, w: number, h: number, rgb: Uint8Array) {
 		copyRgb24RectToScreenBuffer(this._screenBuffer, this._screenW, this._screenH, x, y, w, h, rgb)
-		if (this._pi.dbgMask & DF_DBLOCKS) {
+		if (this._pi.dbgMask & dfDblocks) {
 			this.drawRect(x, y, w, h, 0xE7)
 		}
 	}
@@ -326,4 +326,4 @@ class SystemStub {
 	}
 }
 
-export { ScalerParameters, defaultScaleParameters, PlayerInput, SystemStub, DF_FASTMODE, DF_DBLOCKS, DF_SETLIFE, DIR_UP, DIR_LEFT, DIR_RIGHT, DIR_DOWN }
+export { ScalerParameters, defaultScaleParameters, PlayerInput, SystemStub, dfFastmode, dfDblocks, dfSetlife, dirUp, dirLeft, dirRight, dirDown }

@@ -1,13 +1,13 @@
 import { decodeIndexedPng, paletteBankToColors } from "../core/indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
+import { gamescreenH, gamescreenW } from "../core/game_constants"
 
-const DATA_DIR = "DATA"
-const FILES_JSON_PATH = `${DATA_DIR}/files.json`
-const LEVELS_DIR = `${DATA_DIR}/levels`
-const ROOM_PNG_PATTERN = /^(level\d+)-room\d+\.pixeldata\.png$/i
-const RUNTIME_LEVEL_DIR_PATTERN = /^level\d+(?:_\d+)?$/i
-const ALLOWED_PIXEL_SLOTS = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB])
-const ALLOWED_NON_EMPTY_PALETTE_BANKS = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD])
+const dataDir = "DATA"
+const filesJsonPath = `${dataDir}/files.json`
+const levelsDir = `${dataDir}/levels`
+const roomPngPattern = /^(level\d+)-room\d+\.pixeldata\.png$/i
+const runtimeLevelDirPattern = /^level\d+(?:_\d+)?$/i
+const allowedPixelSlots = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB])
+const allowedNonEmptyPaletteBanks = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD])
 
 function walkFiles(rootDir: string, predicate: (filePath: string) => boolean) {
     const fs = require("fs")
@@ -35,27 +35,27 @@ function walkFiles(rootDir: string, predicate: (filePath: string) => boolean) {
 
 function toRelativeDataPath(filePath: string) {
     const path = require("path")
-    return path.relative(DATA_DIR, filePath).replace(/\\/g, "/")
+    return path.relative(dataDir, filePath).replace(/\\/g, "/")
 }
 
 function getRuntimeRoomPngFiles() {
     const fs = require("fs")
     const path = require("path")
-    const levelDirs = fs.readdirSync(LEVELS_DIR, { withFileTypes: true })
-        .filter((entry: { isDirectory(): boolean, name: string }) => entry.isDirectory() && RUNTIME_LEVEL_DIR_PATTERN.test(entry.name))
-        .map((entry: { name: string }) => path.join(LEVELS_DIR, entry.name))
+    const levelDirs = fs.readdirSync(levelsDir, { withFileTypes: true })
+        .filter((entry: { isDirectory(): boolean, name: string }) => entry.isDirectory() && runtimeLevelDirPattern.test(entry.name))
+        .map((entry: { name: string }) => path.join(levelsDir, entry.name))
         .sort()
 
     const roomPngFiles: string[] = []
     for (const levelDir of levelDirs) {
-        roomPngFiles.push(...walkFiles(levelDir, (filePath: string) => ROOM_PNG_PATTERN.test(path.basename(filePath))))
+        roomPngFiles.push(...walkFiles(levelDir, (filePath: string) => roomPngPattern.test(path.basename(filePath))))
     }
     return roomPngFiles
 }
 
 function getFilesManifestEntries() {
     const fs = require("fs")
-    return JSON.parse(fs.readFileSync(FILES_JSON_PATH, "utf8")) as string[]
+    return JSON.parse(fs.readFileSync(filesJsonPath, "utf8")) as string[]
 }
 
 function getNonEmptyPaletteBanks(palette: Array<{ r: number, g: number, b: number }>) {
@@ -77,21 +77,21 @@ async function validateMergedRoomPng(filePath: string) {
     const fs = require("fs")
     const png = await decodeIndexedPng(new Uint8Array(fs.readFileSync(filePath)))
 
-    if (png.width !== GAMESCREEN_W || png.height !== GAMESCREEN_H) {
-        throw new Error(`Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${GAMESCREEN_W}x${GAMESCREEN_H}`)
+    if (png.width !== gamescreenW || png.height !== gamescreenH) {
+        throw new Error(`Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH}`)
     }
 
     for (let i = 0; i < png.pixels.length; ++i) {
         const pixel = png.pixels[i]
         const slot = pixel >> 4
-        if (!ALLOWED_PIXEL_SLOTS.has(slot)) {
+        if (!allowedPixelSlots.has(slot)) {
             throw new Error(`Invalid room PNG slot 0x${slot.toString(16).toUpperCase()} at pixel ${i} in '${filePath}'`)
         }
     }
 
     const nonEmptyBanks = getNonEmptyPaletteBanks(png.palette)
     for (const bankIndex of nonEmptyBanks) {
-        if (!ALLOWED_NON_EMPTY_PALETTE_BANKS.has(bankIndex)) {
+        if (!allowedNonEmptyPaletteBanks.has(bankIndex)) {
             throw new Error(`Unexpected non-empty palette bank 0x${bankIndex.toString(16).toUpperCase()} in '${filePath}'`)
         }
     }
@@ -113,8 +113,8 @@ async function main() {
     }
 
     const missingFilesFromManifest = manifestEntries
-        .filter((entry) => ROOM_PNG_PATTERN.test(path.basename(entry)))
-        .filter((entry) => !fs.existsSync(path.join(DATA_DIR, entry)))
+        .filter((entry) => roomPngPattern.test(path.basename(entry)))
+        .filter((entry) => !fs.existsSync(path.join(dataDir, entry)))
 
     if (missingManifestEntries.length > 0 || missingFilesFromManifest.length > 0) {
         const errors: string[] = []

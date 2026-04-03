@@ -1,10 +1,10 @@
-import { Color, READ_BE_UINT32 } from "./intern"
+import { Color, readBeUint32 } from "./intern"
 
-const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
-const PNG_CHUNK_IHDR = 0x49484452
-const PNG_CHUNK_PLTE = 0x504C5445
-const PNG_CHUNK_IDAT = 0x49444154
-const PNG_CHUNK_IEND = 0x49454E44
+const pngSignature = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
+const pngChunkIhdr = 0x49484452
+const pngChunkPlte = 0x504C5445
+const pngChunkIdat = 0x49444154
+const pngChunkIend = 0x49454E44
 
 type IndexedPngImage = {
     width: number
@@ -33,14 +33,14 @@ function buildCrc32Table() {
     return table
 }
 
-const CRC32_TABLE = buildCrc32Table()
+const crc32Table = buildCrc32Table()
 
 function crc32(buffers: Uint8Array[]) {
     let c = 0xFFFFFFFF
     for (let i = 0; i < buffers.length; ++i) {
         const buffer = buffers[i]
         for (let j = 0; j < buffer.length; ++j) {
-            c = CRC32_TABLE[(c ^ buffer[j]) & 0xFF] ^ (c >>> 8)
+            c = crc32Table[(c ^ buffer[j]) & 0xFF] ^ (c >>> 8)
         }
     }
     return (c ^ 0xFFFFFFFF) >>> 0
@@ -286,10 +286,10 @@ function parsePalette(plte: Uint8Array, trns?: Uint8Array) {
 }
 
 async function decodeIndexedPng(data: Uint8Array): Promise<IndexedPngImage> {
-    if (data.length < PNG_SIGNATURE.length || !data.subarray(0, PNG_SIGNATURE.length).every((value, index) => value === PNG_SIGNATURE[index])) {
+    if (data.length < pngSignature.length || !data.subarray(0, pngSignature.length).every((value, index) => value === pngSignature[index])) {
         throw new Error("Invalid PNG signature")
     }
-    let offset = PNG_SIGNATURE.length
+    let offset = pngSignature.length
     let width = 0
     let height = 0
     let bitDepth = 0
@@ -300,30 +300,30 @@ async function decodeIndexedPng(data: Uint8Array): Promise<IndexedPngImage> {
     const idatChunks: Uint8Array[] = []
 
     while (offset + 12 <= data.length) {
-        const chunkLength = READ_BE_UINT32(data, offset)
+        const chunkLength = readBeUint32(data, offset)
         offset += 4
-        const chunkType = READ_BE_UINT32(data, offset)
+        const chunkType = readBeUint32(data, offset)
         offset += 4
         const chunkData = data.subarray(offset, offset + chunkLength)
         offset += chunkLength + 4
         switch (chunkType) {
-            case PNG_CHUNK_IHDR:
-                width = READ_BE_UINT32(chunkData, 0)
-                height = READ_BE_UINT32(chunkData, 4)
+            case pngChunkIhdr:
+                width = readBeUint32(chunkData, 0)
+                height = readBeUint32(chunkData, 4)
                 bitDepth = chunkData[8]
                 colorType = chunkData[9]
                 interlace = chunkData[12]
                 break
-            case PNG_CHUNK_PLTE:
+            case pngChunkPlte:
                 plte = new Uint8Array(chunkData)
                 break
             case 0x74524E53: // tRNS
                 trns = new Uint8Array(chunkData)
                 break
-            case PNG_CHUNK_IDAT:
+            case pngChunkIdat:
                 idatChunks.push(new Uint8Array(chunkData))
                 break
-            case PNG_CHUNK_IEND:
+            case pngChunkIend:
                 offset = data.length
                 break
         }
@@ -387,7 +387,7 @@ function encodeIndexedPng(width: number, height: number, pixels: Uint8Array, pal
     }
 
     const chunks = [
-        new Uint8Array(PNG_SIGNATURE),
+        new Uint8Array(pngSignature),
         createChunk("IHDR", ihdr),
         createChunk("PLTE", plte)
     ]

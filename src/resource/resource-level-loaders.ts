@@ -1,22 +1,40 @@
-import { READ_BE_UINT16 } from '../core/intern'
+import { readBeUint16 } from '../core/intern'
 import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData } from './parsers'
 import { ResourceLevelState, ResourceSpriteState } from './resource-state'
 import { decodePackedSpriteSet } from './sprite-store'
 
+function toCamelCaseKey(key: string) {
+    return key.replace(/_([a-zA-Z0-9])/g, (_match, char: string) => char.toUpperCase())
+}
+
+function normalizeParsedJson(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((entry) => normalizeParsedJson(entry))
+    }
+    if (!value || typeof value !== 'object') {
+        return value
+    }
+    const normalized: Record<string, unknown> = {}
+    for (const [key, entry] of Object.entries(value)) {
+        normalized[toCamelCaseKey(key)] = normalizeParsedJson(entry)
+    }
+    return normalized
+}
+
 function decodeParsedPgeIntoLevelState(levelState: ResourceLevelState, json: string) {
-    const parsed = hydrateParsedPGEData(JSON.parse(json), levelState.pgeAllInitialStateFromFile.length)
+    const parsed = hydrateParsedPGEData(normalizeParsedJson(JSON.parse(json)), levelState.pgeAllInitialStateFromFile.length)
     levelState.pgeTotalNumInFile = parsed.pgeNum
     levelState.pgeAllInitialStateFromFile = parsed.pgeInit
 }
 
 function decodeParsedObjIntoLevelState(levelState: ResourceLevelState, json: string) {
-    const parsed = hydrateParsedOBJData(JSON.parse(json))
+    const parsed = hydrateParsedOBJData(normalizeParsedJson(JSON.parse(json)))
     levelState.numObjectNodes = parsed.numObjectNodes
     levelState.objectNodesMap = parsed.objectNodesMap
 }
 
 function decodeParsedTbnIntoLevelState(levelState: ResourceLevelState, json: string) {
-    levelState.tbn = hydrateParsedTbnData(JSON.parse(json))
+    levelState.tbn = hydrateParsedTbnData(normalizeParsedJson(JSON.parse(json)))
 }
 
 function loadPackedSpriteAsset(
@@ -53,7 +71,7 @@ function loadCollisionAsset(
 
 function loadSpcAsset(spriteState: ResourceSpriteState, data: Uint8Array) {
     spriteState.spc = data
-    spriteState.numSpc = READ_BE_UINT16(data.buffer) / 2
+    spriteState.numSpc = readBeUint16(data.buffer) / 2
 }
 
 export {

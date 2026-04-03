@@ -1,6 +1,6 @@
-import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../core/game_constants"
+import { ctDownRoom, ctLeftRoom, ctRightRoom, ctRoomSize, ctUpRoom } from "../core/game_constants"
 import { getLevelAssetPathCandidates } from "../core/level-asset-paths"
-import { bytekiller_unpack } from "../core/unpack"
+import { bytekillerUnpack } from "../core/unpack"
 import { _gameLevels } from "../core/staticres"
 
 type RoomAdjacency = {
@@ -94,7 +94,7 @@ class CtAdjacencyTableExporter {
 
         const src = new Uint8Array(fs.readFileSync(ctPath))
         const dst = new Uint8Array(0x1D00)
-        if (!bytekiller_unpack(dst, dst.length, src, src.length)) {
+        if (!bytekillerUnpack(dst, dst.length, src, src.length)) {
             throw new Error(`Failed to decode CT data from '${ctPath}'`)
         }
         return new Int8Array(dst.buffer)
@@ -138,20 +138,20 @@ class CtAdjacencyTableExporter {
 
     private static getAdjacencyRows(ctData: Int8Array): RoomAdjacency[] {
         const rows: RoomAdjacency[] = []
-        for (let room = 0; room < CT_ROOM_SIZE; ++room) {
+        for (let room = 0; room < ctRoomSize; ++room) {
             rows.push({
                 room,
-                up: ctData[CT_UP_ROOM + room],
-                down: ctData[CT_DOWN_ROOM + room],
-                left: ctData[CT_LEFT_ROOM + room],
-                right: ctData[CT_RIGHT_ROOM + room]
+                up: ctData[ctUpRoom + room],
+                down: ctData[ctDownRoom + room],
+                left: ctData[ctLeftRoom + room],
+                right: ctData[ctRightRoom + room]
             })
         }
         return rows
     }
 
     private static isValidRoomRef(value: number): boolean {
-        return value > 0 && value < CT_ROOM_SIZE
+        return value > 0 && value < ctRoomSize
     }
 
     private static getActiveRooms(rows: RoomAdjacency[]): number[] {

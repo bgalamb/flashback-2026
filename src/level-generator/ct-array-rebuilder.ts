@@ -1,4 +1,4 @@
-import { CT_DATA_SIZE, CT_DOWN_ROOM, CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_HEADER_SIZE, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../core/game_constants"
+import { ctDataSize, ctDownRoom, ctGridHeight, ctGridStride, ctGridWidth, ctHeaderSize, ctLeftRoom, ctRightRoom, ctRoomSize, ctUpRoom } from "../core/game_constants"
 
 type RoomAdjacency = {
     room: number
@@ -9,11 +9,11 @@ type RoomAdjacency = {
 }
 
 class CtArrayRebuilder {
-    private static readonly CT_SIZE = CT_DATA_SIZE
-    private static readonly GRID_OFFSET = CT_HEADER_SIZE
-    private static readonly GRID_STRIDE = CT_GRID_STRIDE
-    private static readonly GRID_W = CT_GRID_WIDTH
-    private static readonly GRID_H = CT_GRID_HEIGHT
+    private static readonly ctSize = ctDataSize
+    private static readonly gridOffset = ctHeaderSize
+    private static readonly gridStride = ctGridStride
+    private static readonly gridW = ctGridWidth
+    private static readonly gridH = ctGridHeight
 
     private static tryGetLevelExportDir(rootDir: string, levelName: string, exportDirName?: string): string | null {
         const fs = require("fs")
@@ -107,7 +107,7 @@ class CtArrayRebuilder {
         const fs = require("fs")
         const path = require("path")
 
-        const ct = new Int8Array(CtArrayRebuilder.CT_SIZE)
+        const ct = new Int8Array(CtArrayRebuilder.ctSize)
         CtArrayRebuilder.applyAdjacencyFromJson(ct, fs.readFileSync(adjacencyJsonPath, "utf8"), levelName)
 
         const files = fs.readdirSync(levelDir).filter((name: string) => /^room-\d{2}-grid\.txt$/.test(name))
@@ -152,17 +152,17 @@ class CtArrayRebuilder {
                 continue
             }
             const room = roomData.room
-            if (room < 0 || room >= CT_ROOM_SIZE) {
+            if (room < 0 || room >= ctRoomSize) {
                 continue
             }
             const up = Number.isInteger(roomData.up) ? roomData.up : 0
             const down = Number.isInteger(roomData.down) ? roomData.down : 0
             const left = Number.isInteger(roomData.left) ? roomData.left : 0
             const right = Number.isInteger(roomData.right) ? roomData.right : 0
-            ct[CT_UP_ROOM + room] = up
-            ct[CT_DOWN_ROOM + room] = down
-            ct[CT_LEFT_ROOM + room] = left
-            ct[CT_RIGHT_ROOM + room] = right
+            ct[ctUpRoom + room] = up
+            ct[ctDownRoom + room] = down
+            ct[ctLeftRoom + room] = left
+            ct[ctRightRoom + room] = right
         }
     }
 
@@ -174,15 +174,15 @@ class CtArrayRebuilder {
                 continue
             }
             const y = Number(m[1])
-            if (y < 0 || y >= CtArrayRebuilder.GRID_H) {
+            if (y < 0 || y >= CtArrayRebuilder.gridH) {
                 continue
             }
-            const row = CtArrayRebuilder.extractFixedCells(m[2], CtArrayRebuilder.GRID_W)
-            for (let x = 0; x < CtArrayRebuilder.GRID_W; ++x) {
+            const row = CtArrayRebuilder.extractFixedCells(m[2], CtArrayRebuilder.gridW)
+            for (let x = 0; x < CtArrayRebuilder.gridW; ++x) {
                 const token = (row[x] || "").trim()
                 if (/^-?\d+$/.test(token)) {
                     const value = Number(token)
-                    ct[CtArrayRebuilder.GRID_OFFSET + room * CtArrayRebuilder.GRID_STRIDE + y * CtArrayRebuilder.GRID_W + x] = value
+                    ct[CtArrayRebuilder.gridOffset + room * CtArrayRebuilder.gridStride + y * CtArrayRebuilder.gridW + x] = value
                 }
             }
         }

@@ -1,6 +1,6 @@
-import { READ_BE_UINT16 } from "../core/intern"
+import { readBeUint16 } from "../core/intern"
 import { encodeIndexedPng, decodeIndexedPng } from "../core/indexed-png"
-import { GAMESCREEN_H, GAMESCREEN_W } from "../core/game_constants"
+import { gamescreenH, gamescreenW } from "../core/game_constants"
 
 type PaletteHeaderSlots = {
     slot1?: { dec?: number } | number
@@ -23,7 +23,7 @@ function parsePalettes(palData: Uint8Array) {
     const palette = new Array(256).fill(0).map(() => ({ r: 0, g: 0, b: 0 }))
     for (let slot = 0; slot < paletteCount && slot < 16; ++slot) {
         for (let colorIndex = 0; colorIndex < 16; ++colorIndex) {
-            const color = READ_BE_UINT16(palData, slot * 32 + colorIndex * 2)
+            const color = readBeUint16(palData, slot * 32 + colorIndex * 2)
             palette[slot * 16 + colorIndex] = amigaConvertColor(color, true)
         }
     }
@@ -73,8 +73,8 @@ async function main() {
     const fs = require("fs")
 
     const sourcePixels = new Uint8Array(fs.readFileSync(pixelPath))
-    if (sourcePixels.length !== GAMESCREEN_W * GAMESCREEN_H) {
-        throw new Error(`Invalid room pixeldata size ${sourcePixels.length}, expected ${GAMESCREEN_W * GAMESCREEN_H}`)
+    if (sourcePixels.length !== gamescreenW * gamescreenH) {
+        throw new Error(`Invalid room pixeldata size ${sourcePixels.length}, expected ${gamescreenW * gamescreenH}`)
     }
     const pixels = new Uint8Array(sourcePixels)
     for (let i = 0; i < pixels.length; ++i) {
@@ -116,11 +116,11 @@ async function main() {
     copyPaletteBank(flattenedPalette, 0xC, legacyPaletteBanks, slotValues[2] as number)
     copyPaletteBank(flattenedPalette, 0xD, legacyPaletteBanks, slotValues[3] as number)
 
-    const encoded = encodeIndexedPng(GAMESCREEN_W, GAMESCREEN_H, pixels, flattenedPalette)
+    const encoded = encodeIndexedPng(gamescreenW, gamescreenH, pixels, flattenedPalette)
     fs.writeFileSync(outputPath, Buffer.from(encoded))
 
     const decoded = await decodeIndexedPng(encoded)
-    if (decoded.width !== GAMESCREEN_W || decoded.height !== GAMESCREEN_H) {
+    if (decoded.width !== gamescreenW || decoded.height !== gamescreenH) {
         throw new Error(`Indexed PNG size mismatch after decode ${decoded.width}x${decoded.height}`)
     }
     if (decoded.pixels.length !== pixels.length) {

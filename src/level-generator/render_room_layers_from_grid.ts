@@ -5,11 +5,11 @@ import { resolveDefaultCollisionDir, resolveDefaultGeneratedLevelDir } from "./g
 
 const WIDTH = 256
 const HEIGHT = 224
-const CELL_W = 16
-const CELL_H = 36
+const cellW = 16
+const cellH = 36
 const TRANSPARENT = 0xFF
-const BACK_FILL = 1
-const BACK_SHADE = 2
+const backFill = 1
+const backShade = 2
 
 type Color = { r: number, g: number, b: number }
 
@@ -52,10 +52,10 @@ function getVisibleCellRect(grid: number[][], cx: number, cy: number) {
         throw new Error(`Expected a 7-row collision grid, got ${rows}`)
     }
 
-    const x = cx * CELL_W
-    const y = cy * CELL_H
-    const nextX = x + CELL_W
-    const nextY = Math.min(HEIGHT, y + CELL_H)
+    const x = cx * cellW
+    const y = cy * cellH
+    const nextX = x + cellW
+    const nextY = Math.min(HEIGHT, y + cellH)
 
     return {
         x,
@@ -129,7 +129,7 @@ function renderRoom(grid: number[][]) {
                 continue
             }
             const cell = getVisibleCellRect(grid, cx, cy)
-            rect(backPixels, cell.x, cell.y, cell.w, cell.h, BACK_FILL)
+            rect(backPixels, cell.x, cell.y, cell.w, cell.h, backFill)
         }
     }
 

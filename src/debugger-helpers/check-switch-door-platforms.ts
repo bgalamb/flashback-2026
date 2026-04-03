@@ -1,21 +1,21 @@
 export {}
 
-const DATA_DIR = "DATA"
-const LEVELS_DIR = `${DATA_DIR}/levels`
-const GENERATED_COLLISION_DIR = `${LEVELS_DIR}/tmp_generated`
-const LEVEL_DIR_PATTERN = /^level\d+(?:_\d+)?$/i
-const PGE_JSON_PATTERN = /\.pge\.json$/i
-const SWITCH_OBJECT_TYPE = 7
-const DOOR_OBJECT_TYPES = new Set([6])
-const SWITCH_TARGET_DOOR_OBJECT_TYPES = new Set([0, 6])
-const GRID_COLUMNS = 16
+const dataDir = "DATA"
+const levelsDir = `${dataDir}/levels`
+const generatedCollisionDir = `${levelsDir}/tmpGenerated`
+const levelDirPattern = /^level\d+(?:_\d+)?$/i
+const pgeJsonPattern = /\.pge\.json$/i
+const switchObjectType = 7
+const doorObjectTypes = new Set([6])
+const switchTargetDoorObjectTypes = new Set([0, 6])
+const gridColumns = 16
 
 interface ParsedPgeEntryData {
-    pos_x: number
-    pos_y: number
-    object_type: number
-    init_room: number
-    counter_values: number[]
+    posX: number
+    posY: number
+    objectType: number
+    initRoom: number
+    counterValues: number[]
 }
 
 interface ParsedPgeFileData {
@@ -48,7 +48,7 @@ function parseGridFile(gridPath: string) {
             continue
         }
         const values = (match[2].match(/\d+/g) || []).map(Number)
-        if (values.length === GRID_COLUMNS) {
+        if (values.length === gridColumns) {
             rows[rowIndex] = values
         }
     }
@@ -59,13 +59,13 @@ function parseGridFile(gridPath: string) {
 function getRuntimeLevelDirs() {
     const fs = require("fs")
     const path = require("path")
-    return fs.readdirSync(LEVELS_DIR, { withFileTypes: true })
+    return fs.readdirSync(levelsDir, { withFileTypes: true })
         .filter((entry: { isDirectory(): boolean, name: string }) => {
-            if (!entry.isDirectory() || !LEVEL_DIR_PATTERN.test(entry.name)) {
+            if (!entry.isDirectory() || !levelDirPattern.test(entry.name)) {
                 return false
             }
-            const levelDir = path.join(LEVELS_DIR, entry.name)
-            return fs.readdirSync(levelDir).some((fileName: string) => PGE_JSON_PATTERN.test(fileName))
+            const levelDir = path.join(levelsDir, entry.name)
+            return fs.readdirSync(levelDir).some((fileName: string) => pgeJsonPattern.test(fileName))
         })
         .map((entry: { name: string }) => entry.name)
         .sort()
@@ -74,8 +74,8 @@ function getRuntimeLevelDirs() {
 function getPgeFilePath(levelName: string) {
     const fs = require("fs")
     const path = require("path")
-    const levelDir = path.join(LEVELS_DIR, levelName)
-    const pgeFileName = fs.readdirSync(levelDir).find((entry: string) => PGE_JSON_PATTERN.test(entry))
+    const levelDir = path.join(levelsDir, levelName)
+    const pgeFileName = fs.readdirSync(levelDir).find((entry: string) => pgeJsonPattern.test(entry))
     if (!pgeFileName) {
         throw new Error(`Could not find a .pge.json file in '${levelDir}'`)
     }
@@ -84,13 +84,13 @@ function getPgeFilePath(levelName: string) {
 
 function getGridFilePath(levelName: string, room: number) {
     const path = require("path")
-    return path.join(GENERATED_COLLISION_DIR, `${levelName}-collisions`, `room-${room.toString().padStart(2, "0")}-grid.txt`)
+    return path.join(generatedCollisionDir, `${levelName}-collisions`, `room-${room.toString().padStart(2, "0")}-grid.txt`)
 }
 
 function getSupportColumns(posX: number) {
     const baseColumn = Math.floor(posX / 16)
     return [baseColumn - 1, baseColumn, baseColumn + 1].filter((column, index, columns) => {
-        return column >= 0 && column < GRID_COLUMNS && columns.indexOf(column) === index
+        return column >= 0 && column < gridColumns && columns.indexOf(column) === index
     })
 }
 
@@ -99,16 +99,16 @@ function getSupportRow(posY: number) {
 }
 
 function isSwitch(pge: ParsedPgeEntryData) {
-    return pge.object_type === SWITCH_OBJECT_TYPE
+    return pge.objectType === switchObjectType
 }
 
 function getSwitchTargetIndices(pges: ParsedPgeEntryData[]) {
     const out = new Set<number>()
     for (const pge of pges) {
-        if (!isSwitch(pge) || !Array.isArray(pge.counter_values)) {
+        if (!isSwitch(pge) || !Array.isArray(pge.counterValues)) {
             continue
         }
-        for (const counterValue of pge.counter_values) {
+        for (const counterValue of pge.counterValues) {
             if (Number.isInteger(counterValue) && counterValue >= 0 && counterValue < pges.length) {
                 out.add(counterValue)
             }
@@ -118,10 +118,10 @@ function getSwitchTargetIndices(pges: ParsedPgeEntryData[]) {
 }
 
 function isDoorLikePge(pge: ParsedPgeEntryData, pgeIndex: number, switchTargetIndices: Set<number>) {
-    if (DOOR_OBJECT_TYPES.has(pge.object_type)) {
+    if (doorObjectTypes.has(pge.objectType)) {
         return true
     }
-    return switchTargetIndices.has(pgeIndex) && SWITCH_TARGET_DOOR_OBJECT_TYPES.has(pge.object_type)
+    return switchTargetIndices.has(pgeIndex) && switchTargetDoorObjectTypes.has(pge.objectType)
 }
 
 function hasPlatformSupport(grid: number[][], supportRow: number, supportColumns: number[]) {
@@ -130,7 +130,20 @@ function hasPlatformSupport(grid: number[][], supportRow: number, supportColumns
 
 function loadParsedPgeFile(filePath: string) {
     const fs = require("fs")
-    return JSON.parse(fs.readFileSync(filePath, "utf8")) as ParsedPgeFileData
+    const camelize = (value: unknown): unknown => {
+        if (Array.isArray(value)) {
+            return value.map((entry) => camelize(entry))
+        }
+        if (!value || typeof value !== "object") {
+            return value
+        }
+        const normalized: Record<string, unknown> = {}
+        for (const [key, entry] of Object.entries(value)) {
+            normalized[key.replace(/_([a-zA-Z0-9])/g, (_match, char: string) => char.toUpperCase())] = camelize(entry)
+        }
+        return normalized
+    }
+    return camelize(JSON.parse(fs.readFileSync(filePath, "utf8"))) as ParsedPgeFileData
 }
 
 function validateLevel(levelName: string) {
@@ -147,27 +160,27 @@ function validateLevel(levelName: string) {
             continue
         }
 
-        const gridPath = getGridFilePath(levelName, pge.init_room)
+        const gridPath = getGridFilePath(levelName, pge.initRoom)
         if (!fs.existsSync(gridPath)) {
             continue
         }
 
-        if (!cachedGrids.has(pge.init_room)) {
-            cachedGrids.set(pge.init_room, parseGridFile(gridPath))
+        if (!cachedGrids.has(pge.initRoom)) {
+            cachedGrids.set(pge.initRoom, parseGridFile(gridPath))
         }
 
-        const supportRow = getSupportRow(pge.pos_y)
-        const supportColumns = getSupportColumns(pge.pos_x)
-        const grid = cachedGrids.get(pge.init_room) || []
+        const supportRow = getSupportRow(pge.posY)
+        const supportColumns = getSupportColumns(pge.posX)
+        const grid = cachedGrids.get(pge.initRoom) || []
 
         if (!hasPlatformSupport(grid, supportRow, supportColumns)) {
             warnings.push({
                 levelName,
                 pgeIndex,
-                room: pge.init_room,
-                objectType: pge.object_type,
-                posX: pge.pos_x,
-                posY: pge.pos_y,
+                room: pge.initRoom,
+                objectType: pge.objectType,
+                posX: pge.posX,
+                posY: pge.posY,
                 supportRow,
                 supportColumns,
             })
@@ -182,7 +195,7 @@ function formatWarning(warning: ValidationWarning) {
         `level=${warning.levelName}`,
         `room=${warning.room}`,
         `pge=${warning.pgeIndex}`,
-        `object_type=${warning.objectType}`,
+        `objectType=${warning.objectType}`,
         `pos=(${warning.posX}, ${warning.posY})`,
         `supportRow=${warning.supportRow}`,
         `supportColumns=[${warning.supportColumns.join(", ")}]`,

@@ -2,7 +2,7 @@ import { Resource } from '../resource/resource'
 import { SystemStub } from '../platform/systemstub_web'
 import { Video } from '../video/video'
 import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../core/staticres'
-import { UINT16_MAX, UINT8_MAX, global_game_options } from '../core/game_constants'
+import { uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
 
 class Cutscene {
@@ -12,9 +12,9 @@ class Cutscene {
     private _res: Resource
     private _stub: SystemStub
     private _vid: Video
-    private _id: number = UINT16_MAX
+    private _id: number = uint16Max
     private _interrupted: boolean = false
-    private _deathCutsceneId: number = UINT16_MAX
+    private _deathCutsceneId: number = uint16Max
 
     constructor(res: Resource, stub: SystemStub, vid: Video) {
         this._res = res
@@ -44,7 +44,7 @@ class Cutscene {
 
     async play(id = this.getId()) {
         this.setId(id)
-        if (id === UINT16_MAX) {
+        if (id === uint16Max) {
             return
         }
 
@@ -52,7 +52,7 @@ class Cutscene {
         let cutName = offsets[id * 2 + 0]
         const cutOff = offsets[id * 2 + 1]
 
-        if (cutName !== UINT16_MAX) {
+        if (cutName !== uint16Max) {
             cutName = this.resolveCutNameOverride(id, cutName)
         }
 
@@ -60,22 +60,22 @@ class Cutscene {
         if (mappedVideo) {
             const player = new Mp4CutscenePlayer(this._stub, this._res.fileSystem)
             this._interrupted = !(await player.play(mappedVideo))
-        } else if (cutName !== UINT16_MAX) {
+        } else if (cutName !== uint16Max) {
             throw new Error(`Missing MP4 cutscene mapping for scene ${id} (cutName=${cutName}, cutOffset=${cutOff})`)
         }
 
         this._vid.fullRefresh()
         if (this.getId() !== 0x3D) {
-            this.setId(UINT16_MAX)
+            this.setId(uint16Max)
         }
     }
 
     private resolveMP4CutsceneFileName(id: number, cutName: number, cutOff: number) {
-        if (cutName === UINT16_MAX) {
+        if (cutName === uint16Max) {
             return null
         }
         const entry = _cineSceneIdToCutPairsDOS[id]
-        if (entry && entry.cutName === _namesTableDOS[cutName & UINT8_MAX] && entry.cutOffset === cutOff && entry.mpegFileName) {
+        if (entry && entry.cutName === _namesTableDOS[cutName & uint8Max] && entry.cutOffset === cutOff && entry.mpegFileName) {
             return entry.mpegFileName
         }
         return null
@@ -84,27 +84,27 @@ class Cutscene {
     private resolveCutNameOverride(id: number, cutName: number) {
         switch (id) {
             case 3:
-                if (global_game_options.play_carte_cutscene) {
+                if (globalGameOptions.playCarteCutscene) {
                     return 2
                 }
                 return cutName
             case 8:
                 return cutName
             case 19:
-                if (global_game_options.play_serrure_cutscene) {
+                if (globalGameOptions.playSerrureCutscene) {
                     return 31
                 }
                 return cutName
             case 22:
             case 23:
             case 24:
-                if (global_game_options.play_asc_cutscene) {
+                if (globalGameOptions.playAscCutscene) {
                     return 12
                 }
                 return cutName
             case 30:
             case 31:
-                if (global_game_options.play_metro_cutscene) {
+                if (globalGameOptions.playMetroCutscene) {
                     return 14
                 }
                 return cutName

@@ -2,10 +2,10 @@ import * as fs from "fs"
 import { decodeIndexedPng, encodeIndexedPng } from "../core/indexed-png"
 import { Color } from "../core/intern"
 
-const LAYER_TRANSPARENT_INDEX = 0xFF
-const SOURCE_BANK_COUNT = 4
-const COLORS_PER_BANK = 16
-const MAX_SOURCE_COLORS = SOURCE_BANK_COUNT * COLORS_PER_BANK
+const layerTransparentIndex = 0xFF
+const sourceBankCount = 4
+const colorsPerBank = 16
+const maxSourceColors = sourceBankCount * colorsPerBank
 
 function printUsage() {
     console.error(
@@ -27,14 +27,14 @@ function buildOutputPalette() {
     const palette: Color[] = new Array(256).fill(null).map(() => ({ r: 0, g: 0, b: 0 }))
     const alpha = new Uint8Array(256)
     alpha.fill(255)
-    alpha[LAYER_TRANSPARENT_INDEX] = 0
+    alpha[layerTransparentIndex] = 0
     return { palette, alpha }
 }
 
 function setPaletteBank(dst: Color[], alpha: Uint8Array, dstBank: number, sourcePalette: Color[], sourceAlpha: Uint8Array, srcBank: number) {
-    const dstOffset = dstBank * COLORS_PER_BANK
-    const srcOffset = srcBank * COLORS_PER_BANK
-    for (let i = 0; i < COLORS_PER_BANK; ++i) {
+    const dstOffset = dstBank * colorsPerBank
+    const srcOffset = srcBank * colorsPerBank
+    for (let i = 0; i < colorsPerBank; ++i) {
         const sourceColor = sourcePalette[srcOffset + i]
         if (sourceColor) {
             dst[dstOffset + i] = { r: sourceColor.r, g: sourceColor.g, b: sourceColor.b }
@@ -49,12 +49,12 @@ function compactSourcePalette(sourcePalette: Color[], sourceAlpha: Uint8Array, s
         usedSourceIndices.add(sourcePixels[i])
     }
 
-    if (usedSourceIndices.size > MAX_SOURCE_COLORS) {
-        throw new Error(`Source image uses ${usedSourceIndices.size} colors, expected at most ${MAX_SOURCE_COLORS}`)
+    if (usedSourceIndices.size > maxSourceColors) {
+        throw new Error(`Source image uses ${usedSourceIndices.size} colors, expected at most ${maxSourceColors}`)
     }
 
     const palette: Color[] = []
-    const alpha = new Uint8Array(MAX_SOURCE_COLORS)
+    const alpha = new Uint8Array(maxSourceColors)
     const indexMap = new Map<number, number>()
     let nextIndex = 0
 
@@ -97,7 +97,7 @@ function remapPalette(
 ) {
     for (let index = 0; index < sourcePalette.length; ++index) {
         const bank = index >> 4
-        if (bank >= SOURCE_BANK_COUNT) {
+        if (bank >= sourceBankCount) {
             throw new Error(`Source palette index ${index} exceeds the supported 64-color range`)
         }
         const destinationIndex = ((bankOffset + bank) << 4) | (index & 0x0F)
@@ -111,11 +111,11 @@ function remapPixels(sourcePixels: Uint8Array, sourceAlpha: Uint8Array, bankOffs
     const pixels = new Uint8Array(sourcePixels.length)
     for (let i = 0; i < sourcePixels.length; ++i) {
         const sourceIndex = sourcePixels[i]
-        if (sourceIndex >= MAX_SOURCE_COLORS) {
+        if (sourceIndex >= maxSourceColors) {
             throw new Error(`Pixel ${i} uses palette index ${sourceIndex}, expected a 64-color indexed PNG`)
         }
         if (sourceAlpha[sourceIndex] === 0) {
-            pixels[i] = LAYER_TRANSPARENT_INDEX
+            pixels[i] = layerTransparentIndex
             continue
         }
         const bank = sourceIndex >> 4
@@ -125,7 +125,7 @@ function remapPixels(sourcePixels: Uint8Array, sourceAlpha: Uint8Array, bankOffs
 }
 
 function writePixeldataPalette(sourcePalette: Color[], sourceAlpha: Uint8Array, palette: Color[], alpha: Uint8Array) {
-    for (let bank = 0; bank < SOURCE_BANK_COUNT; ++bank) {
+    for (let bank = 0; bank < sourceBankCount; ++bank) {
         setPaletteBank(palette, alpha, bank, sourcePalette, sourceAlpha, bank)
     }
     setPaletteBank(palette, alpha, 0x8, sourcePalette, sourceAlpha, 0x0)
@@ -151,8 +151,8 @@ async function main() {
     let pixels: Uint8Array
 
     if (layer === "pixeldata") {
-        if (compacted.palette.length > MAX_SOURCE_COLORS) {
-            throw new Error(`Compacted palette has ${compacted.palette.length} colors, expected at most ${MAX_SOURCE_COLORS}`)
+        if (compacted.palette.length > maxSourceColors) {
+            throw new Error(`Compacted palette has ${compacted.palette.length} colors, expected at most ${maxSourceColors}`)
         }
         writePixeldataPalette(compacted.palette, compacted.alpha, palette, alpha)
         pixels = new Uint8Array(compacted.pixels)

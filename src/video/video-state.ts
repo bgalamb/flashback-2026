@@ -1,5 +1,5 @@
 import type { Color } from '../core/intern'
-import { GAMESCREEN_H, GAMESCREEN_W, SCREENBLOCK_H, SCREENBLOCK_W } from '../core/game_constants'
+import { gamescreenH, gamescreenW, screenblockH, screenblockW } from '../core/game_constants'
 
 type drawCharFunc = (p1: Uint8Array, p2: number, p3: number, p4: number, p5: Uint8Array, p6: number, p7: number) => void
 
@@ -45,7 +45,7 @@ interface VideoScreenState {
     shakeOffset: number
 }
 
-function createVideoLayerState(w: number = GAMESCREEN_W, h: number = GAMESCREEN_H): VideoLayerState {
+function createVideoLayerState(w: number = gamescreenW, h: number = gamescreenH): VideoLayerState {
     const layerSize = w * h
     return {
         w,
@@ -81,9 +81,9 @@ function createVideoTextState(drawChar: drawCharFunc): VideoTextState {
     }
 }
 
-function createVideoScreenState(w: number = GAMESCREEN_W, h: number = GAMESCREEN_H): VideoScreenState {
+function createVideoScreenState(w: number = gamescreenW, h: number = gamescreenH): VideoScreenState {
     return {
-        screenBlocks: new Uint8Array((w / SCREENBLOCK_W) * (h / SCREENBLOCK_H)),
+        screenBlocks: new Uint8Array((w / screenblockW) * (h / screenblockH)),
         fullRefresh: true,
         shakeOffset: 0,
     }

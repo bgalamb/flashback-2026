@@ -12,13 +12,13 @@ const defaultScaleParameters: ScalerParameters = {
     factor: _internalScaler.factorMin + (_internalScaler.factorMax - _internalScaler.factorMin) / 2,
 }
 
-const DIR_UP = 1 << 0
-const DIR_DOWN = 1 << 1
-const DIR_LEFT = 1 << 2
-const DIR_RIGHT = 1 << 3
-const DF_FASTMODE = 1 << 0
-const DF_DBLOCKS = 1 << 1
-const DF_SETLIFE = 1 << 2
+const dirUp = 1 << 0
+const dirDown = 1 << 1
+const dirLeft = 1 << 2
+const dirRight = 1 << 3
+const dfFastmode = 1 << 0
+const dfDblocks = 1 << 1
+const dfSetlife = 1 << 2
 
 interface PlayerInput {
     dirMask: number
@@ -57,12 +57,12 @@ function createPlayerInput(): PlayerInput {
 export {
     createPlayerInput,
     defaultScaleParameters,
-    DF_DBLOCKS,
-    DF_FASTMODE,
-    DF_SETLIFE,
-    DIR_DOWN,
-    DIR_LEFT,
-    DIR_RIGHT,
-    DIR_UP,
+    dfDblocks,
+    dfFastmode,
+    dfSetlife,
+    dirDown,
+    dirLeft,
+    dirRight,
+    dirUp,
 }
 export type { PlayerInput, ScalerParameters }

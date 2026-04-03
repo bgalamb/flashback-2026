@@ -7,11 +7,11 @@ interface ParsedTbnFileData {
 }
 
 class TbnFileExporter {
-    private static readonly FILES_INDEX_NAME = "files.json"
-    private static readonly LEVEL_NAMES = ["level1", "level2", "level3", "level4_1", "level4_2", "level5_1", "level5_2"]
+    private static readonly filesIndexName = "files.json"
+    private static readonly levelNames = ["level1", "level2", "level3", "level4_1", "level4_2", "level5_1", "level5_2"]
 
     static getLevelNames(): string[] {
-        return TbnFileExporter.LEVEL_NAMES.slice()
+        return TbnFileExporter.levelNames.slice()
     }
 
     static getOverrideBaseName(levelName: string): string {
@@ -41,7 +41,7 @@ class TbnFileExporter {
     }
 
     static ensureFilesIndexContainsOutputs(dataDir: string, outputPaths: string[]): void {
-        const filesIndexPath = path.join(dataDir, TbnFileExporter.FILES_INDEX_NAME)
+        const filesIndexPath = path.join(dataDir, TbnFileExporter.filesIndexName)
         const filesIndex = JSON.parse(fs.readFileSync(filesIndexPath, "utf8"))
         if (!Array.isArray(filesIndex)) {
             throw new Error(`Expected ${filesIndexPath} to contain a JSON array`)

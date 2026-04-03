@@ -5,21 +5,21 @@ const assert = require('node:assert/strict')
 
 const { Menu } = require('../src/game/menu.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { DIR_DOWN } = require('../src/platform/systemstub_web.ts')
-const { GAMESCREEN_W, GAMESCREEN_H } = require('../src/video/video.ts')
+const { dirDown } = require('../src/platform/systemstub_web.ts')
+const { gamescreenW, gamescreenH } = require('../src/video/video.ts')
 
 function createMenuFixture(overrides = {}) {
     const scratchSize = 0x3800 * 4
     const scratchBuffer = new Uint8Array(scratchSize)
     const res = {
         scratchBuffer,
-        async load_MAP_menu() {},
-        async load_PAL_menu() {},
+        async loadMenuMap() {},
+        async loadMenuPalette() {},
         getMenuString(id) {
             return {
-                [LocaleData.Id.LI_07_START]: 'START',
-                [LocaleData.Id.LI_10_INFO]: 'INFO',
-                [LocaleData.Id.LI_11_QUIT]: 'QUIT',
+                [LocaleData.Id.li07Start]: 'START',
+                [LocaleData.Id.li10Info]: 'INFO',
+                [LocaleData.Id.li11Quit]: 'QUIT',
             }[id] || `TEXT_${id}`
         },
     }
@@ -47,16 +47,16 @@ function createMenuFixture(overrides = {}) {
             charShadowColor: 12,
         },
         layers: {
-            frontLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
-            backLayer: new Uint8Array(GAMESCREEN_W * GAMESCREEN_H),
-            layerSize: GAMESCREEN_W * GAMESCREEN_H,
+            frontLayer: new Uint8Array(gamescreenW * gamescreenH),
+            backLayer: new Uint8Array(gamescreenW * gamescreenH),
+            layerSize: gamescreenW * gamescreenH,
         },
         drawCalls: [],
         dirtyCalls: [],
         fullRefreshCalls: 0,
         fadeOutCalls: 0,
         updateScreenCalls: 0,
-        PC_drawChar(...args) {
+        pcDrawchar(...args) {
             this.drawCalls.push(args)
         },
         getTextColors() {
@@ -104,7 +104,7 @@ function createMenuFixture(overrides = {}) {
 test('loadPicture copies the packed menu image into the front and back layers and applies the palette', async () => {
     const { menu, res, stub, vid } = createMenuFixture()
 
-    res.load_MAP_menu = async (_prefix, buffer) => {
+    res.loadMenuMap = async (_prefix, buffer) => {
         for (let plane = 0; plane < 4; ++plane) {
             const base = 0x3800 * plane
             buffer[base + 0] = plane + 1
@@ -112,7 +112,7 @@ test('loadPicture copies the packed menu image into the front and back layers an
             buffer[base + 64] = plane + 21
         }
     }
-    res.load_PAL_menu = async (_prefix, buffer) => {
+    res.loadMenuPalette = async (_prefix, buffer) => {
         buffer[0] = 0xAA
         buffer[1] = 0xBB
     }
@@ -120,7 +120,7 @@ test('loadPicture copies the packed menu image into the front and back layers an
     await menu.loadPicture('menu1')
 
     assert.deepEqual(Array.from(vid.layers.frontLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
-    assert.deepEqual(Array.from(vid.layers.frontLayer.slice(GAMESCREEN_W, GAMESCREEN_W + 4)), [21, 22, 23, 24])
+    assert.deepEqual(Array.from(vid.layers.frontLayer.slice(gamescreenW, gamescreenW + 4)), [21, 22, 23, 24])
     assert.deepEqual(Array.from(vid.layers.backLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
     assert.deepEqual(stub.paletteCalls, [[res.scratchBuffer, 256]])
 })
@@ -152,7 +152,7 @@ test('handleLevelScreen cycles entries, updates the selected level, and exits on
     menu._level = 0
     stub.processEvents = async () => {
         if (iteration === 0) {
-            stub._pi.dirMask = DIR_DOWN
+            stub._pi.dirMask = dirDown
         } else if (iteration === 1) {
             stub._pi.enter = true
         }
@@ -219,6 +219,6 @@ test('handleTitleScreen dispatches the START option through the level screen flo
     assert.equal(vid.fadeOutCalls, 1)
     assert.equal(vid.fullRefreshCalls, 1)
     assert.equal(levelScreenCalls, 1)
-    assert.equal(menu._selectedOption, Menu.MENU_OPTION_ITEM_START)
+    assert.equal(menu._selectedOption, Menu.menuOptionItemStart)
     assert.equal(menu._nextScreen, 0)
 })

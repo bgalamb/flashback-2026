@@ -1,19 +1,19 @@
 import { ScalerParameters, defaultScaleParameters, SystemStub } from './platform/systemstub_web'
 import { FileSystem } from './resource/fs'
 import { Game } from './game/game'
-import { DEFAULT_CONFIG, global_game_options } from './core/game_constants'
+import { defaultConfig, globalGameOptions } from './core/game_constants'
 
-const g_caption = "REminiscence"
+const gCaption = "REminiscence"
 
 //By default the structure has everything false, so here we change some values
 const initOptions = async () => {
-    global_game_options.use_white_tshirt = false
-    global_game_options.play_asc_cutscene = true
-    global_game_options.play_caillou_cutscene = true
-    global_game_options.play_metro_cutscene = false
-    global_game_options.play_serrure_cutscene = false
-    global_game_options.play_carte_cutscene = false
-    global_game_options.play_gamesaved_sound = false
+    globalGameOptions.useWhiteTshirt = false
+    globalGameOptions.playAscCutscene = true
+    globalGameOptions.playCaillouCutscene = true
+    globalGameOptions.playMetroCutscene = false
+    globalGameOptions.playSerrureCutscene = false
+    globalGameOptions.playCarteCutscene = false
+    globalGameOptions.playGamesavedSound = false
 
 }
 
@@ -37,7 +37,7 @@ const defaultMainDependencies: MainDependencies = {
     Game,
 }
 
-const createMain = (dependencies: MainDependencies = defaultMainDependencies) => async (config = DEFAULT_CONFIG ) => {
+const createMain = (dependencies: MainDependencies = defaultMainDependencies) => async (config = defaultConfig ) => {
     let scalerParameters:ScalerParameters = { ...defaultScaleParameters }
     parseScaler(config.scaler, scalerParameters)
     console.log({ scalerParameters })
@@ -59,7 +59,7 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
 
     const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave)
     stub._game = game
-    await stub.init(g_caption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
+    await stub.init(gCaption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
     await game.run()
 }
 

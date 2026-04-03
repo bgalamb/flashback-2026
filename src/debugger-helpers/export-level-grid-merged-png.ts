@@ -1,4 +1,4 @@
-import { CT_GRID_HEIGHT, CT_GRID_WIDTH } from "../core/game_constants"
+import { ctGridHeight, ctGridWidth } from "../core/game_constants"
 import { encodeRgbPng } from "../core/png-rgb"
 
 type RoomCoord = {
@@ -69,17 +69,17 @@ function parseRoomGrid(gridPath: string): RoomGrid {
             continue
         }
         const y = Number(match[1])
-        if (y < 0 || y >= CT_GRID_HEIGHT) {
+        if (y < 0 || y >= ctGridHeight) {
             continue
         }
         const values = (match[2].match(/-?\d+/g) || []).map(Number)
-        if (values.length !== CT_GRID_WIDTH) {
-            throw new Error(`Expected ${CT_GRID_WIDTH} grid values in '${gridPath}' row ${y}, got ${values.length}`)
+        if (values.length !== ctGridWidth) {
+            throw new Error(`Expected ${ctGridWidth} grid values in '${gridPath}' row ${y}, got ${values.length}`)
         }
         rows[y] = values
     }
 
-    if (rows.length !== CT_GRID_HEIGHT || rows.some((row) => !row)) {
+    if (rows.length !== ctGridHeight || rows.some((row) => !row)) {
         throw new Error(`Incomplete grid rows in '${gridPath}'`)
     }
 
@@ -87,16 +87,16 @@ function parseRoomGrid(gridPath: string): RoomGrid {
 }
 
 function renderMergedGrid(roomCoords: RoomCoord[], roomGridsByRoom: Map<number, RoomGrid>, cellSize: number) {
-    const overlapX = CT_GRID_WIDTH - 1
-    const overlapY = CT_GRID_HEIGHT - 1
+    const overlapX = ctGridWidth - 1
+    const overlapY = ctGridHeight - 1
 
     const minX = Math.min(...roomCoords.map((entry) => entry.x))
     const maxX = Math.max(...roomCoords.map((entry) => entry.x))
     const minY = Math.min(...roomCoords.map((entry) => entry.y))
     const maxY = Math.max(...roomCoords.map((entry) => entry.y))
 
-    const logicalWidth = (maxX - minX) * overlapX + CT_GRID_WIDTH
-    const logicalHeight = (maxY - minY) * overlapY + CT_GRID_HEIGHT
+    const logicalWidth = (maxX - minX) * overlapX + ctGridWidth
+    const logicalHeight = (maxY - minY) * overlapY + ctGridHeight
     const logicalGrid = new Uint8Array(logicalWidth * logicalHeight)
 
     for (const { room, x, y } of roomCoords) {
@@ -106,8 +106,8 @@ function renderMergedGrid(roomCoords: RoomCoord[], roomGridsByRoom: Map<number, 
         }
         const baseX = (x - minX) * overlapX
         const baseY = (y - minY) * overlapY
-        for (let gy = 0; gy < CT_GRID_HEIGHT; ++gy) {
-            for (let gx = 0; gx < CT_GRID_WIDTH; ++gx) {
+        for (let gy = 0; gy < ctGridHeight; ++gy) {
+            for (let gx = 0; gx < ctGridWidth; ++gx) {
                 const value = roomGrid[gy][gx]
                 if (value === 0) {
                     continue

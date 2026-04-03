@@ -1,4 +1,4 @@
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
+import { readBeUint16, readBeUint32 } from "../core/intern"
 
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/debugger-helpers/export-mbk-bnq-map-table.ts <mbk> <bnq> [outputDir]")
@@ -57,12 +57,12 @@ function main() {
     const rows: string[][] = [header]
 
     for (let i = 0; i < entryCount; ++i) {
-        const mbkOffset = READ_BE_UINT32(mbk, i * 6) & 0xFFFF
-        const mbkLenWord = READ_BE_UINT16(mbk, i * 6 + 4)
+        const mbkOffset = readBeUint32(mbk, i * 6) & 0xFFFF
+        const mbkLenWord = readBeUint16(mbk, i * 6 + 4)
         const mbkLenBytes = ((mbkLenWord & 0x8000) !== 0 ? (mbkLenWord & 0x7FFF) : mbkLenWord) * 32
 
-        const bnqOffset = READ_BE_UINT32(bnq, i * 6) & 0xFFFF
-        const bnqLenWord = READ_BE_UINT16(bnq, i * 6 + 4)
+        const bnqOffset = readBeUint32(bnq, i * 6) & 0xFFFF
+        const bnqLenWord = readBeUint16(bnq, i * 6 + 4)
         let bnqLenSigned = bnqLenWord
         if ((bnqLenSigned & 0x8000) !== 0) {
             bnqLenSigned = -((bnqLenSigned << 16) >> 16)

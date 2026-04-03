@@ -1,4 +1,4 @@
-import { READ_BE_UINT16 } from '../core/intern'
+import { readBeUint16 } from '../core/intern'
 import { clearResourceBankCache, findResourceBankData, loadResourceBankData, ResourceBankCacheState } from './bank-cache'
 
 function clearBankData(bankCache: ResourceBankCacheState) {
@@ -6,7 +6,7 @@ function clearBankData(bankCache: ResourceBankCacheState) {
 }
 
 function getBankDataSize(mbk: Uint8Array, bnq: Uint8Array, bankIndex: number) {
-    let entryLength = READ_BE_UINT16(mbk, bankIndex * 6 + 4)
+    let entryLength = readBeUint16(mbk, bankIndex * 6 + 4)
     if (entryLength & 0x8000) {
         if (mbk === bnq) {
             // demo .bnq use signed int

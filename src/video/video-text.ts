@@ -1,4 +1,4 @@
-import { CHAR_H, CHAR_W, UINT8_MAX } from '../core/game_constants'
+import { charH, charW, uint8Max } from '../core/game_constants'
 import type { VideoLayerState, VideoTextState } from './video-state'
 
 function drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
@@ -21,13 +21,13 @@ function drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, sr
             dstOffset++
         }
         srcOffset += 4
-        dstOffset += pitch - CHAR_W
+        dstOffset += pitch - charW
     }
 }
 
 function drawStringLenToFrontLayer(layers: VideoLayerState, text: VideoTextState, font: Uint8Array, str: string, len: number, x: number, y: number, color: number) {
     for (let i = 0; i < len; ++i) {
-        text.drawChar(layers.frontLayer, layers.w, x + i * CHAR_W, y, font, color, str.charCodeAt(i))
+        text.drawChar(layers.frontLayer, layers.w, x + i * charW, y, font, color, str.charCodeAt(i))
     }
 }
 
@@ -40,7 +40,7 @@ function drawStringToFrontLayer(layers: VideoLayerState, text: VideoTextState, f
         if (c === 0 || c === 0xB || c === 0xA || isNaN(c)) {
             break
         }
-        text.drawChar(layers.frontLayer, layers.w, x + len * CHAR_W, y, font, color, c)
+        text.drawChar(layers.frontLayer, layers.w, x + len * charW, y, font, color, c)
         ++len
     }
 
@@ -48,14 +48,14 @@ function drawStringToFrontLayer(layers: VideoLayerState, text: VideoTextState, f
 }
 
 function drawUiCharToFrontLayer(layers: VideoLayerState, text: VideoTextState, font: Uint8Array, c: number, y: number, x: number) {
-    y *= CHAR_W
-    x *= CHAR_H
+    y *= charW
+    x *= charH
     let src = (c - 32) * 32
 
     const dst = new Uint8Array(layers.frontLayer.buffer, x + layers.w * y)
     let index = 0
 
-    for (let h = 0; h < CHAR_H; ++h) {
+    for (let h = 0; h < charH; ++h) {
         for (let i = 0; i < 4; ++i, ++src) {
             const c1 = font[src] >>> 4
             if (c1 !== 0) {
@@ -64,7 +64,7 @@ function drawUiCharToFrontLayer(layers: VideoLayerState, text: VideoTextState, f
                 } else {
                     dst[0 + index] = text.charShadowColor
                 }
-            } else if (text.charTransparentColor !== UINT8_MAX) {
+            } else if (text.charTransparentColor !== uint8Max) {
                 dst[0 + index] = text.charTransparentColor
             }
 
@@ -76,12 +76,12 @@ function drawUiCharToFrontLayer(layers: VideoLayerState, text: VideoTextState, f
                 } else {
                     dst[0 + index] = text.charShadowColor
                 }
-            } else if (text.charTransparentColor !== UINT8_MAX) {
+            } else if (text.charTransparentColor !== uint8Max) {
                 dst[0 + index] = text.charTransparentColor
             }
             index++
         }
-        index += layers.w - CHAR_W
+        index += layers.w - charW
     }
 }
 

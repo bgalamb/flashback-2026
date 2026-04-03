@@ -4,10 +4,10 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 
 const {
-    UINT16_MAX,
+    uint16Max,
 } = require('../src/core/game_constants.ts')
 const {
-    ROOM_OVERLAY_DURATION_FRAMES,
+    roomOverlayDurationFrames,
     gameRequestMapReload,
     gameCommitLoadedRoom,
     gameResetLevelLifecycle,
@@ -82,7 +82,7 @@ test('lifecycle helpers update grouped state on real Game-shaped objects instead
     gameCommitLoadedRoom(game, 6)
     assert.equal(world.currentRoom, 6)
     assert.equal(world.loadMap, false)
-    assert.equal(ui.currentRoomOverlayCounter, ROOM_OVERLAY_DURATION_FRAMES)
+    assert.equal(ui.currentRoomOverlayCounter, roomOverlayDurationFrames)
     assert.equal(game._currentRoomOverlayCounter, 55)
 
     gameResetLevelLifecycle(game, 3)
@@ -91,12 +91,12 @@ test('lifecycle helpers update grouped state on real Game-shaped objects instead
     assert.equal(world.deathCutsceneCounter, 0)
     assert.equal(world.loadMap, true)
     assert.equal(world.blinkingConradCounter, 0)
-    assert.equal(world.textToDisplay, UINT16_MAX)
+    assert.equal(world.textToDisplay, uint16Max)
     assert.equal(ui.currentRoomOverlayCounter, 0)
     assert.equal(ui.saveStateCompleted, false)
     assert.equal(session.validSaveState, false)
     assert.equal(pge.opcodeTempVar1, 0)
-    assert.equal(pge.opcodeTempVar2, UINT16_MAX)
+    assert.equal(pge.opcodeTempVar2, uint16Max)
     assert.equal(pge.shouldProcessCurrentPgeObjectNode, false)
     assert.equal(game._credits, 88)
     assert.equal(game._textToDisplay, 66)

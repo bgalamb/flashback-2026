@@ -9,9 +9,9 @@ const gameCollision = require('../src/game/game_collision.ts')
 const gameInventory = require('../src/game/game_inventory.ts')
 const gameWorld = require('../src/game/game_world.ts')
 const {
-    DF_FASTMODE,
-    DF_SETLIFE,
-    DIR_DOWN,
+    dfFastmode,
+    dfSetlife,
+    dirDown,
 } = require('../src/platform/systemstub_web.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
 const { Menu } = require('../src/game/menu.ts')
@@ -88,7 +88,7 @@ function createBaseGame(overrides = {}) {
         _endLoop: false,
         _frameTimestamp: 0,
         _livePgeStore: { activeFrameList: [] },
-        _livePgesByIndex: [{ life: 10, room_location: 3, pos_x: 32, pos_y: 72 }],
+        _livePgesByIndex: [{ life: 10, roomLocation: 3, posX: 32, posY: 72 }],
         _loadMap: false,
         _menu: {
             _selectedOption: 0,
@@ -114,17 +114,17 @@ function createBaseGame(overrides = {}) {
             sprites: {
                 spr1: {},
             },
-            load_TEXT() {},
+            loadText() {},
             async load() {},
-            async load_SPRITE_OFFSETS() {},
+            async loadSpriteOffsets() {},
             initializeConradVisuals() {},
-            async load_FIB() {},
+            async loadFib() {},
             getMenuString(id) {
                 return {
-                    [LocaleData.Id.LI_01_CONTINUE_OR_ABORT]: 'CONTINUE OR ABORT',
-                    [LocaleData.Id.LI_02_TIME]: 'TIME',
-                    [LocaleData.Id.LI_03_CONTINUE]: 'CONTINUE',
-                    [LocaleData.Id.LI_04_ABORT]: 'ABORT',
+                    [LocaleData.Id.li01ContinueOrAbort]: 'CONTINUE OR ABORT',
+                    [LocaleData.Id.li02Time]: 'TIME',
+                    [LocaleData.Id.li03Continue]: 'CONTINUE',
+                    [LocaleData.Id.li04Abort]: 'ABORT',
                 }[id] || `TEXT_${id}`
             },
         },
@@ -271,7 +271,7 @@ test('gameRun boots resources, shows the menu, and exits when quit is selected',
     const loads = []
     const game = createBaseGame({
         _menu: {
-            _selectedOption: Menu.MENU_OPTION_ITEM_QUIT,
+            _selectedOption: Menu.menuOptionItemQuit,
             _skill: 2,
             _level: 7,
             async handleTitleScreen() {},
@@ -280,19 +280,19 @@ test('gameRun boots resources, shows the menu, and exits when quit is selected',
             sprites: {
                 spr1: { loaded: true },
             },
-            load_TEXT() {
+            loadText() {
                 loads.push(['load_TEXT'])
             },
             async load(name, type) {
                 loads.push(['load', name, type])
             },
-            async load_SPRITE_OFFSETS(name, spr) {
+            async loadSpriteOffsets(name, spr) {
                 loads.push(['load_SPRITE_OFFSETS', name, spr.loaded])
             },
             initializeConradVisuals() {
                 loads.push(['initializeConradVisuals'])
             },
-            async load_FIB(name) {
+            async loadFib(name) {
                 loads.push(['load_FIB', name])
             },
         },
@@ -325,7 +325,7 @@ test('gameUpdateTiming sleeps the remaining frame budget unless fast mode is ena
     assert.deepEqual(game._stub.sleepCalls, [1000 / 30 - 15])
     assert.equal(game._frameTimestamp, 40)
 
-    game._stub._pi.dbgMask = DF_FASTMODE
+    game._stub._pi.dbgMask = dfFastmode
     game._stub.sleepCalls = []
     game._frameTimestamp = 40
     game._stub.timeStamps = [45, 50]
@@ -342,7 +342,7 @@ test('gameHandleContinueAbort swaps the highlighted option and aborts on enter',
 
     game._stub.processEvents = async () => {
         if (iteration === 0) {
-            game._stub._pi.dirMask = DIR_DOWN
+            game._stub._pi.dirMask = dirDown
         } else if (iteration === 1) {
             game._stub._pi.enter = true
         }
@@ -401,7 +401,7 @@ test('gameInpHandleSpecialKeys updates life, saves, loads, advances slots, and r
     const loadedSlots = []
     const savedSlots = []
 
-    game._stub._pi.dbgMask = DF_SETLIFE
+    game._stub._pi.dbgMask = dfSetlife
     game._stub._pi.load = true
     game._stub._pi.save = true
     game._stub._pi.stateSlot = 2
@@ -466,8 +466,8 @@ test('gameProcessActivePgesForFrame refreshes collision-grid coordinates before 
     const calls = []
     const game = createBaseGame()
     const activePges = [
-        { pos_x: 10, pos_y: 72 },
-        { pos_x: 47, pos_y: 143 },
+        { posX: 10, posY: 72 },
+        { posX: 47, posY: 143 },
     ]
 
     gamePge.gameRunPgeFrameLogic = (currentGame, pge, room) => {
@@ -520,7 +520,7 @@ test('gameMainLoop rebuilds frame state, loads the map, draws the frame, and han
         _skipNextLevelCutscene: true,
     })
 
-    game._livePgesByIndex[0] = { life: 5, room_location: 8, pos_x: 40, pos_y: 72 }
+    game._livePgesByIndex[0] = { life: 5, roomLocation: 8, posX: 40, posY: 72 }
     game._livePgeStore.activeFrameList = [game._livePgesByIndex[0]]
     game._stub._pi.backspace = true
     game._stub.timeStamps = [60000, 60000, 60000]
@@ -634,7 +634,7 @@ test('gameMainLoop commits pending map loads through grouped runtime state inste
             skipNextLevelCutscene: true,
         },
         runtimeData: {
-            livePgesByIndex: [{ life: 5, room_location: 8, pos_x: 40, pos_y: 72 }],
+            livePgesByIndex: [{ life: 5, roomLocation: 8, posX: 40, posY: 72 }],
             livePgeStore: { activeFrameList: [], activeFrameByIndex: [], liveByRoom: [] },
             pendingSignalsByTargetPgeIndex: new Map(),
             inventoryItemIndicesByOwner: new Map(),

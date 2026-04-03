@@ -1,7 +1,7 @@
-import { CT_ROOM_SIZE } from "../core/game_constants"
-import { READ_BE_UINT16, READ_BE_UINT32 } from "../core/intern"
+import { ctRoomSize } from "../core/game_constants"
+import { readBeUint16, readBeUint32 } from "../core/intern"
 import { _gameLevels } from "../core/staticres"
-import { bytekiller_unpack } from "../core/unpack"
+import { bytekillerUnpack } from "../core/unpack"
 
 function printUsage() {
     console.error("Usage: node -r ts-node/register/transpile-only ./src/debugger-helpers/export-all-level-palette-headers.ts <dataDir> [outputDir]")
@@ -23,14 +23,14 @@ function resolveDataFile(dataDir: string, baseName: string, ext: string): string
 }
 
 function roomExists(lev: Uint8Array, room: number): boolean {
-    if (room < 0 || room >= CT_ROOM_SIZE) {
+    if (room < 0 || room >= ctRoomSize) {
         return false
     }
     const offset = room * 4
     if ((offset + 4) > lev.length) {
         return false
     }
-    const roomOffset = READ_BE_UINT32(lev, offset)
+    const roomOffset = readBeUint32(lev, offset)
     return roomOffset >= 4 && roomOffset < lev.length
 }
 
@@ -59,7 +59,7 @@ function readPalSlotColors(pal: Uint8Array, palOffset: number) {
         if ((p + 1) >= pal.length) {
             break
         }
-        const raw = READ_BE_UINT16(pal, p)
+        const raw = readBeUint16(pal, p)
         colors.push({
             index: i,
             raw: {
@@ -128,10 +128,10 @@ function main() {
             if (!roomExists(lev, room)) {
                 continue
             }
-            const offset = READ_BE_UINT32(lev, room * 4)
+            const offset = readBeUint32(lev, room * 4)
             let unpackOk = false
             try {
-                unpackOk = bytekiller_unpack(leveldataScratch, leveldataScratch.length, lev, offset)
+                unpackOk = bytekillerUnpack(leveldataScratch, leveldataScratch.length, lev, offset)
             } catch (_error) {
                 continue
             }
@@ -139,10 +139,10 @@ function main() {
                 continue
             }
 
-            const mapPaletteOffsetSlot1 = READ_BE_UINT16(leveldataScratch, 2)
-            const mapPaletteOffsetSlot2 = READ_BE_UINT16(leveldataScratch, 4)
-            const mapPaletteOffsetSlot3 = READ_BE_UINT16(leveldataScratch, 6)
-            const mapPaletteOffsetSlot4 = READ_BE_UINT16(leveldataScratch, 8)
+            const mapPaletteOffsetSlot1 = readBeUint16(leveldataScratch, 2)
+            const mapPaletteOffsetSlot2 = readBeUint16(leveldataScratch, 4)
+            const mapPaletteOffsetSlot3 = readBeUint16(leveldataScratch, 6)
+            const mapPaletteOffsetSlot4 = readBeUint16(leveldataScratch, 8)
 
             const outputPath = path.join(levelOutputDir, `${level.name}.paletteheader.json`)
             writePaletteHeaderJson(

@@ -4,7 +4,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 
 const gameDraw = require('../src/game/game_draw.ts')
-const { PGE_FLAG_SPECIAL_ANIM, UINT8_MAX } = require('../src/core/game_constants.ts')
+const { pgeFlagSpecialAnim, uint8Max } = require('../src/core/game_constants.ts')
 
 function createDrawGame(overrides = {}) {
     const drawCharacterCalls = []
@@ -13,7 +13,7 @@ function createDrawGame(overrides = {}) {
     const game = {
         _animBuffers: {
             _states: [null, null, null, null],
-            _curPos: [UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX],
+            _curPos: [uint8Max, uint8Max, uint8Max, uint8Max],
         },
         _blinkingConradCounter: 0,
         _livePgesByIndex: [{}],
@@ -21,9 +21,9 @@ function createDrawGame(overrides = {}) {
             _scratchBuffer: new Uint8Array(32),
         },
         _vid: {
-            PC_decodeSpmCalls: [],
-            PC_decodeSpm(dataPtr, scratchBuffer) {
-                this.PC_decodeSpmCalls.push([dataPtr, scratchBuffer])
+            pcDecodespmcalls: [],
+            pcDecodespm(dataPtr, scratchBuffer) {
+                this.pcDecodespmcalls.push([dataPtr, scratchBuffer])
             },
         },
         drawCharacter(...args) {
@@ -48,7 +48,7 @@ test('gameDrawAnimBuffer renders monster sprites with their prepared palette ove
     const monster = {
         index: 4,
         flags: 0,
-        init_PGE: { object_type: 10 },
+        initPge: { objectType: 10 },
     }
     const encodedSprite = Uint8Array.from([0x80, 0x00, 7, 8, 9]).subarray(2)
     const state = [{
@@ -74,8 +74,8 @@ test('gameDrawAnimBuffer renders monster sprites with their prepared palette ove
         0,
         0x50,
     ]])
-    assert.equal(game._vid.PC_decodeSpmCalls.length, 0)
-    assert.equal(game._animBuffers._curPos[0], UINT8_MAX)
+    assert.equal(game._vid.pcDecodespmcalls.length, 0)
+    assert.equal(game._animBuffers._curPos[0], uint8Max)
 })
 
 test('gameDrawAnimBuffer renders Conrad from the player animation layer through drawCharacter', async () => {
@@ -83,7 +83,7 @@ test('gameDrawAnimBuffer renders Conrad from the player animation layer through 
     const conrad = {
         index: 0,
         flags: 0,
-        init_PGE: { object_type: 1 },
+        initPge: { objectType: 1 },
     }
     const encodedSprite = Uint8Array.from([0x80, 0x00, 9, 8, 7]).subarray(2)
     const state = [{
@@ -110,8 +110,8 @@ test('gameDrawAnimBuffer renders Conrad from the player animation layer through 
         0,
         -1,
     ]])
-    assert.equal(game._vid.PC_decodeSpmCalls.length, 0)
-    assert.equal(game._animBuffers._curPos[1], UINT8_MAX)
+    assert.equal(game._vid.pcDecodespmcalls.length, 0)
+    assert.equal(game._animBuffers._curPos[1], uint8Max)
 })
 
 test('gameDrawAnimBuffer skips Conrad rendering on blinking frames', async () => {
@@ -119,7 +119,7 @@ test('gameDrawAnimBuffer skips Conrad rendering on blinking frames', async () =>
     const conrad = {
         index: 0,
         flags: 0,
-        init_PGE: { object_type: 1 },
+        initPge: { objectType: 1 },
     }
     const encodedSprite = Uint8Array.from([0x80, 0x00, 9, 8, 7]).subarray(2)
     const state = [{
@@ -138,15 +138,15 @@ test('gameDrawAnimBuffer skips Conrad rendering on blinking frames', async () =>
     await gameDraw.gameDrawAnimBuffer(game, 1, state)
 
     assert.deepEqual(game.drawCharacterCalls, [])
-    assert.equal(game._animBuffers._curPos[1], UINT8_MAX)
+    assert.equal(game._animBuffers._curPos[1], uint8Max)
 })
 
 test('gameDrawAnimBuffer renders special visible PGEs through drawObject with the barrier palette override', async () => {
     const game = createDrawGame()
     const visiblePge = {
         index: 6,
-        flags: PGE_FLAG_SPECIAL_ANIM,
-        init_PGE: { object_type: 6 },
+        flags: pgeFlagSpecialAnim,
+        initPge: { objectType: 6 },
     }
     const objectData = Uint8Array.from([1, 2, 3, 4])
     const state = [{
@@ -163,8 +163,8 @@ test('gameDrawAnimBuffer renders special visible PGEs through drawObject with th
 
     await gameDraw.gameDrawAnimBuffer(game, 3, state)
 
-    assert.deepEqual(game.drawObjectCalls, [[objectData, 67, 70, PGE_FLAG_SPECIAL_ANIM, 0x60]])
-    assert.equal(game._animBuffers._curPos[3], UINT8_MAX)
+    assert.deepEqual(game.drawObjectCalls, [[objectData, 67, 70, pgeFlagSpecialAnim, 0x60]])
+    assert.equal(game._animBuffers._curPos[3], uint8Max)
 })
 
 test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy flat fields', () => {
@@ -175,7 +175,7 @@ test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy 
             currentRoom: 12,
             currentIcon: 0,
             printLevelCodeCounter: 0,
-            textToDisplay: UINT8_MAX,
+            textToDisplay: uint8Max,
             eraseBackground: false,
             blinkingConradCounter: 0,
         },

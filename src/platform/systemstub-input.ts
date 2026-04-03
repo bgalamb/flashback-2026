@@ -1,4 +1,4 @@
-import { createPlayerInput, DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from './systemstub-types'
+import { createPlayerInput, dirDown, dirLeft, dirRight, dirUp } from './systemstub-types'
 import type { PlayerInput } from './systemstub-types'
 
 function applyKeyDown(playerInput: PlayerInput, key: string) {
@@ -15,16 +15,16 @@ function applyKeyDown(playerInput: PlayerInput, key: string) {
             playerInput.enter = true
             break
         case 'ArrowLeft':
-            playerInput.dirMask |= DIR_LEFT
+            playerInput.dirMask |= dirLeft
             break
         case 'ArrowRight':
-            playerInput.dirMask |= DIR_RIGHT
+            playerInput.dirMask |= dirRight
             break
         case 'ArrowUp':
-            playerInput.dirMask |= DIR_UP
+            playerInput.dirMask |= dirUp
             break
         case 'ArrowDown':
-            playerInput.dirMask |= DIR_DOWN
+            playerInput.dirMask |= dirDown
             break
         case 'Shift':
             playerInput.shift = true
@@ -50,16 +50,16 @@ function applyKeyUp(playerInput: PlayerInput, key: string) {
             playerInput.enter = false
             break
         case 'ArrowLeft':
-            playerInput.dirMask &= ~DIR_LEFT
+            playerInput.dirMask &= ~dirLeft
             break
         case 'ArrowRight':
-            playerInput.dirMask &= ~DIR_RIGHT
+            playerInput.dirMask &= ~dirRight
             break
         case 'ArrowUp':
-            playerInput.dirMask &= ~DIR_UP
+            playerInput.dirMask &= ~dirUp
             break
         case 'ArrowDown':
-            playerInput.dirMask &= ~DIR_DOWN
+            playerInput.dirMask &= ~dirDown
             break
         case 'Shift':
             playerInput.shift = false

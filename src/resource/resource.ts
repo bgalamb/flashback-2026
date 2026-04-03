@@ -1,18 +1,19 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
-import { READ_LE_UINT16, READ_LE_UINT32, ResolvedSpriteSet } from "../core/intern"
+import { readLeUint16, readLeUint32, ResolvedSpriteSet } from "../core/intern"
 import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../core/staticres'
 import { _conradVisualVariants } from '../core/staticres'
-import { bytekiller_unpack } from '../core/unpack'
-import { LocaleData, NUM_BANK_BUFFERS, NUM_SPRITES, ObjectType } from './constants'
+import { bytekillerUnpack } from '../core/unpack'
+import { LocaleData, numBankBuffers, numSprites, ObjectType } from './constants'
 import { getResourceTypeConfig } from './loaders'
-import { GAMESCREEN_H } from '../core/game_constants'
+import { gamescreenH } from '../core/game_constants'
 import { getCandidateEntryNames } from './entry-paths'
 import { createResourceBankCache, ResourceBankCacheState } from './bank-cache'
 import { clearBankData as clearBankDataFromState, findBankData as findBankDataFromState, getBankDataSize as getBankDataSizeFromState, loadBankData as loadBankDataFromState } from './resource-bank-service'
 import { openFirstExistingFile, tryLoadCollisionOverride } from './file-access'
 import { createResourceAudioState, createResourceLevelState, createResourceSpriteState, createResourceTextState, createResourceUiState, ResourceAudioState, ResourceLevelState, ResourceSpriteState, ResourceTextState, ResourceUiState } from './resource-state'
 import { clearLevelResourceState, freeObjectNodes, unloadResourceType } from './resource-cleanup'
+import { decodeParsedObjIntoLevelState, decodeParsedPgeIntoLevelState, decodeParsedTbnIntoLevelState } from './resource-level-loaders'
 import { loadMenuMapData, loadMenuPaletteData, loadSoundEffectsData, loadVoiceSegmentData } from './resource-audio-service'
 import { initializeConradVisuals as initializeConradVisualsForState, loadMonsterResolvedSpriteSet as loadMonsterResolvedSpriteSetFromFs, loadSpriteOffsets as loadSpriteOffsetsFromFs } from './resource-sprite-service'
 import { getAnimationData, getCinematicString, getGameString, getMenuString, getTextString, loadCinematicText as loadCinematicTextIntoState, loadText as loadTextIntoState } from './resource-text-service'
@@ -31,19 +32,19 @@ class Resource {
     readonly readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?: number) => number
     readonly readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?: number) => number
     readonly scratchBuffer: Uint8Array
-    readonly bank: ResourceBankCacheState = createResourceBankCache(kBankDataSize, NUM_BANK_BUFFERS)
+    readonly bank: ResourceBankCacheState = createResourceBankCache(kBankDataSize, numBankBuffers)
     entryName: string
     readonly ui: ResourceUiState = createResourceUiState()
-    readonly sprites: ResourceSpriteState = createResourceSpriteState(NUM_SPRITES)
+    readonly sprites: ResourceSpriteState = createResourceSpriteState(numSprites)
     readonly level: ResourceLevelState = createResourceLevelState()
     readonly text: ResourceTextState = createResourceTextState()
     readonly audio: ResourceAudioState = createResourceAudioState()
 
     constructor(fs: FileSystem) {
         this.fileSystem = fs
-        this.readUint16 = READ_LE_UINT16
-        this.readUint32 = READ_LE_UINT32
-        this.scratchBuffer = new Uint8Array(320 * GAMESCREEN_H + 1024)
+        this.readUint16 = readLeUint16
+        this.readUint32 = readLeUint32
+        this.scratchBuffer = new Uint8Array(320 * gamescreenH + 1024)
         this.clearBankData()
 
     }
@@ -55,7 +56,7 @@ class Resource {
             sprites: this.sprites,
             text: this.text,
             ui: this.ui,
-            numSprites: NUM_SPRITES,
+            numSprites: numSprites,
             spmOffsetsTable: Resource._spmOffsetsTable,
         }
     }
@@ -75,7 +76,7 @@ class Resource {
         if (await this.tryLoadCollisionOverride(levelName)) {
             return
         }
-        await this.load(levelName, ObjectType.OT_CT)
+        await this.load(levelName, ObjectType.otCt)
     }
 
     async load(objName: string, objType: number, ext?: string) {
@@ -88,7 +89,7 @@ class Resource {
         const resolvedExtension = (ext || typeConfig.extension).toLowerCase()
         const entryNames = getCandidateEntryNames(objName, objType, resolvedExtension)
 
-        if (objType === ObjectType.OT_CT) {
+        if (objType === ObjectType.otCt) {
             if (await this.tryLoadCollisionOverride(objName)) {
                 return
             }
@@ -110,11 +111,11 @@ class Resource {
         }
 
         this.entryName = entryNames[0]
-        if (objType === ObjectType.OT_PGE) {
+        if (objType === ObjectType.otPge) {
             throw new Error(`Missing parsed PGE file '${this.entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
-        } else if (objType === ObjectType.OT_OBJ) {
+        } else if (objType === ObjectType.otObj) {
             throw new Error(`Missing parsed OBJ file '${this.entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
-        } else if (objType === ObjectType.OT_TBN) {
+        } else if (objType === ObjectType.otTbn) {
             throw new Error(`Missing parsed TBN file '${this.entryName}'. Regenerate TBN JSON assets from level-scoped TBN files.`)
         }
     }
@@ -132,7 +133,7 @@ class Resource {
     }
 
     loadBankData(bankIndex: number) {
-        return loadBankDataFromState(this.bank, this.level.mbk, this.level.bnq, bankIndex, bytekiller_unpack)
+        return loadBankDataFromState(this.bank, this.level.mbk, this.level.bnq, bankIndex, bytekillerUnpack)
     }
 
     loadText() {
@@ -145,13 +146,13 @@ class Resource {
 
 
     async loadSpriteOffsets(fileName: string, sprData: Uint8Array) {
-        const loadedSpriteOffsets = await loadSpriteOffsetsFromFs(this.fileSystem, fileName, sprData, NUM_SPRITES)
+        const loadedSpriteOffsets = await loadSpriteOffsetsFromFs(this.fileSystem, fileName, sprData, numSprites)
         this.entryName = loadedSpriteOffsets.entryName
         this.sprites.resolvedSpriteSet = loadedSpriteOffsets.resolvedSpriteSet
     }
 
     async loadMonsterResolvedSpriteSet(fileName: string): Promise<ResolvedSpriteSet> {
-        return loadMonsterResolvedSpriteSetFromFs(this.fileSystem, fileName, NUM_SPRITES)
+        return loadMonsterResolvedSpriteSetFromFs(this.fileSystem, fileName, numSprites)
     }
 
     initializeConradVisuals(): void {
@@ -169,6 +170,18 @@ class Resource {
 
     async loadMenuPalette(fileName: string, dstPtr: Uint8Array) {
         this.entryName = await loadMenuPaletteData(this.fileSystem, fileName, dstPtr)
+    }
+
+    decodeParsedPge(json: string) {
+        decodeParsedPgeIntoLevelState(this.level, json)
+    }
+
+    decodeParsedObj(json: string) {
+        decodeParsedObjIntoLevelState(this.level, json)
+    }
+
+    decodeParsedTbn(json: string) {
+        decodeParsedTbnIntoLevelState(this.level, json)
     }
 
     async loadCinematicText() {

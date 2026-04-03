@@ -1,5 +1,5 @@
-import { READ_BE_UINT16, READ_LE_UINT16 } from '../core/intern'
-import { LocaleData, NUM_CUTSCENE_TEXTS } from './constants'
+import { readBeUint16, readLeUint16 } from '../core/intern'
+import { LocaleData, numCutsceneTexts } from './constants'
 
 function loadDefaultLocaleTables() {
     return {
@@ -9,7 +9,7 @@ function loadDefaultLocaleTables() {
 }
 
 function getAniDataView(ani: Uint8Array, num: number) {
-    const offset = READ_LE_UINT16(ani, 2 + num * 2)
+    const offset = readLeUint16(ani, 2 + num * 2)
     return ani.subarray(2 + offset)
 }
 
@@ -18,19 +18,19 @@ function getTextStringView(tbn: Uint8Array[], num: number) {
 }
 
 function getGameStringView(stringsTable: Uint8Array, num: number) {
-    return stringsTable.subarray(READ_LE_UINT16(stringsTable, num * 2))
+    return stringsTable.subarray(readLeUint16(stringsTable, num * 2))
 }
 
 function getCineStringView(cineOff: Uint8Array, cineTxt: Uint8Array, cineStrings: Uint8Array[], num: number) {
     if (cineOff) {
-        const offset = READ_BE_UINT16(cineOff, num * 2)
+        const offset = readBeUint16(cineOff, num * 2)
         return cineTxt.subarray(offset)
     }
-    return (num >= 0 && num < NUM_CUTSCENE_TEXTS) ? cineStrings[num] : 0
+    return (num >= 0 && num < numCutsceneTexts) ? cineStrings[num] : 0
 }
 
 function getMenuStringValue(textsTable: string[], num: number) {
-    return (num >= 0 && num < LocaleData.Id.LI_NUM) ? textsTable[num] : ''
+    return (num >= 0 && num < LocaleData.Id.liNum) ? textsTable[num] : ''
 }
 
 export {

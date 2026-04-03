@@ -1,4 +1,4 @@
-const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
+const pngSignature = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
 
 function writeBeUint32(dst: Uint8Array, offset: number, value: number) {
     dst[offset + 0] = (value >>> 24) & 0xFF
@@ -19,14 +19,14 @@ function buildCrc32Table() {
     return table
 }
 
-const CRC32_TABLE = buildCrc32Table()
+const crc32Table = buildCrc32Table()
 
 function crc32(buffers: Uint8Array[]) {
     let c = 0xFFFFFFFF
     for (let i = 0; i < buffers.length; ++i) {
         const buffer = buffers[i]
         for (let j = 0; j < buffer.length; ++j) {
-            c = CRC32_TABLE[(c ^ buffer[j]) & 0xFF] ^ (c >>> 8)
+            c = crc32Table[(c ^ buffer[j]) & 0xFF] ^ (c >>> 8)
         }
     }
     return (c ^ 0xFFFFFFFF) >>> 0
@@ -118,7 +118,7 @@ function encodeRgbPng(width: number, height: number, rgbPixels: Uint8Array) {
     }
 
     return concatUint8Arrays([
-        new Uint8Array(PNG_SIGNATURE),
+        new Uint8Array(pngSignature),
         createChunk("IHDR", ihdr),
         createChunk("IDAT", deflateStored(scanlines)),
         createChunk("IEND", new Uint8Array(0))

@@ -1,5 +1,5 @@
 import { Color, InitPGE, LoadedConradVisual, PgeScriptNode, ResolvedSpriteSet, SoundFx, CreateInitPGE } from '../core/intern'
-import { CT_DATA_SIZE } from '../core/game_constants'
+import { ctDataSize } from '../core/game_constants'
 import { createEmptyResolvedSpriteSet } from './sprite-store'
 
 interface ResourceUiState {
@@ -83,7 +83,7 @@ function createResourceLevelState(): ResourceLevelState {
         pal: null,
         ani: null,
         tbn: [],
-        ctData: new Int8Array(CT_DATA_SIZE),
+        ctData: new Int8Array(ctDataSize),
         pgeTotalNumInFile: 0,
         pgeAllInitialStateFromFile: new Array(256).fill(null).map(() => CreateInitPGE()),
         bnq: null,

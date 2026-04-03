@@ -4,12 +4,12 @@ const fs = require("fs")
 const path = require("path")
 
 class ObjFileExporter {
-    private static readonly FILES_INDEX_NAME = "files.json"
-    private static readonly LEGACY_OBJ_DIR = path.posix.join("levels", "legacy-level-data")
-    private static readonly LEVEL_NAMES = ["level1", "level2", "level3", "level4_1", "level4_2", "level5_1", "level5_2"]
+    private static readonly filesIndexName = "files.json"
+    private static readonly legacyObjDir = path.posix.join("levels", "legacy-level-data")
+    private static readonly levelNames = ["level1", "level2", "level3", "level4_1", "level4_2", "level5_1", "level5_2"]
 
     static getLevelNames(): string[] {
-        return ObjFileExporter.LEVEL_NAMES.slice()
+        return ObjFileExporter.levelNames.slice()
     }
 
     static getOverrideBaseName(levelName: string): string {
@@ -22,7 +22,7 @@ class ObjFileExporter {
     }
 
     static exportLevel(dataDir: string, levelName: string, outputFilePath?: string): string {
-        const inputPath = path.join(dataDir, ObjFileExporter.LEGACY_OBJ_DIR, `${levelName}.obj`)
+        const inputPath = path.join(dataDir, ObjFileExporter.legacyObjDir, `${levelName}.obj`)
         const resolvedOutputPath = outputFilePath || path.join(dataDir, ObjFileExporter.getOutputRelativePath(levelName))
         const fileBuffer: Buffer = fs.readFileSync(inputPath)
         const parsedJson = encodeLegacyOBJDataAsJson(new Uint8Array(fileBuffer))
@@ -39,7 +39,7 @@ class ObjFileExporter {
     }
 
     static ensureFilesIndexContainsOutputs(dataDir: string, outputPaths: string[]): void {
-        const filesIndexPath = path.join(dataDir, ObjFileExporter.FILES_INDEX_NAME)
+        const filesIndexPath = path.join(dataDir, ObjFileExporter.filesIndexName)
         const filesIndex = JSON.parse(fs.readFileSync(filesIndexPath, "utf8"))
         if (!Array.isArray(filesIndex)) {
             throw new Error(`Expected ${filesIndexPath} to contain a JSON array`)

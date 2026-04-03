@@ -1,16 +1,16 @@
 import {  Skill } from "../core/intern"
 import { LocaleData, Resource } from "../resource/resource"
-import { DIR_DOWN, DIR_UP, SystemStub } from "../platform/systemstub_web"
-import {GAMESCREEN_H, GAMESCREEN_W, Video} from "../video/video"
-import { CHAR_W, CHAR_H, UINT8_MAX } from '../core/game_constants'
+import { dirDown, dirUp, SystemStub } from "../platform/systemstub_web"
+import {gamescreenH, gamescreenW, Video} from "../video/video"
+import { charW, charH, uint8Max } from '../core/game_constants'
 import { _gameLevels } from '../core/staticres'
 
 
-const SCREEN_TITLE = 0
-const SCREEN_LEVEL = 1
-const SCREEN_INFO = 4
+const screenTitle = 0
+const screenLevel = 1
+const screenInfo = 4
 
-const EVENTS_DELAY = 80
+const eventsDelay = 80
 
 interface Item {
     str: number
@@ -19,9 +19,9 @@ interface Item {
 
 class Menu {
 
-    static MENU_OPTION_ITEM_START = 0
-    static MENU_OPTION_ITEM_INFO = 4
-    static MENU_OPTION_ITEM_QUIT = 6
+    static menuOptionItemStart = 0
+    static menuOptionItemInfo = 4
+    static menuOptionItemQuit = 6
 
     _res: Resource
     _stub: SystemStub
@@ -54,24 +54,24 @@ class Menu {
     }
 
     initMenuItems() {
-        const MENU_ITEMS = [
+        const menuItems = [
             {
-                str: LocaleData.Id.LI_07_START,
-                opt: Menu.MENU_OPTION_ITEM_START
+                str: LocaleData.Id.li07Start,
+                opt: Menu.menuOptionItemStart
             },
             {
-                str: LocaleData.Id.LI_10_INFO,
-                opt: Menu.MENU_OPTION_ITEM_INFO
+                str: LocaleData.Id.li10Info,
+                opt: Menu.menuOptionItemInfo
             },
             {
-                str: LocaleData.Id.LI_11_QUIT,
-                opt: Menu.MENU_OPTION_ITEM_QUIT
+                str: LocaleData.Id.li11Quit,
+                opt: Menu.menuOptionItemQuit
             }
         ];
 
         return {
-            menuItems: MENU_ITEMS,
-            menuItemsCount: MENU_ITEMS.length
+            menuItems: menuItems,
+            menuItemsCount: menuItems.length
         };
     }
 
@@ -87,29 +87,29 @@ class Menu {
     private drawPane(x: number, y: number, w: number, h: number) {
         const previousColors = this._vid.getTextColors()
 
-        this._vid.setTextColors(0xEE, UINT8_MAX, 0xE2)
+        this._vid.setTextColors(0xEE, uint8Max, 0xE2)
 
-        this._vid.PC_drawChar(0x81, y, x)
-        this._vid.PC_drawChar(0x82, y, x + w)
-        this._vid.PC_drawChar(0x83, y + h, x)
-        this._vid.PC_drawChar(0x84, y + h, x + w)
+        this._vid.pcDrawchar(0x81, y, x)
+        this._vid.pcDrawchar(0x82, y, x + w)
+        this._vid.pcDrawchar(0x83, y + h, x)
+        this._vid.pcDrawchar(0x84, y + h, x + w)
 
         for (let i = 1; i < w; ++i) {
-            this._vid.PC_drawChar(0x85, y, x + i)
-            this._vid.PC_drawChar(0x88, y + h, x + i)
+            this._vid.pcDrawchar(0x85, y, x + i)
+            this._vid.pcDrawchar(0x88, y + h, x + i)
         }
 
         for (let j = 1; j < h; ++j) {
-            this._vid.setTextTransparentColor(UINT8_MAX)
-            this._vid.PC_drawChar(0x86, y + j, x)
-            this._vid.PC_drawChar(0x87, y + j, x + w)
+            this._vid.setTextTransparentColor(uint8Max)
+            this._vid.pcDrawchar(0x86, y + j, x)
+            this._vid.pcDrawchar(0x87, y + j, x + w)
             this._vid.setTextTransparentColor(0xE2)
             for (let i = 1; i < w; ++i) {
-                this._vid.PC_drawChar(0x20, y + j, x + i)
+                this._vid.pcDrawchar(0x20, y + j, x + i)
             }
         }
 
-        this._vid.markBlockAsDirty(x * CHAR_W, y * CHAR_H, (w + 1) * CHAR_W, (h + 1) * CHAR_H, 1)
+        this._vid.markBlockAsDirty(x * charW, y * charH, (w + 1) * charW, (h + 1) * charH, 1)
 
         this._vid.setTextColors(previousColors.frontColor, previousColors.transparentColor, previousColors.shadowColor)
     }
@@ -123,21 +123,21 @@ class Menu {
         const paneH = 24
 
         while (!this._stub._pi.quit) {
-            if (this._nextScreen === SCREEN_LEVEL) {
-                this._currentScreen = SCREEN_LEVEL
+            if (this._nextScreen === screenLevel) {
+                this._currentScreen = screenLevel
                 this._nextScreen = -1
             }
 
-            if (this._stub._pi.dirMask & DIR_UP) {
-                this._stub._pi.dirMask &= ~DIR_UP
+            if (this._stub._pi.dirMask & dirUp) {
+                this._stub._pi.dirMask &= ~dirUp
                 if (currentEntry !== 0) {
                     --currentEntry
                 } else {
                     currentEntry = this._levelItems.length - 1
                 }
             }
-            if (this._stub._pi.dirMask & DIR_DOWN) {
-                this._stub._pi.dirMask &= ~DIR_DOWN
+            if (this._stub._pi.dirMask & dirDown) {
+                this._stub._pi.dirMask &= ~dirDown
                 if (currentEntry !== this._levelItems.length - 1) {
                     ++currentEntry
                 } else {
@@ -169,7 +169,7 @@ class Menu {
             this.drawString(hint, paneY + 22, paneX + (((paneW + 1) - hint.length) / 2 >> 0), 4)
 
             await this._vid.updateScreen()
-            await this._stub.sleep(EVENTS_DELAY)
+            await this._stub.sleep(eventsDelay)
             await this._stub.processEvents()
         }
 
@@ -188,7 +188,7 @@ class Menu {
 
         this._selectedOption = -1
         this._currentScreen = -1
-        this._nextScreen = SCREEN_TITLE
+        this._nextScreen = screenTitle
     
         let quitLoop = false
         let currentEntry = 0
@@ -197,7 +197,7 @@ class Menu {
     
             let selectedItem = -1
 
-            if (this._nextScreen === SCREEN_TITLE) {
+            if (this._nextScreen === screenTitle) {
                 await this._vid.fadeOut()
                 await this.loadPicture("menu1")
                 this._vid.fullRefresh()
@@ -209,16 +209,16 @@ class Menu {
             }
 
             //Navigate up or down in the menu
-            if (this._stub._pi.dirMask & DIR_UP) {
-                this._stub._pi.dirMask &= ~DIR_UP
+            if (this._stub._pi.dirMask & dirUp) {
+                this._stub._pi.dirMask &= ~dirUp
                 if (currentEntry !== 0) {
                     --currentEntry
                 } else {
                     currentEntry = menuItemsCount - 1
                 }
             }
-            if (this._stub._pi.dirMask & DIR_DOWN) {
-                this._stub._pi.dirMask &= ~DIR_DOWN
+            if (this._stub._pi.dirMask & dirDown) {
+                this._stub._pi.dirMask &= ~dirDown
                 if (currentEntry !== menuItemsCount - 1) {
                     ++currentEntry
                 } else {
@@ -232,22 +232,22 @@ class Menu {
             if (selectedItem !== -1) {
                 this._selectedOption = menuItems[selectedItem].opt
                 switch (this._selectedOption) {
-                case Menu.MENU_OPTION_ITEM_START:
-                    this._currentScreen = SCREEN_LEVEL
-                    this._nextScreen = SCREEN_LEVEL
+                case Menu.menuOptionItemStart:
+                    this._currentScreen = screenLevel
+                    this._nextScreen = screenLevel
                     if (await this.handleLevelScreen()) {
                         quitLoop = true
                     }
                     break
-                case Menu.MENU_OPTION_ITEM_INFO:
-                    this._currentScreen = SCREEN_INFO
+                case Menu.menuOptionItemInfo:
+                    this._currentScreen = screenInfo
                     await this.handleInfoScreen()
                     break
-                case Menu.MENU_OPTION_ITEM_QUIT:
+                case Menu.menuOptionItemQuit:
                     quitLoop = true
                     break
                 }
-                this._nextScreen = SCREEN_TITLE
+                this._nextScreen = screenTitle
                 continue
             }
     
@@ -258,7 +258,7 @@ class Menu {
             }
     
             await this._vid.updateScreen()
-            await this._stub.sleep(EVENTS_DELAY)
+            await this._stub.sleep(eventsDelay)
             await this._stub.processEvents()
         }
     }
@@ -270,7 +270,7 @@ class Menu {
         this._vid.fullRefresh()
         await this._vid.updateScreen()
         do {
-            await this._stub.sleep(EVENTS_DELAY)
+            await this._stub.sleep(eventsDelay)
             await this._stub.processEvents()
             if (this._stub._pi.escape) {
                 this._stub._pi.escape = false
@@ -294,16 +294,16 @@ class Menu {
             this._vid.setTextColors(this._charVar2, this._charVar1, this._charVar1)
             break;
         case 2:
-            this._vid.setTextColors(this._charVar3, UINT8_MAX, this._charVar1)
+            this._vid.setTextColors(this._charVar3, uint8Max, this._charVar1)
             break;
         case 3:
-            this._vid.setTextColors(this._charVar4, UINT8_MAX, this._charVar1)
+            this._vid.setTextColors(this._charVar4, uint8Max, this._charVar1)
             break;
         case 4:
-            this._vid.setTextColors(this._charVar2, UINT8_MAX, this._charVar1)
+            this._vid.setTextColors(this._charVar2, uint8Max, this._charVar1)
             break;
         case 5:
-            this._vid.setTextColors(this._charVar2, UINT8_MAX, this._charVar5)
+            this._vid.setTextColors(this._charVar2, uint8Max, this._charVar5)
             break;
         }
     
@@ -313,20 +313,20 @@ class Menu {
     }
     
     drawString2(str: string, y: number, x: number) {
-        const w = CHAR_W
-        const h = CHAR_H
+        const w = charW
+        const h = charH
         let len = 0
 
         for (; str[len]; ++len) {
-            this._vid.PC_drawChar(str.charCodeAt(len), y, x + len)
+            this._vid.pcDrawchar(str.charCodeAt(len), y, x + len)
         }
 
         this._vid.markBlockAsDirty(x * w, y * h, len * w, h, 1)
     }
 
     async loadPicture(prefix: string) {
-        const kPictureW = GAMESCREEN_W
-        const kPictureH = GAMESCREEN_H
+        const kPictureW = gamescreenW
+        const kPictureH = gamescreenH
         await this._res.loadMenuMap(prefix, this._res.scratchBuffer)
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {

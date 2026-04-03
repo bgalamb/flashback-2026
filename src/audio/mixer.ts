@@ -1,5 +1,5 @@
 import { FileSystem } from "../resource/fs"
-import { ADDC_S16, S8_to_S16 } from "../core/intern"
+import { addcS16, s8ToS16 } from "../core/intern"
 import { SfxPlayer } from "./sfx_player"
 import { SystemStub } from "../platform/systemstub_web"
 
@@ -25,17 +25,17 @@ class MixerChunk {
 type PremixHook = (userData: ArrayBuffer, buf: Int16Array, len: number) => boolean
 
 enum MusicType {
-    MT_NONE,
-    MT_MOD,
-    MT_OGG,
-    MT_SFX,
-    MT_CPC,
+    mtNone,
+    mtMod,
+    mtOgg,
+    mtSfx,
+    mtCpc,
 }
 
-const MUSIC_TRACK = 1000
-const NUM_CHANNELS = 4
-const FRAC_BITS = 12
-const MAX_VOLUME = 64
+const musicTrack = 1000
+const numChannels = 4
+const fracBits = 12
+const maxVolume = 64
 
 interface MixerChannel {
     active: boolean
@@ -48,7 +48,7 @@ interface MixerChannel {
 class Mixer {
     _fs: FileSystem
     _stub: SystemStub
-    _channels: MixerChannel[] = new Array(NUM_CHANNELS).fill(null).map(() => ({
+    _channels: MixerChannel[] = new Array(numChannels).fill(null).map(() => ({
         active: false,
         volume: 0,
         chunk: new MixerChunk(),
@@ -61,7 +61,7 @@ class Mixer {
     _musicType: MusicType
     _sfx: SfxPlayer
     _musicTrack: number
-    static MUSIC_TRACK = 1000
+    static musicTrack = 1000
     static kUseNr = false
     static isMusicSfx = (num: number) => (num >= 68 && num <= 75)
     static nr = (buf: Int16Array, len: number) => {
@@ -75,14 +75,14 @@ class Mixer {
 
     constructor(fs: FileSystem, stub: SystemStub) {
         this._stub = stub
-        this._musicType = MusicType.MT_NONE
+        this._musicType = MusicType.mtNone
         this._sfx = new SfxPlayer(this)
         this._musicTrack = -1
-        this._backgroundMusicType = MusicType.MT_NONE
+        this._backgroundMusicType = MusicType.mtNone
     }
 
     init() {
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             this._channels[i] = {
                 active: false,
                 volume: 0,
@@ -96,13 +96,13 @@ class Mixer {
 
     playMusic(num: number) {
 
-        if ((this._musicType == MusicType.MT_OGG || this._musicType == MusicType.MT_CPC) && Mixer.isMusicSfx(num)) { // do not play level action music with background music
+        if ((this._musicType == MusicType.mtOgg || this._musicType == MusicType.mtCpc) && Mixer.isMusicSfx(num)) { // do not play level action music with background music
             return;
         }
         if (Mixer.isMusicSfx(num)) { // level action sequence
             this._sfx.play(num)
             if (this._sfx._playing) {
-                this._musicType = MusicType.MT_SFX
+                this._musicType = MusicType.mtSfx
             }
         }
     }
@@ -118,16 +118,16 @@ class Mixer {
                 this._premixHookData = null
             }
         }
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             const ch:MixerChannel = this._channels[i]
             if (ch.active) {
                 for (let pos = 0; pos < len; ++pos) {
-                    if ((ch.chunkPos >> FRAC_BITS) >= (ch.chunk.len - 1)) {
+                    if ((ch.chunkPos >> fracBits) >= (ch.chunk.len - 1)) {
                         ch.active = false
                         break
                     }
-                    const sample = ch.chunk.getPCM(ch.chunkPos >> FRAC_BITS) * Math.floor(ch.volume / MAX_VOLUME)
-                    out[pos] = ADDC_S16(out[pos], S8_to_S16(sample))
+                    const sample = ch.chunk.getPCM(ch.chunkPos >> fracBits) * Math.floor(ch.volume / maxVolume)
+                    out[pos] = addcS16(out[pos], s8ToS16(sample))
                     ch.chunkPos += ch.chunkInc
                 }
             }
@@ -149,13 +149,13 @@ class Mixer {
     }
 
     stopAll() {
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             this._channels[i].active = false
         }
     }
 
     isPlaying(data: Uint8Array) {
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             const ch:MixerChannel = this._channels[i]
             if (ch.active && ch.chunk.data === data) {
                 return true
@@ -165,4 +165,4 @@ class Mixer {
     }
 }
 
-export { Mixer, MAX_VOLUME }
+export { Mixer, maxVolume }

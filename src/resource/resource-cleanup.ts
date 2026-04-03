@@ -3,13 +3,13 @@ import { ResourceLevelState, ResourceTextState } from './resource-state'
 
 function unloadResourceType(textState: ResourceTextState, objType: number) {
     switch (objType) {
-        case ObjectType.OT_CMD:
+        case ObjectType.otCmd:
             textState.cmd = null
             break
-        case ObjectType.OT_POL:
+        case ObjectType.otPol:
             textState.pol = null
             break
-        case ObjectType.OT_CMP:
+        case ObjectType.otCmp:
             textState.cmd = null
             textState.pol = null
             break

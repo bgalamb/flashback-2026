@@ -8,7 +8,7 @@ enum ScalerType {
 	kScalerTypeExternal,
 };
 
-const SCALER_TAG = 1
+const scalerTag = 1
 
 interface Scaler {
 	tag: number
@@ -28,8 +28,8 @@ const scanline2x = (dst0: Uint32Array, dst1: Uint32Array, src0: Uint32Array, src
 	// GHI
 
 	let x = 0;
-	let dst0_i = 0
-	let dst1_i = 0
+	let dst0I = 0
+	let dst1I = 0
 
 	// first pixel (D == E)
 	B = src0[x] // *(src0 + x);
@@ -48,8 +48,8 @@ const scanline2x = (dst0: Uint32Array, dst1: Uint32Array, src0: Uint32Array, src
 		dst1[0] = E;
 		dst1[1] = E;
 	}
-	dst0_i += 2;
-	dst1_i += 2;
+	dst0I += 2;
+	dst1I += 2;
 
 	// center pixels
 	E = F;
@@ -58,34 +58,34 @@ const scanline2x = (dst0: Uint32Array, dst1: Uint32Array, src0: Uint32Array, src
 		F = src1[x + 1] // *(src1 + x + 1);
 		H = src2[x] //*(src2 + x);
 		if (B != H && D != F) {
-			dst0[0 + dst0_i] = D == B ? D : E;
-			dst0[1+ dst0_i] = B == F ? F : E;
-			dst1[0 + dst1_i] = D == H ? D : E;
-			dst1[1 + dst1_i] = H == F ? F : E;
+			dst0[0 + dst0I] = D == B ? D : E;
+			dst0[1+ dst0I] = B == F ? F : E;
+			dst1[0 + dst1I] = D == H ? D : E;
+			dst1[1 + dst1I] = H == F ? F : E;
 		} else {
-			dst0[0 + dst0_i] = E;
-			dst0[1 + dst0_i] = E;
-			dst1[0 + dst1_i] = E;
-			dst1[1 + dst1_i] = E;
+			dst0[0 + dst0I] = E;
+			dst0[1 + dst0I] = E;
+			dst1[0 + dst1I] = E;
+			dst1[1 + dst1I] = E;
 		}
 		D = E; E = F;
-		dst0_i += 2;
-		dst1_i += 2;
+		dst0I += 2;
+		dst1I += 2;
 	}
 
 	// last pixel (F == E)
 	B = src0[0] // *(src0 + x);
 	H = src2[x] // *(src2 + x);
 	if (B != H && D != F) {
-		dst0[0 + dst0_i] = D == B ? D : E;
-		dst0[1 + dst1_i] = B == F ? F : E;
-		dst1[0 + dst0_i] = D == H ? D : E;
-		dst1[1 + dst1_i] = H == F ? F : E;
+		dst0[0 + dst0I] = D == B ? D : E;
+		dst0[1 + dst1I] = B == F ? F : E;
+		dst1[0 + dst0I] = D == H ? D : E;
+		dst1[1 + dst1I] = H == F ? F : E;
 	} else {
-		dst0[0 + dst0_i] = E;
-		dst0[1 + dst1_i] = E;
-		dst1[0 + dst0_i] = E;
-		dst1[1 + dst1_i] = E;
+		dst0[0 + dst0I] = E;
+		dst0[1 + dst1I] = E;
+		dst1[0 + dst0I] = E;
+		dst1[1 + dst1I] = E;
 	}
 }
 
@@ -129,7 +129,7 @@ const scaleNx = (factor: number, dst: Uint32Array, dstPitch: number, src: Uint32
 }
 
 const _internalScaler: Scaler  = {
-	tag: SCALER_TAG,
+	tag: scalerTag,
 	name: "scaleNx",
 	factorMin: 2,
 	factorMax: 4,

@@ -1,13 +1,13 @@
-import { CT_DATA_SIZE, CT_DOWN_ROOM, CT_GRID_HEIGHT, CT_GRID_STRIDE, CT_GRID_WIDTH, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_ROOM_SIZE, CT_UP_ROOM } from "../core/game_constants"
+import { ctDataSize, ctDownRoom, ctGridHeight, ctGridStride, ctGridWidth, ctLeftRoom, ctRightRoom, ctRoomSize, ctUpRoom } from "../core/game_constants"
 import { getLevelAssetPathCandidates } from "../core/level-asset-paths"
 import { _gameLevels } from "../core/staticres"
-import { bytekiller_unpack } from "../core/unpack"
+import { bytekillerUnpack } from "../core/unpack"
 
 class CtGridTableExporter {
-    private static readonly GRID_OFFSET = 0x100
-    private static readonly GRID_STRIDE = CT_GRID_STRIDE
-    private static readonly GRID_WIDTH = CT_GRID_WIDTH
-    private static readonly GRID_HEIGHT = CT_GRID_HEIGHT
+    private static readonly gridOffset = 0x100
+    private static readonly gridStride = ctGridStride
+    private static readonly gridWidth = ctGridWidth
+    private static readonly gridHeight = ctGridHeight
 
     static getLevelNames(): string[] {
         const unique: { [name: string]: true } = {}
@@ -60,13 +60,13 @@ class CtGridTableExporter {
     }
 
     static renderRoomGrid(levelName: string, room: number, ctData: Int8Array): string {
-        if (room < 0 || room >= CT_ROOM_SIZE) {
-            throw new Error(`Invalid room index ${room}. Expected 0..${CT_ROOM_SIZE - 1}`)
+        if (room < 0 || room >= ctRoomSize) {
+            throw new Error(`Invalid room index ${room}. Expected 0..${ctRoomSize - 1}`)
         }
 
         const cellW = 4
         const yLabelW = 1
-        const horizontal = "+" + "-".repeat(yLabelW + 2) + "+" + "-".repeat((cellW + 1) * CtGridTableExporter.GRID_WIDTH + 1) + "+"
+        const horizontal = "+" + "-".repeat(yLabelW + 2) + "+" + "-".repeat((cellW + 1) * CtGridTableExporter.gridWidth + 1) + "+"
         const lines: string[] = []
 
         lines.push(`=== ${levelName} room ${room} ===`)
@@ -74,14 +74,14 @@ class CtGridTableExporter {
         lines.push(`| y |${CtGridTableExporter.renderHeaderCells(cellW)} |`)
         lines.push(horizontal)
 
-        const roomBase = CtGridTableExporter.GRID_OFFSET + room * CtGridTableExporter.GRID_STRIDE
-        for (let y = 0; y < CtGridTableExporter.GRID_HEIGHT; ++y) {
+        const roomBase = CtGridTableExporter.gridOffset + room * CtGridTableExporter.gridStride
+        for (let y = 0; y < CtGridTableExporter.gridHeight; ++y) {
             const rowValues: string[] = []
-            for (let x = 0; x < CtGridTableExporter.GRID_WIDTH; ++x) {
-                const value = ctData[roomBase + y * CtGridTableExporter.GRID_WIDTH + x]
+            for (let x = 0; x < CtGridTableExporter.gridWidth; ++x) {
+                const value = ctData[roomBase + y * CtGridTableExporter.gridWidth + x]
                 rowValues.push(value.toString().padStart(cellW, " "))
             }
-            const blankCells = new Array(CtGridTableExporter.GRID_WIDTH).fill(" ".repeat(cellW)).join(" ")
+            const blankCells = new Array(CtGridTableExporter.gridWidth).fill(" ".repeat(cellW)).join(" ")
             lines.push(`| ${y.toString().padStart(yLabelW, " ")} | ${rowValues.join(" ")} |`)
             lines.push(`| ${" ".repeat(yLabelW)} | ${blankCells} |`)
         }
@@ -91,7 +91,7 @@ class CtGridTableExporter {
 
     private static renderHeaderCells(cellW: number): string {
         const cells: string[] = []
-        for (let x = 0; x < CtGridTableExporter.GRID_WIDTH; ++x) {
+        for (let x = 0; x < CtGridTableExporter.gridWidth; ++x) {
             cells.push(x.toString().padStart(cellW, " "))
         }
         return " " + cells.join(" ")
@@ -99,12 +99,12 @@ class CtGridTableExporter {
 
     private static getExistingRooms(ctData: Int8Array): number[] {
         const active: { [room: number]: true } = {}
-        for (let room = 0; room < CT_ROOM_SIZE; ++room) {
+        for (let room = 0; room < ctRoomSize; ++room) {
             const refs = [
-                ctData[CT_UP_ROOM + room],
-                ctData[CT_DOWN_ROOM + room],
-                ctData[CT_LEFT_ROOM + room],
-                ctData[CT_RIGHT_ROOM + room]
+                ctData[ctUpRoom + room],
+                ctData[ctDownRoom + room],
+                ctData[ctLeftRoom + room],
+                ctData[ctRightRoom + room]
             ]
             for (const ref of refs) {
                 if (CtGridTableExporter.isValidRoomRef(ref)) {
@@ -117,15 +117,15 @@ class CtGridTableExporter {
     }
 
     private static isValidRoomRef(room: number): boolean {
-        return room > 0 && room < CT_ROOM_SIZE
+        return room > 0 && room < ctRoomSize
     }
 
     private static decodeCtFile(ctPath: string): Int8Array {
         const fs = require("fs")
 
         const src = new Uint8Array(fs.readFileSync(ctPath))
-        const dst = new Uint8Array(CT_DATA_SIZE)
-        if (!bytekiller_unpack(dst, dst.length, src, src.length)) {
+        const dst = new Uint8Array(ctDataSize)
+        if (!bytekillerUnpack(dst, dst.length, src, src.length)) {
             throw new Error(`Failed to decode CT data from '${ctPath}'`)
         }
         return new Int8Array(dst.buffer)

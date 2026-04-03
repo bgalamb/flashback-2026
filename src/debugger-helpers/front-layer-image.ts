@@ -1,4 +1,4 @@
-import { global_game_options } from "../core/game_constants"
+import { globalGameOptions } from "../core/game_constants"
 
 const dumpedFrontLayers: { [key: string]: boolean } = {}
 const dumpedFrontLayerPixels: { [key: string]: boolean } = {}
@@ -11,7 +11,7 @@ function writeLayerImages(
     height: number,
     palette: Uint8ClampedArray
 ) {
-    if (!global_game_options.dump_front_layer_image) {
+    if (!globalGameOptions.dumpFrontLayerImage) {
         return
     }
     const key = `${level}-${room}`
@@ -88,7 +88,7 @@ function writeLayerPixelData(
     room: number,
     layer: Uint8Array
 ) {
-    if (!global_game_options.dump_front_layer_pixel_data) {
+    if (!globalGameOptions.dumpFrontLayerPixelData) {
         return
     }
     const key = `${level}-${room}`

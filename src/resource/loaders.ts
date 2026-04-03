@@ -28,41 +28,41 @@ interface ResourceTypeConfig {
     loader: ResourceFileLoader
 }
 
-const UNIMPLEMENTED_RESOURCE_LOADER: ResourceFileLoader = () => {
+const unimplementedResourceLoader: ResourceFileLoader = () => {
     throw new Error('Function not implemented.')
 }
 
-const RESOURCE_TYPE_CONFIG: Record<number, ResourceTypeConfig> = {
-    [ObjectType.OT_RP]: { extension: 'RP', loader: loadRpResource },
-    [ObjectType.OT_PAL]: { extension: 'PAL', loader: loadPaletteResource },
-    [ObjectType.OT_TBN]: { extension: 'json', loader: loadParsedTbnAsset },
-    [ObjectType.OT_ANI]: { extension: 'ANI', loader: loadAnimationResource },
-    [ObjectType.OT_BNQ]: { extension: 'BNQ', loader: loadBankDataResource },
-    [ObjectType.OT_SPM]: { extension: 'SPM', loader: loadPackedSpriteResource },
-    [ObjectType.OT_SPRM]: { extension: 'SPR', loader: loadSpriteMaskResource },
-    [ObjectType.OT_MBK]: { extension: 'MBK', loader: loadMbkResource },
-    [ObjectType.OT_FNT]: { extension: 'FNT', loader: loadFontResource },
-    [ObjectType.OT_CMD]: { extension: 'CMD', loader: loadCommandTextResource },
-    [ObjectType.OT_PGE]: { extension: 'json', loader: loadParsedPgeAsset },
-    [ObjectType.OT_CT]: { extension: 'CT', loader: loadCollisionResource },
-    [ObjectType.OT_POL]: { extension: 'POL', loader: loadPolygonTextResource },
-    [ObjectType.OT_ICN]: { extension: 'ICN', loader: loadIconResource },
-    [ObjectType.OT_SPC]: { extension: 'SPC', loader: loadSpcResource },
-    [ObjectType.OT_SPR]: { extension: 'SPR', loader: loadSpriteResource },
-    [ObjectType.OT_OBJ]: { extension: 'OBJ', loader: loadParsedObjAsset },
-    [ObjectType.OT_MAP]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_RPC]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_DEMO]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_TAB]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_TXTBIN]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_OFF]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_CMP]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_OBC]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
-    [ObjectType.OT_SPL]: { extension: '', loader: UNIMPLEMENTED_RESOURCE_LOADER },
+const resourceTypeConfig: Record<number, ResourceTypeConfig> = {
+    [ObjectType.otRp]: { extension: 'RP', loader: loadRpResource },
+    [ObjectType.otPal]: { extension: 'PAL', loader: loadPaletteResource },
+    [ObjectType.otTbn]: { extension: 'json', loader: loadParsedTbnAsset },
+    [ObjectType.otAni]: { extension: 'ANI', loader: loadAnimationResource },
+    [ObjectType.otBnq]: { extension: 'BNQ', loader: loadBankDataResource },
+    [ObjectType.otSpm]: { extension: 'SPM', loader: loadPackedSpriteResource },
+    [ObjectType.otSprm]: { extension: 'SPR', loader: loadSpriteMaskResource },
+    [ObjectType.otMbk]: { extension: 'MBK', loader: loadMbkResource },
+    [ObjectType.otFnt]: { extension: 'FNT', loader: loadFontResource },
+    [ObjectType.otCmd]: { extension: 'CMD', loader: loadCommandTextResource },
+    [ObjectType.otPge]: { extension: 'json', loader: loadParsedPgeAsset },
+    [ObjectType.otCt]: { extension: 'CT', loader: loadCollisionResource },
+    [ObjectType.otPol]: { extension: 'POL', loader: loadPolygonTextResource },
+    [ObjectType.otIcn]: { extension: 'ICN', loader: loadIconResource },
+    [ObjectType.otSpc]: { extension: 'SPC', loader: loadSpcResource },
+    [ObjectType.otSpr]: { extension: 'SPR', loader: loadSpriteResource },
+    [ObjectType.otObj]: { extension: 'OBJ', loader: loadParsedObjAsset },
+    [ObjectType.otMap]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otRpc]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otDemo]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otTab]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otTxtbin]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otOff]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otCmp]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otObc]: { extension: '', loader: unimplementedResourceLoader },
+    [ObjectType.otSpl]: { extension: '', loader: unimplementedResourceLoader },
 }
 
 function getResourceTypeConfig(objType: number): ResourceTypeConfig | undefined {
-    return RESOURCE_TYPE_CONFIG[objType]
+    return resourceTypeConfig[objType]
 }
 
 export { getResourceTypeConfig }

@@ -1,5 +1,5 @@
 import { CLIP, SoundFx } from '../core/intern'
-import { UINT8_MAX, UINT16_MAX } from '../core/game_constants'
+import { uint8Max, uint16Max } from '../core/game_constants'
 import { File } from './file'
 import { FileSystem } from './fs'
 
@@ -18,7 +18,7 @@ async function loadVoiceSegment(fs: FileSystem, voicesOffsetsTable: Uint16Array,
         bufSize: 0
     }
     let offset = voicesOffsetsTable[num]
-    if (offset === UINT16_MAX) {
+    if (offset === uint16Max) {
         return res
     }
 
@@ -50,7 +50,7 @@ async function loadVoiceSegment(fs: FileSystem, voicesOffsetsTable: Uint16Array,
                     if (v & 0x80) {
                         v = -(v & 0x7F)
                     }
-                    voiceBuf[dst++] = (v & UINT8_MAX) >>> 0
+                    voiceBuf[dst++] = (v & uint8Max) >>> 0
                 }
             }
             offset += 0x2000 + 2048

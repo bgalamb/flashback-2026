@@ -34,16 +34,16 @@ class SampleInfo {
         return this.data[offset] << 24 >> 24;
     }
 }
-const NUM_CHANNELS = 4;
-const FRAC_BITS = 12;
-const PAULA_FREQ = 3546897;
-const MAX_VOLUME = 64;
+const numChannels = 4;
+const fracBits = 12;
+const paulaFreq = 3546897;
+const maxVolume = 64;
 const kLowPassFilter = false;
 const kMasterVolume = 64 * 3;
-const READ_BE_UINT16 = (ptr, offset = 0) => {
+const readBeUint16 = (ptr, offset = 0) => {
     return (ptr[offset] << 8) | ptr[1 + offset];
 };
-const ADDC_F32 = (a, b) => {
+const addcF32 = (a, b) => {
     a += b;
     if (a < -1.0) {
         a = -1.0;
@@ -53,7 +53,7 @@ const ADDC_F32 = (a, b) => {
     }
     return a;
 };
-const S8_to_F32 = (a) => {
+const s8ToF32 = (a) => {
     if (a < -128) {
         return -1.0;
     }
@@ -66,7 +66,7 @@ const S8_to_F32 = (a) => {
         // return ((u8 << 8) | u8) - 32768
     }
 };
-const ADDC_S16 = (a, b) => {
+const addcS16 = (a, b) => {
     a += b;
     if (a < -32768) {
         a = -32768;
@@ -76,7 +76,7 @@ const ADDC_S16 = (a, b) => {
     }
     return a;
 };
-const S8_to_S16 = (a) => {
+const s8ToS16 = (a) => {
     if (a < -128) {
         return -32768;
     }
@@ -95,7 +95,7 @@ class SoundProcessor extends AudioWorkletProcessor {
         this._premixHook = null;
         this._mixingRate = 0;
         this._ready = false;
-        this._channels = new Array(NUM_CHANNELS).fill(null).map(() => ({
+        this._channels = new Array(numChannels).fill(null).map(() => ({
             active: false,
             volume: 0,
             chunk: new MixerChunk(),
@@ -106,7 +106,7 @@ class SoundProcessor extends AudioWorkletProcessor {
     }
     play(data /*: UInt8Array */, len /*: number */, freq /*: number */, volume /*: number */) {
         let ch /*:MixerChannel*/ = null;
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             let cur /*:MixerChannel*/ = this._channels[i];
             if (cur.active) {
                 if (cur.chunk.data === data) {
@@ -125,7 +125,7 @@ class SoundProcessor extends AudioWorkletProcessor {
             ch.chunk.data = data;
             ch.chunk.len = len;
             ch.chunkPos = 0;
-            ch.chunkInc = ((freq << FRAC_BITS) / this._mixingRate) >> 0;
+            ch.chunkInc = ((freq << fracBits) / this._mixingRate) >> 0;
         }
     }
     mix(input, out /*: Int16Array*/, len /*: number*/) {
@@ -135,19 +135,19 @@ class SoundProcessor extends AudioWorkletProcessor {
             out[pos] = input[pos];
         }
         //loop through the channels
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             const ch /*:MixerChannel*/ = this._channels[i];
             // if the channel is active
             if (ch.active) {
                 //output array has a length of 128 so this loops 0-127
                 for (let pos = 0; pos < len; ++pos) {
-                    if ((ch.chunkPos >> FRAC_BITS) >= (ch.chunk.len - 1)) {
+                    if ((ch.chunkPos >> fracBits) >= (ch.chunk.len - 1)) {
                         ch.active = false;
                         break;
                     }
-                    const chunkdata = ch.chunk.getPCM(ch.chunkPos >> FRAC_BITS);
-                    const sample = Math.floor(chunkdata * (ch.volume / MAX_VOLUME));
-                    out[pos] = ADDC_F32(out[pos], S8_to_F32(sample));
+                    const chunkdata = ch.chunk.getPCM(ch.chunkPos >> fracBits);
+                    const sample = Math.floor(chunkdata * (ch.volume / maxVolume));
+                    out[pos] = addcF32(out[pos], s8ToF32(sample));
                     ch.chunkPos += ch.chunkInc;
                 }
             }
@@ -200,13 +200,13 @@ class SoundFxProcessor extends AudioWorkletProcessor {
         this._numOrders = 0;
         this._orderDelay = 0;
         this._modData = null;
-        this._samples = new Array(NUM_CHANNELS);
+        this._samples = new Array(numChannels);
         this.port.onmessage = this.handleMessage.bind(this);
     }
     play(module) {
         this._mod = module;
         this._curOrder = 0;
-        this._numOrders = READ_BE_UINT16(this._mod.moduleData);
+        this._numOrders = readBeUint16(this._mod.moduleData);
         this._orderDelay = 0;
         this._modData = this._mod.moduleData.subarray(0x22);
         this._modDataIndex = 0;
@@ -220,19 +220,19 @@ class SoundFxProcessor extends AudioWorkletProcessor {
         }
     }
     mixSamples(/*int16_t **/ buf, /*int */ samplesLen) {
-        for (let i = 0; i < NUM_CHANNELS; ++i) {
+        for (let i = 0; i < numChannels; ++i) {
             const si = this._samples[i];
             if (si.data) {
                 let mixbuf = 0;
-                let len = si.len << FRAC_BITS;
-                let loopLen = si.loopLen << FRAC_BITS;
-                let loopPos = si.loopPos << FRAC_BITS;
-                let deltaPos = ((si.freq << FRAC_BITS) / this._mixingRate) >> 0;
+                let len = si.len << fracBits;
+                let loopLen = si.loopLen << fracBits;
+                let loopPos = si.loopPos << fracBits;
+                let deltaPos = ((si.freq << fracBits) / this._mixingRate) >> 0;
                 let curLen = samplesLen;
                 let pos = si.pos;
                 while (curLen !== 0) {
                     let count;
-                    if (loopLen > (2 << FRAC_BITS)) {
+                    if (loopLen > (2 << fracBits)) {
                         if (si.loopPos + si.loopLen > si.len) {
                             throw (`Assertion Failed: ${si.loopPos} + ${si.loopLen} <= ${si.len}`);
                         }
@@ -252,8 +252,8 @@ class SoundFxProcessor extends AudioWorkletProcessor {
                         curLen = 0;
                     }
                     while (count--) {
-                        const out = Math.floor(si.getPCM(pos >> FRAC_BITS) * (si.vol / kMasterVolume));
-                        buf[mixbuf] = ADDC_F32(buf[mixbuf], S8_to_F32(out));
+                        const out = Math.floor(si.getPCM(pos >> fracBits) * (si.vol / kMasterVolume));
+                        buf[mixbuf] = addcF32(buf[mixbuf], s8ToF32(out));
                         ++mixbuf;
                         pos += deltaPos;
                     }
@@ -263,20 +263,20 @@ class SoundFxProcessor extends AudioWorkletProcessor {
         }
     }
     playSample(/*int */ channel, /*const uint8_t **/ sampleData, /*uint16_t */ period) {
-        if (channel >= NUM_CHANNELS) {
-            throw (`Assertion Failed: ${channel} < ${NUM_CHANNELS}`);
+        if (channel >= numChannels) {
+            throw (`Assertion Failed: ${channel} < ${numChannels}`);
         }
         let offset = 0;
         const si = this._samples[channel];
-        si.len = READ_BE_UINT16(sampleData);
+        si.len = readBeUint16(sampleData);
         offset += 2;
-        si.vol = READ_BE_UINT16(sampleData, offset);
+        si.vol = readBeUint16(sampleData, offset);
         offset += 2;
-        si.loopPos = READ_BE_UINT16(sampleData, offset);
+        si.loopPos = readBeUint16(sampleData, offset);
         offset += 2;
-        si.loopLen = READ_BE_UINT16(sampleData, offset);
+        si.loopLen = readBeUint16(sampleData, offset);
         offset += 2;
-        si.freq = (PAULA_FREQ / period) >> 0;
+        si.freq = (paulaFreq / period) >> 0;
         si.pos = 0;
         si.data = sampleData.subarray(offset);
     }
@@ -292,7 +292,7 @@ class SoundFxProcessor extends AudioWorkletProcessor {
             }
         }
         else {
-            this._orderDelay = READ_BE_UINT16(this._mod.moduleData, 2);
+            this._orderDelay = readBeUint16(this._mod.moduleData, 2);
             let period = 0;
             for (let ch = 0; ch < 3; ++ch) {
                 let sampleData = null;
@@ -303,7 +303,7 @@ class SoundFxProcessor extends AudioWorkletProcessor {
                     if (b >= 5) {
                         throw (`Assertion failed: ${b} >= 5`);
                     }
-                    period = READ_BE_UINT16(this._mod.moduleData, 4 + b * 2) << 16 >> 16;
+                    period = readBeUint16(this._mod.moduleData, 4 + b * 2) << 16 >> 16;
                     sampleData = this._mod.sampleData[b];
                 }
                 b = this._modData[this._modDataIndex++];

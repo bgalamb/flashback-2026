@@ -1,5 +1,5 @@
-import { BankSlot, READ_BE_UINT32 } from '../core/intern'
-import { UINT16_MAX } from '../core/game_constants'
+import { BankSlot, readBeUint32 } from '../core/intern'
+import { uint16Max } from '../core/game_constants'
 import { assert } from '../core/assert'
 
 interface ResourceBankCacheState {
@@ -46,10 +46,10 @@ function loadResourceBankData(
     unpack: (dst: Uint8Array, dstSize: number, src: Uint8Array, srcSize: number) => boolean
 ) {
     const ptr = mbk.subarray(num * 6)
-    let dataOffset = READ_BE_UINT32(ptr)
+    let dataOffset = readBeUint32(ptr)
 
     // First byte of the data buffer corresponds to the total count of entries.
-    dataOffset &= UINT16_MAX
+    dataOffset &= uint16Max
 
     const avail = cache.bankDataTail - cache.bankDataHead.byteOffset
     if (avail < size) {
@@ -67,7 +67,7 @@ function loadResourceBankData(
         cache.bankDataHead.set(data.subarray(0, size))
     } else {
         assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
-        assert(!(size !== (READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)), `Assertion failed: ${size} === ${(READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)}`)
+        assert(!(size !== (readBeUint32(data.buffer, data.byteOffset - 4) << 32 >> 32)), `Assertion failed: ${size} === ${(readBeUint32(data.buffer, data.byteOffset - 4) << 32 >> 32)}`)
         if (!unpack(cache.bankDataHead, cache.bankDataTail, data, 0)) {
             console.error(`Bad CRC for bank data ${num}`)
         }

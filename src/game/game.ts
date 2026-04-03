@@ -1,19 +1,19 @@
-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, READ_BE_UINT16, READ_LE_UINT32, READ_BE_UINT32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
+import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
 import type { PgeOpcodeHandler } from '../core/intern'
 import { Cutscene } from '../cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from '../cutscene-players/mp4-cutscene-player'
 import { Mixer } from '../audio/mixer'
 import { Resource, ObjectType, LocaleData } from '../resource/resource'
 import { Video } from '../video/video'
-import { DF_FASTMODE, DF_SETLIFE, DIR_DOWN, DIR_UP, SystemStub } from '../platform/systemstub_web'
+import { dfFastmode, dfSetlife, dirDown, dirUp, SystemStub } from '../platform/systemstub_web'
 import { FileSystem } from '../resource/fs'
 import { Menu } from './menu'
-import { GAMESCREEN_W, GAMESCREEN_H, CHAR_W } from '../core/game_constants'
+import { gamescreenW, gamescreenH, charW } from '../core/game_constants'
 
 import {
     scoreTable,
     _gameLevels,
-    _pge_modKeysTable as modifierKeyMasksData,
+    _pgeModkeystable as modifierKeyMasksData,
     _protectionCodeData,
     _protectionPal,
     _protectionWordData,
@@ -22,19 +22,19 @@ import {
     monsterListsByLevel
 } from '../core/staticres-monsters'
 import { File } from '../resource/file'
-import { _pge_opcodeTable as opcodeHandlers } from './game_opcodes'
+import { _pgeOpcodetable as opcodeHandlers } from './game_opcodes'
 import {
-    UINT8_MAX,
+    uint8Max,
     kIngameSaveSlot,
     kRewindSize,
     kAutoSaveSlot,
     kAutoSaveIntervalMs,
-    CT_ROOM_SIZE,
-    CT_UP_ROOM,
-    CT_DOWN_ROOM,
-    CT_RIGHT_ROOM,
-    CT_LEFT_ROOM,
-    PGE_NUM,
+    ctRoomSize,
+    ctUpRoom,
+    ctDownRoom,
+    ctRightRoom,
+    ctLeftRoom,
+    pgeNum,
 } from '../core/game_constants'
 import { gamePlaySound } from './game_audio'
 import {
@@ -78,8 +78,8 @@ import {
 } from './game_inventory'
 import type { GameServicesShape } from './game_services'
 
-type col_Callback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
-type col_Callback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
+type colCallback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
+type colCallback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
 
 interface GameWorldState {
     currentLevel: number
@@ -227,12 +227,12 @@ class Game {
     readonly collision: GameCollisionState = {
         nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
         dynamicPgeCollisionSlotsByPosition: new Map(),
-        dynamicPgeCollisionSlotObjectPool: new Array(PGE_NUM).fill(null).map(() => ({
-            collision_grid_position_index: 0,
+        dynamicPgeCollisionSlotObjectPool: new Array(pgeNum).fill(null).map(() => ({
+            collisionGridPositionIndex: 0,
             pge: null,
             index: 0
         })),
-        roomCollisionGridPatchRestoreSlotPool: new Array(PGE_NUM).fill(null).map(() => ({
+        roomCollisionGridPatchRestoreSlotPool: new Array(pgeNum).fill(null).map(() => ({
             nextPatchedRegionRestoreSlot: null,
             patchedGridDataView: null,
             patchedCellCount: 0,
@@ -291,12 +291,12 @@ class Game {
         animBuffers: new AnimBuffers(),
     }
 
-    _inp_lastKeysHit: number
-    _inp_lastKeysHitLeftRight: number
+    _inpLastkeyshit: number
+    _inpLastkeyshitleftright: number
     _shouldPlayPgeAnimationSound: boolean
 
     readonly runtimeData: GameRuntimeDataState = {
-        livePgesByIndex: new Array<LivePGE>(PGE_NUM).fill(null).map(() => createLivePGE()),
+        livePgesByIndex: new Array<LivePGE>(pgeNum).fill(null).map(() => createLivePGE()),
         livePgeStore: null,
         pendingSignalsByTargetPgeIndex: new Map(),
         inventoryItemIndicesByOwner: new Map(),
@@ -367,8 +367,8 @@ class Game {
 
     printSaveStateCompleted() {
         if (this.ui.saveStateCompleted) {
-            const str = this._res.getMenuString(LocaleData.Id.LI_05_COMPLETED)
-            this._vid.drawString(str, ((176 - str.length * CHAR_W) / 2) >> 0, 34, 0xE6)
+            const str = this._res.getMenuString(LocaleData.Id.li05Completed)
+            this._vid.drawString(str, ((176 - str.length * charW) / 2) >> 0, 34, 0xE6)
         }
     }
 
@@ -394,7 +394,7 @@ class Game {
         return gameLoadState(this, f)
     }
 
-    async inp_update() {
+    async inpUpdate() {
         return gameInpUpdate(this)
     }
 
@@ -419,12 +419,12 @@ class Game {
         return gameDrawObjectFrame(this, bankDataPtr, dataPtr, x, y, flags, paletteColorMaskOverride)
     }
     
-    drawCharacter(dataPtr: Uint8Array, pos_x: number, pos_y: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
-        return gameDrawCharacter(this, dataPtr, pos_x, pos_y, a, b, flags, paletteColorMaskOverride)
+    drawCharacter(dataPtr: Uint8Array, posX: number, posY: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
+        return gameDrawCharacter(this, dataPtr, posX, posY, a, b, flags, paletteColorMaskOverride)
     }
 
-    findInventoryItemBeforePge(pge: LivePGE, last_pge: LivePGE) {
-        return gameFindInventoryItemBeforePge(this, pge, last_pge)
+    findInventoryItemBeforePge(pge: LivePGE, lastPge: LivePGE) {
+        return gameFindInventoryItemBeforePge(this, pge, lastPge)
     }
 
     getInventoryItemIndices(ownerPge: LivePGE) {
@@ -473,5 +473,5 @@ class Game {
 
 }
 
-export { Game, CT_UP_ROOM, CT_DOWN_ROOM, CT_RIGHT_ROOM, CT_LEFT_ROOM, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }
-export type { col_Callback1, col_Callback2 }
+export { Game, ctUpRoom, ctDownRoom, ctRightRoom, ctLeftRoom, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }
+export type { colCallback1, colCallback2 }

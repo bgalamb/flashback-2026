@@ -1,12 +1,12 @@
 import { Point } from "./intern"
-import { UINT16_MAX } from './game_constants'
+import { uint16Max } from './game_constants'
 import { assert } from "./assert"
 
 class Graphics {
-    static AREA_POINTS_SIZE = 256 * 2
+    static areaPointsSize = 256 * 2
     private _layer: Uint8Array
     private _layerPitch: number
-    private _areaPoints = new Int16Array(Graphics.AREA_POINTS_SIZE * 2)
+    private _areaPoints = new Int16Array(Graphics.areaPointsSize * 2)
     private _crx: number
     private _cry: number
     private _crw: number
@@ -136,7 +136,7 @@ class Graphics {
                 let rysq4 = ry * ry * 4
     
                 let dx = 0
-                let b = rx * ((rysq2 & UINT16_MAX) + (rysq2 >> 16))
+                let b = rx * ((rysq2 & uint16Max) + (rysq2 >> 16))
                 let a = 2 * b
     
                 let ny1, ny2, nx1, nx2
@@ -352,8 +352,8 @@ class Graphics {
         assert(!(numPts * 4 >= 0x100), `Assertion failed: ${numPts * 4} < 0x100`)
 
         const points = this._areaPoints
-        let apts1 = Graphics.AREA_POINTS_SIZE
-        let apts2 = Graphics.AREA_POINTS_SIZE + numPts * 2
+        let apts1 = Graphics.areaPointsSize
+        let apts2 = Graphics.areaPointsSize + numPts * 2
 
         let xmin, xmax, ymin, ymax
         xmin = xmax = pts[0].x
@@ -398,14 +398,14 @@ class Graphics {
             return
         }
 
-        const gfx_fillArea = () => {
+        const gfxFillarea = () => {
             points[rpts++] = -1
             this.fillArea(color, hasAlpha)
         
             return 0
         }
 
-        const gfx_drawPolygonEnd = () => {
+        const gfxDrawpolygonend = () => {
             dy = ymax - ymin
             if (dy >= 0) {
                 do {
@@ -424,10 +424,10 @@ class Graphics {
                     --dy
                 } while (dy >= 0)
             }
-            return gfx_fillArea()
+            return gfxFillarea()
         }
 
-        const gfx_endLine = () => {
+        const gfxEndline = () => {
             d = xstep1
             if (d >= 0) {
                 if (d >= l1) {
@@ -450,10 +450,10 @@ class Graphics {
             }
             points[rpts++] = a >> 16
             points[rpts++] = x
-            return gfx_fillArea()
+            return gfxFillarea()
         }
 
-        const gfx_startNewLine = () => {
+        const gfxStartnewline = () => {
             let res = this.drawPolygonHelper2(f, ymin, xstep2, apts1, spts)
             f = res.x
             ymin = res.y
@@ -465,9 +465,9 @@ class Graphics {
                 b = points[apts1] << 16
                 dy = points[apts1 + 1]
                 if (dy <= ymax) {
-                    return gfx_endLine()
+                    return gfxEndline()
                 }
-                return gfx_fillArea()
+                return gfxFillarea()
             }
             res = this.drawPolygonHelper1(b, ymin, xstep1, apts1, spts)
             b = res.x
@@ -519,10 +519,10 @@ class Graphics {
             }
             f += d
 
-            return gfx_startLine()
+            return gfxStartline()
         }
 
-        const gfx_startLine = () => {
+        const gfxStartline = () => {
             while (1) {
                 dy = points[apts1 + 1]
                 if (spts >= apts1) {
@@ -530,7 +530,7 @@ class Graphics {
                 } else if (dy > points[spts + 1]) {
                     dy = points[spts + 1]
                     if (dy > ymax) {
-                        return gfx_drawPolygonEnd()
+                        return gfxDrawpolygonend()
                     }
                     dy -= ymin
                     if (dy > 0) {
@@ -586,7 +586,7 @@ class Graphics {
                     }
                 } else if (dy == points[spts + 1]) {
                     if (dy > ymax) {
-                        return gfx_drawPolygonEnd()
+                        return gfxDrawpolygonend()
                     }
                     dy -= ymin
                     if (dy > 0) {
@@ -607,9 +607,9 @@ class Graphics {
                             --dy
                         } while (dy >= 0)
                     }
-                    return gfx_startNewLine()
+                    return gfxStartnewline()
                 } else if (dy > ymax) {
-                    return gfx_drawPolygonEnd()
+                    return gfxDrawpolygonend()
                 } else {
                     dy -= ymin
                     if (dy > 0) {
@@ -667,11 +667,11 @@ class Graphics {
             }
         
             if (dy > ymax) {
-                return gfx_drawPolygonEnd()
+                return gfxDrawpolygonend()
             }
             dy -= ymin
             if (dy < 0) {
-                return gfx_fillArea()
+                return gfxFillarea()
             }
 
             if (dy > 0) {
@@ -695,7 +695,7 @@ class Graphics {
         
             b = f = (points[apts1] << 16) | points[apts1 + 1]
 
-            return gfx_endLine()
+            return gfxEndline()
         }
 
         let x, dx, y, dy
@@ -759,11 +759,11 @@ class Graphics {
             f += d
             ymin = 0
             points[rpts++] = 0
-            return gfx_startLine()            
+            return gfxStartline()            
         }
         points[rpts++] = ymin
 
-        return gfx_startNewLine()
+        return gfxStartnewline()
     }
 }
 

@@ -1,10 +1,10 @@
 import * as fs from "fs"
-import { READ_BE_UINT16, READ_LE_UINT16 } from "../core/intern"
-import { GAMESCREEN_H, GAMESCREEN_W, UINT16_MAX } from "../core/game_constants"
+import { readBeUint16, readLeUint16 } from "../core/intern"
+import { gamescreenH, gamescreenW, uint16Max } from "../core/game_constants"
 import { _conradVisualVariants } from "../core/staticres"
 import { monsterListsByLevel } from "../core/staticres-monsters"
 import { buildResolvedSpriteViewsByIndex } from "../resource/parsers"
-import { NUM_SPRITES } from "../resource/constants"
+import { numSprites } from "../resource/constants"
 import { Video } from "../video/video"
 import { encodeRgbPng } from "../core/png-rgb"
 
@@ -20,8 +20,8 @@ type SpritePaletteSource = {
 }
 
 class SpriteImageExporter {
-    private static readonly SPRITE_ENTRY_SIZE = 6
-    private static readonly INVALID_OFFSET = 0xFFFFFFFF
+    private static readonly spriteEntrySize = 6
+    private static readonly invalidOffset = 0xFFFFFFFF
 
     static exportSpriteImage(
         spritePath: string,
@@ -70,10 +70,10 @@ class SpriteImageExporter {
         return buildResolvedSpriteViewsByIndex(
             offsetData,
             spriteBlob,
-            NUM_SPRITES,
-            UINT16_MAX,
-            this.INVALID_OFFSET,
-            this.SPRITE_ENTRY_SIZE
+            numSprites,
+            uint16Max,
+            this.invalidOffset,
+            this.spriteEntrySize
         )
     }
 
@@ -120,13 +120,13 @@ class SpriteImageExporter {
         const spritePayload = rawSpriteEntry.subarray(4)
         const renderData = (encodedWidth & 0x80) !== 0 ? spritePayload : this.decodeSpmPayload(spritePayload)
 
-        const indexedLayer = new Uint8Array(GAMESCREEN_W * GAMESCREEN_H)
+        const indexedLayer = new Uint8Array(gamescreenW * gamescreenH)
         this.drawCharacterToIndexedLayer(indexedLayer, renderData, 0, 0, encodedHeight, encodedWidth, flags)
         return this.buildRgbImageFromIndexedLayer(indexedLayer, paletteSource)
     }
 
     private static decodeSpmPayload(dataPtr: Uint8Array) {
-        const len = 2 * READ_BE_UINT16(dataPtr)
+        const len = 2 * readBeUint16(dataPtr)
         dataPtr = dataPtr.subarray(2)
         const intermediate = new Uint8Array(len)
         let index = 0
@@ -174,10 +174,10 @@ class SpriteImageExporter {
 
         let clippedWidth: number
         if (posX >= 0) {
-            if (posX + spriteWidth < GAMESCREEN_W) {
+            if (posX + spriteWidth < gamescreenW) {
                 clippedWidth = spriteWidth
             } else {
-                clippedWidth = GAMESCREEN_W - posX
+                clippedWidth = gamescreenW - posX
                 if (flags & 0x02) {
                     clipFromRight = true
                     if (isColumnMajor) {
@@ -212,7 +212,7 @@ class SpriteImageExporter {
 
         let clippedHeight: number
         if (posY >= 0) {
-            clippedHeight = posY + spriteHeight < GAMESCREEN_H ? spriteHeight : GAMESCREEN_H - posY
+            clippedHeight = posY + spriteHeight < gamescreenH ? spriteHeight : gamescreenH - posY
         } else {
             clippedHeight = spriteHeight + posY
             if (clipFromRight) {
@@ -250,7 +250,7 @@ class SpriteImageExporter {
     }
 
     private static drawSpriteSub3(src: Uint8Array, srcOffset: number, dst: Uint8Array, x: number, y: number, pitch: number, h: number, w: number) {
-        let dstIndex = y * GAMESCREEN_W + x
+        let dstIndex = y * gamescreenW + x
         while (h--) {
             for (let i = 0; i < w; ++i) {
                 const color = src[srcOffset + i]
@@ -259,12 +259,12 @@ class SpriteImageExporter {
                 }
             }
             srcOffset += pitch
-            dstIndex += GAMESCREEN_W
+            dstIndex += gamescreenW
         }
     }
 
     private static drawSpriteSub4(src: Uint8Array, srcOffset: number, dst: Uint8Array, x: number, y: number, pitch: number, h: number, w: number) {
-        let dstIndex = y * GAMESCREEN_W + x
+        let dstIndex = y * gamescreenW + x
         while (h--) {
             for (let i = 0; i < w; ++i) {
                 const color = src[srcOffset - i]
@@ -273,12 +273,12 @@ class SpriteImageExporter {
                 }
             }
             srcOffset += pitch
-            dstIndex += GAMESCREEN_W
+            dstIndex += gamescreenW
         }
     }
 
     private static drawSpriteSub5(src: Uint8Array, srcOffset: number, dst: Uint8Array, x: number, y: number, pitch: number, h: number, w: number) {
-        let dstIndex = y * GAMESCREEN_W + x
+        let dstIndex = y * gamescreenW + x
         while (h--) {
             for (let i = 0; i < w; ++i) {
                 const color = src[i * pitch + srcOffset]
@@ -287,12 +287,12 @@ class SpriteImageExporter {
                 }
             }
             ++srcOffset
-            dstIndex += GAMESCREEN_W
+            dstIndex += gamescreenW
         }
     }
 
     private static drawSpriteSub6(src: Uint8Array, srcOffset: number, dst: Uint8Array, x: number, y: number, pitch: number, h: number, w: number) {
-        let dstIndex = y * GAMESCREEN_W + x
+        let dstIndex = y * gamescreenW + x
         while (h--) {
             for (let i = 0; i < w; ++i) {
                 const color = src[srcOffset - i * pitch]
@@ -301,19 +301,19 @@ class SpriteImageExporter {
                 }
             }
             ++srcOffset
-            dstIndex += GAMESCREEN_W
+            dstIndex += gamescreenW
         }
     }
 
     private static buildRgbImageFromIndexedLayer(indexedLayer: Uint8Array, paletteSource: SpritePaletteSource): RgbImage {
-        let minX = GAMESCREEN_W
-        let minY = GAMESCREEN_H
+        let minX = gamescreenW
+        let minY = gamescreenH
         let maxX = -1
         let maxY = -1
 
-        for (let y = 0; y < GAMESCREEN_H; ++y) {
-            for (let x = 0; x < GAMESCREEN_W; ++x) {
-                if (indexedLayer[y * GAMESCREEN_W + x] !== 0) {
+        for (let y = 0; y < gamescreenH; ++y) {
+            for (let x = 0; x < gamescreenW; ++x) {
+                if (indexedLayer[y * gamescreenW + x] !== 0) {
                     if (x < minX) minX = x
                     if (x > maxX) maxX = x
                     if (y < minY) minY = y
@@ -336,14 +336,14 @@ class SpriteImageExporter {
 
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
-                const indexedPixel = indexedLayer[(minY + y) * GAMESCREEN_W + minX + x]
+                const indexedPixel = indexedLayer[(minY + y) * gamescreenW + minX + x]
                 const dstOffset = (y * width + x) * 3
                 if (indexedPixel === 0) {
                     continue
                 }
                 const color = paletteSource.isBigEndianPalFile
-                    ? Video.AMIGA_convertColor(READ_BE_UINT16(paletteSource.paletteData, indexedPixel * 2), true)
-                    : Video.AMIGA_convertColor(READ_LE_UINT16(paletteSource.paletteData, indexedPixel * 2))
+                    ? Video.amigaConvertcolor(readBeUint16(paletteSource.paletteData, indexedPixel * 2), true)
+                    : Video.amigaConvertcolor(readLeUint16(paletteSource.paletteData, indexedPixel * 2))
                 pixels[dstOffset + 0] = color.r
                 pixels[dstOffset + 1] = color.g
                 pixels[dstOffset + 2] = color.b

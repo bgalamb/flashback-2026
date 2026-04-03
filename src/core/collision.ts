@@ -1,7 +1,7 @@
-import {CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, Game} from '../game/game'
+import {ctDownRoom, ctLeftRoom, ctRightRoom, Game} from '../game/game'
 import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from './intern'
-import type { col_Callback1, col_Callback2 } from '../game/game'
-import { UINT16_MAX } from './game_constants'
+import type { colCallback1, colCallback2 } from '../game/game'
+import { uint16Max } from './game_constants'
 import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from '../game/game_collision'
 import { assert } from "./assert"
 
@@ -44,15 +44,15 @@ import { assert } from "./assert"
 // - top floor    => pos_y 70  => lane 0 => static room-grid rows 0..2
 // - middle floor => pos_y 142 => lane 1 => static room-grid rows 2..4
 // - bottom floor => pos_y 214 => lane 2 => static room-grid rows 4..6
-const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
+const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCallback1, callback2: colCallback2, argA: number, argC: number, game: Game) => {
 	let stepX: number, stepY: number, verticalOffset: number, distanceStep: number
 	let collisionScore = 0
-	let pgeRoom = pge.room_location << 24 >> 24
+	let pgeRoom = pge.roomLocation << 24 >> 24
 
-	if (pgeRoom < 0 || pgeRoom >= CT_DOWN_ROOM) {
+	if (pgeRoom < 0 || pgeRoom >= ctDownRoom) {
 		return 0
 	}
-	let detectionRange = pge.init_PGE.counter_values[0]
+	let detectionRange = pge.initPge.counterValues[0]
 
 	if (detectionRange > 0) {
 		stepX = -1
@@ -65,8 +65,8 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 	if (game.pge.currentPgeFacingIsMirrored) {
 		stepX = -stepX
 	}
-	let gridPosX = (pge.pos_x + 8) >> 4
-	let gridPosY = ((pge.pos_y / 72)) >> 0
+	let gridPosX = (pge.posX + 8) >> 4
+	let gridPosY = ((pge.posY / 72)) >> 0
 	if (gridPosY >= 0 && gridPosY <= 2) {
 		gridPosY *= 16
 		collisionScore = 0
@@ -79,12 +79,12 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[CT_LEFT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX += 16
 			}
 			if (gridPosX >= 16) {
-				pgeRoom = game._res.level.ctData[CT_RIGHT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX -= 16
 			}
@@ -109,58 +109,58 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 	}
 }
 
-const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) => {
-	const init_pge:InitPGE = pge.init_PGE
-    assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
+const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) => {
+	const initPge:InitPGE = pge.initPge
+    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
 	// assert(init_pge->script_node_index < _res.level.numObjectNodes);
-	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
-	const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
-	if (pge.first_script_entry_index < 0 || pge.first_script_entry_index > maxEntryIndex) {
+	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
+	const maxEntryIndex = Math.min(scriptNode.lastObjNumber, scriptNode.objects.length - 1)
+	if (pge.firstScriptEntryIndex < 0 || pge.firstScriptEntryIndex > maxEntryIndex) {
 		console.warn(
-			`[collision] Invalid script entry index during hit detection: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${pge.first_script_entry_index} maxEntry=${maxEntryIndex} groupId=${groupId}`
+			`[collision] Invalid script entry index during hit detection: pge=${pge.index} room=${pge.roomLocation} objectType=${initPge.objectType} scriptNode=${initPge.scriptNodeIndex} state=${pge.scriptStateType} entry=${pge.firstScriptEntryIndex} maxEntry=${maxEntryIndex} groupId=${groupId}`
 		)
 		return 0
 	}
-	let scriptEntry: PgeScriptEntry = scriptNode.objects[pge.first_script_entry_index]
+	let scriptEntry: PgeScriptEntry = scriptNode.objects[pge.firstScriptEntryIndex]
 	if (!scriptEntry) {
 		console.warn(
-			`[collision] Missing script entry during hit detection: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${pge.first_script_entry_index} groupId=${groupId}`
+			`[collision] Missing script entry during hit detection: pge=${pge.index} room=${pge.roomLocation} objectType=${initPge.objectType} scriptNode=${initPge.scriptNodeIndex} state=${pge.scriptStateType} entry=${pge.firstScriptEntryIndex} groupId=${groupId}`
 		)
 		return 0
 	}
-	let i = pge.first_script_entry_index
-	while (pge.script_state_type === scriptEntry.type && scriptNode.last_obj_number > i) {
+	let i = pge.firstScriptEntryIndex
+	while (pge.scriptStateType === scriptEntry.type && scriptNode.lastObjNumber > i) {
 		if (scriptEntry.opcode2 === 0x6B) { // pge_op_isInGroupSlice
-			if (scriptEntry.opcode_arg2 === 0) {
+			if (scriptEntry.opcodeArg2 === 0) {
 				if (groupId === 1 || groupId === 2) {
-                    return UINT16_MAX
+                    return uint16Max
                 }
 			}
-			if (scriptEntry.opcode_arg2 === 1) {
+			if (scriptEntry.opcodeArg2 === 1) {
 				if (groupId === 3 || groupId === 4) {
-                    return UINT16_MAX
+                    return uint16Max
                 }
 			}
 		} else if (scriptEntry.opcode2 === 0x22) { // pge_op_isInGroup
-			if (scriptEntry.opcode_arg2 === groupId) {
-                return UINT16_MAX
+			if (scriptEntry.opcodeArg2 === groupId) {
+                return uint16Max
             }
 		}
 
 		if (scriptEntry.opcode1 === 0x6B) { // pge_op_isInGroupSlice
-			if (scriptEntry.opcode_arg1 === 0) {
+			if (scriptEntry.opcodeArg1 === 0) {
 				if (groupId === 1 || groupId === 2) {
-                    return UINT16_MAX
+                    return uint16Max
                 }
 			}
-			if (scriptEntry.opcode_arg1 === 1) {
+			if (scriptEntry.opcodeArg1 === 1) {
 				if (groupId === 3 || groupId === 4) {
-                    return UINT16_MAX
+                    return uint16Max
                 }
 			}
 		} else if (scriptEntry.opcode1 === 0x22) { // pge_op_isInGroup
-			if (scriptEntry.opcode_arg1 === groupId) {
-                return UINT16_MAX
+			if (scriptEntry.opcodeArg1 === groupId) {
+                return uint16Max
             }
 		}
 		// ++scriptEntry;
@@ -168,7 +168,7 @@ const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) =
         scriptEntry = scriptNode.objects[i]
 		if (!scriptEntry) {
 			console.warn(
-				`[collision] Script walk ran past available entries: pge=${pge.index} room=${pge.room_location} objectType=${init_pge.object_type} scriptNode=${init_pge.script_node_index} state=${pge.script_state_type} entry=${i} maxEntry=${maxEntryIndex} groupId=${groupId}`
+				`[collision] Script walk ran past available entries: pge=${pge.index} room=${pge.roomLocation} objectType=${initPge.objectType} scriptNode=${initPge.scriptNodeIndex} state=${pge.scriptStateType} entry=${i} maxEntry=${maxEntryIndex} groupId=${groupId}`
 			)
 			return 0
 		}
@@ -177,11 +177,11 @@ const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) =
 	return 0
 }
 
-const col_detectHitCallback3 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
+const colDetecthitcallback3 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === targetObjectType) {
+		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) != (pge2.flags & 1)) {
-				if (col_detectHitCallbackHelper(pge1, groupId, game) === 0) {
+				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
 					return 1
 				}
 			}
@@ -191,11 +191,11 @@ const col_detectHitCallback3 = (pge1: LivePGE, pge2: LivePGE, groupId: number, t
 	return 0
 }
 
-const col_detectHitCallback2 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
+const colDetecthitcallback2 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === targetObjectType) {
+		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) === (pge2.flags & 1)) {
-				if (col_detectHitCallbackHelper(pge1, groupId, game) === 0) {
+				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
 					return 1
 				}
 			}
@@ -205,7 +205,7 @@ const col_detectHitCallback2 = (pge1: LivePGE, pge2: LivePGE, groupId: number, t
 	return 0
 }
 
-const col_detectHitCallback1 = (pge: LivePGE, dy: number, unk1: number, unk2: number, game: Game) => {
+const colDetecthitcallback1 = (pge: LivePGE, dy: number, unk1: number, unk2: number, game: Game) => {
 	if (gameGetRoomCollisionGridData(game, pge, 1, dy) !== 0) {
 		return 1
 	} else {
@@ -213,15 +213,15 @@ const col_detectHitCallback1 = (pge: LivePGE, dy: number, unk1: number, unk2: nu
 	}
 }
 
-const col_detectHitCallback6 = (_pge: LivePGE, _dy: number, _unk1: number, _unk2: number, _game: Game) => {
+const colDetecthitcallback6 = (_pge: LivePGE, _dy: number, _unk1: number, _unk2: number, _game: Game) => {
 	return 0
 }
 
-const col_detectHitCallback4 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
+const colDetecthitcallback4 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === targetObjectType) {
+		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) !== (pge2.flags & 1)) {
-				if (col_detectHitCallbackHelper(pge1, groupId, game) === 0) {
+				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
 					game.queuePgeGroupSignal(pge2.index, pge1.index, groupId)
 					return 1
 				}
@@ -231,11 +231,11 @@ const col_detectHitCallback4 = (pge1: LivePGE, pge2: LivePGE, groupId: number, t
 	return 0
 }
 
-const col_detectHitCallback5 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
+const colDetecthitcallback5 = (pge1: LivePGE, pge2: LivePGE, groupId: number, targetObjectType: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === targetObjectType) {
+		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) === (pge2.flags & 1)) {
-				if (col_detectHitCallbackHelper(pge1, groupId, game) === 0) {
+				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
 					game.queuePgeGroupSignal(pge2.index, pge1.index, groupId)
 					return 1
 				}
@@ -245,7 +245,7 @@ const col_detectHitCallback5 = (pge1: LivePGE, pge2: LivePGE, groupId: number, t
 	return 0
 }
 
-const col_detectGunHitCallback1 = (pge: LivePGE, arg2: number, arg4: number, arg6: number, game: Game) => {
+const colDetectgunhitcallback1 = (pge: LivePGE, arg2: number, arg4: number, arg6: number, game: Game) => {
 	const _ax = gameGetRoomCollisionGridData(game, pge, 1, arg2)
 	if (_ax !== 0) {
 		if (!(_ax & 2) || (arg6 !== 1)) {
@@ -256,9 +256,9 @@ const col_detectGunHitCallback1 = (pge: LivePGE, arg2: number, arg4: number, arg
 	return 0
 }
 
-const col_detectGunHitCallback2 = (pge1: LivePGE, pge2: LivePGE, arg4: number, arg5: number, game: Game) => {
+const colDetectgunhitcallback2 = (pge1: LivePGE, pge2: LivePGE, arg4: number, arg5: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === 1 || pge1.init_PGE.object_type === 10) {
+		if (pge1.initPge.objectType === 1 || pge1.initPge.objectType === 10) {
 			let id
 			if ((pge1.flags & 1) !== (pge2.flags & 1)) {
 				id = 4
@@ -271,7 +271,7 @@ const col_detectGunHitCallback2 = (pge1: LivePGE, pge2: LivePGE, arg4: number, a
 					id = 1
 				}
 			}
-			if (col_detectHitCallbackHelper(pge1, id, game) !== 0) {
+			if (colDetecthitcallbackhelper(pge1, id, game) !== 0) {
 				game.queuePgeGroupSignal(pge2.index, pge1.index, id)
 				return 1
 			}
@@ -280,9 +280,9 @@ const col_detectGunHitCallback2 = (pge1: LivePGE, pge2: LivePGE, arg4: number, a
 	return 0;
 }
 
-const col_detectGunHitCallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, arg5: number, game: Game) => {
+const colDetectgunhitcallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, arg5: number, game: Game) => {
 	if (pge1 !== pge2 && (pge1.flags & 4)) {
-		if (pge1.init_PGE.object_type === 1 || pge1.init_PGE.object_type === 12 || pge1.init_PGE.object_type === 10) {
+		if (pge1.initPge.objectType === 1 || pge1.initPge.objectType === 12 || pge1.initPge.objectType === 10) {
 			let id
 			if ((pge1.flags & 1) !== (pge2.flags & 1)) {
 				id = 4;
@@ -295,7 +295,7 @@ const col_detectGunHitCallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, a
 					id = 1;
 				}
 			}
-			if (col_detectHitCallbackHelper(pge1, id, game) !== 0) {
+			if (colDetecthitcallbackhelper(pge1, id, game) !== 0) {
 				game.queuePgeGroupSignal(pge2.index, pge1.index, id)
 				return 1
 			}
@@ -305,14 +305,14 @@ const col_detectGunHitCallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, a
 	return 0
 }
 
-const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_Callback1, callback2: col_Callback2, argA: number, argC: number, game: Game) => {
-	let pgeRoom = pge.room_location
-	if (pgeRoom < 0 || pgeRoom >= CT_DOWN_ROOM) return 0
+const colDetectgunhit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCallback1, callback2: colCallback2, argA: number, argC: number, game: Game) => {
+	let pgeRoom = pge.roomLocation
+	if (pgeRoom < 0 || pgeRoom >= ctDownRoom) return 0
 	let detectionRange, stepX, stepY
 	if (argC === -1) {
-		detectionRange = pge.init_PGE.counter_values[0]
+		detectionRange = pge.initPge.counterValues[0]
 	} else {
-		detectionRange = pge.init_PGE.counter_values[3]
+		detectionRange = pge.initPge.counterValues[3]
 	}
 	if (detectionRange > 0) {
 		stepX = -1
@@ -326,8 +326,8 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 		stepX = -stepX
 	}
 
-	let gridPosX = (pge.pos_x + 8) >> 4
-	let gridPosY = ((pge.pos_y - 8) / 72) >> 0
+	let gridPosX = (pge.posX + 8) >> 4
+	let gridPosY = ((pge.posY - 8) / 72) >> 0
 
 	if (gridPosY >= 0 && gridPosY <= 2) {
 		gridPosY *= 16
@@ -340,14 +340,14 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[CT_LEFT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) {
                     return 0
                 }
 				gridPosX += 0x10;
 			}
 			if (gridPosX >= 0x10) {
-				pgeRoom = game._res.level.ctData[CT_RIGHT_ROOM + pgeRoom];
+				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom];
 				if (pgeRoom < 0) {
                     return 0
                 }
@@ -374,4 +374,4 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 	return 0
 }
 
-export { col_detectHitCallbackHelper, col_detectHitCallback1, col_detectHitCallback2, col_detectHitCallback3, col_detectHitCallback4, col_detectHitCallback5, col_detectHitCallback6, col_detectHit, col_detectGunHitCallback1, col_detectGunHitCallback2, col_detectGunHitCallback3, col_detectGunHit }
+export { colDetecthitcallbackhelper, colDetecthitcallback1, colDetecthitcallback2, colDetecthitcallback3, colDetecthitcallback4, colDetecthitcallback5, colDetecthitcallback6, colDetecthit, colDetectgunhitcallback1, colDetectgunhitcallback2, colDetectgunhitcallback3, colDetectgunhit }
