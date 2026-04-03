@@ -45,7 +45,7 @@ import {
 } from './game_inventory'
 import { gameInpUpdate } from './game_world'
 import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { getRuntimeRegistryState } from './game_runtime_data'
+import { getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
 
 function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
     const session = getGameSessionState(game)
@@ -561,7 +561,7 @@ export function gameRebuildPgeCollisionStateForCurrentRoom(game: Game, currentRo
     }
     let registeredSegments = 0
 
-    for (const pge of runtime.livePgeStore.liveByRoom[currentRoom] ?? []) {
+    for (const pge of getRoomPges(game, currentRoom)) {
         // this is going to prepare the collisions table for all the PGEs in current roon
         const previousCount = getGameCollisionState(game).nextFreeDynamicPgeCollisionSlotPoolIndex
         gameRegisterPgeCollisionSegments(game, pge)

@@ -5,22 +5,19 @@ const assert = require('node:assert/strict')
 
 const gameDraw = require('../src/game/game_draw.ts')
 const { pgeFlagSpecialAnim, uint8Max } = require('../src/core/game_constants.ts')
+const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
-function attachGroupedGameState(game) {
-    game.world = {
-        get blinkingConradCounter() { return game._blinkingConradCounter },
-        set blinkingConradCounter(value) { game._blinkingConradCounter = value },
-    }
-    game.runtimeData = {
-        get livePgesByIndex() { return game._livePgesByIndex },
-        set livePgesByIndex(value) { game._livePgesByIndex = value },
-    }
-    game.renderData = {
-        get animBuffers() { return game._animBuffers },
-        set animBuffers(value) { game._animBuffers = value },
-    }
-    return game
-}
+const attachDrawGroupedGameState = (game) => attachGroupedGameState(game, {
+    world: {
+        blinkingConradCounter: '_blinkingConradCounter',
+    },
+    runtimeData: {
+        livePgesByIndex: '_livePgesByIndex',
+    },
+    renderData: {
+        animBuffers: '_animBuffers',
+    },
+})
 
 function createDrawGame(overrides = {}) {
     const drawCharacterCalls = []
@@ -56,7 +53,7 @@ function createDrawGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return attachGroupedGameState(game)
+    return attachDrawGroupedGameState(game)
 }
 
 test('gameDrawAnimBuffer renders monster sprites with their prepared palette override', async () => {

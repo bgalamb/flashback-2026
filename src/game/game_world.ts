@@ -14,7 +14,7 @@ import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameRese
 import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game_lifecycle'
 import { getGameServices } from './game_services'
 import { getGameCollisionState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { getRenderDataState, getRuntimeRegistryState } from './game_runtime_data'
+import { getRenderDataState, getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
 
 const monsterPaletteSlot = 5
 
@@ -388,7 +388,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 }
 
 export async function gamePrepareCurrentRoomAnims(game: Game, currentRoom: number) {
-    const roomPges = getRuntimeRegistryState(game).livePgeStore.liveByRoom[currentRoom] ?? []
+    const roomPges = getRoomPges(game, currentRoom)
     gameDebugLog(game, 'world', `[anim-prep] current-room room=${currentRoom} pges=${roomPges.length}`)
     for (const pge of roomPges) {
         await gamePrepareAnimsHelper(game, pge, 0, 0, currentRoom)
@@ -405,7 +405,7 @@ export async function gamePrepareAdjacentRoomAnims(
 ) {
     const pgeRoom = game._res.level.ctData[roomOffset + currentRoom]
     if (pgeRoom >= 0 && pgeRoom < 0x40) {
-        const roomPges = getRuntimeRegistryState(game).livePgeStore.liveByRoom[pgeRoom] ?? []
+        const roomPges = getRoomPges(game, pgeRoom)
         gameDebugLog(game, 'world', `[anim-prep] adjacent sourceRoom=${currentRoom} targetRoom=${pgeRoom} offset=(${offsetX},${offsetY}) candidates=${roomPges.length}`)
         for (const pge of roomPges) {
             if (shouldPrepare(game, pge)) {

@@ -18,67 +18,47 @@ const {
 const { ctLeftRoom, ctRightRoom } = require('../src/game/game.ts')
 const gameCollision = require('../src/game/game_collision.ts')
 const gamePge = require('../src/game/game_pge.ts')
+const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
-function attachGroupedGameState(game) {
-    game.services = {
-        get res() { return game._res },
-        set res(value) { game._res = value },
-        get stub() { return game._stub },
-        set stub(value) { game._stub = value },
-    }
-    game.world = {
-        get currentRoom() { return game._currentRoom },
-        set currentRoom(value) { game._currentRoom = value },
-        get loadMap() { return game._loadMap },
-        set loadMap(value) { game._loadMap = value },
-        get blinkingConradCounter() { return game._blinkingConradCounter },
-        set blinkingConradCounter(value) { game._blinkingConradCounter = value },
-    }
-    game.ui = {
-        get skillLevel() { return game._skillLevel },
-        set skillLevel(value) { game._skillLevel = value },
-        get score() { return game._score },
-        set score(value) { game._score = value },
-    }
-    game.session = {
-        get startedFromLevelSelect() { return game._startedFromLevelSelect },
-        set startedFromLevelSelect(value) { game._startedFromLevelSelect = value },
-    }
-    game.pge = {
-        get currentPgeInputMask() { return game._currentPgeInputMask },
-        set currentPgeInputMask(value) { game._currentPgeInputMask = value },
-        get currentPgeRoom() { return game._currentPgeRoom },
-        set currentPgeRoom(value) { game._currentPgeRoom = value },
-        get shouldProcessCurrentPgeObjectNode() { return game._shouldProcessCurrentPgeObjectNode },
-        set shouldProcessCurrentPgeObjectNode(value) { game._shouldProcessCurrentPgeObjectNode = value },
-        get currentPgeFacingIsMirrored() { return game._currentPgeFacingIsMirrored },
-        set currentPgeFacingIsMirrored(value) { game._currentPgeFacingIsMirrored = value },
-    }
-    game.collision = {
-        get currentPgeCollisionGridX() { return game._currentPgeCollisionGridX },
-        set currentPgeCollisionGridX(value) { game._currentPgeCollisionGridX = value },
-        get currentPgeCollisionGridY() { return game._currentPgeCollisionGridY },
-        set currentPgeCollisionGridY(value) { game._currentPgeCollisionGridY = value },
-        get nextFreeDynamicPgeCollisionSlotPoolIndex() { return game._nextFreeDynamicPgeCollisionSlotPoolIndex },
-        set nextFreeDynamicPgeCollisionSlotPoolIndex(value) { game._nextFreeDynamicPgeCollisionSlotPoolIndex = value },
-        get dynamicPgeCollisionSlotsByPosition() { return game._dynamicPgeCollisionSlotsByPosition },
-        set dynamicPgeCollisionSlotsByPosition(value) { game._dynamicPgeCollisionSlotsByPosition = value },
-        get dynamicPgeCollisionSlotObjectPool() { return game._dynamicPgeCollisionSlotObjectPool },
-        set dynamicPgeCollisionSlotObjectPool(value) { game._dynamicPgeCollisionSlotObjectPool = value },
-    }
-    game.runtimeData = {
-        get livePgesByIndex() { return game._livePgesByIndex },
-        set livePgesByIndex(value) { game._livePgesByIndex = value },
-        get livePgeStore() { return game._livePgeStore },
-        set livePgeStore(value) { game._livePgeStore = value },
-        get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
-        set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
-    }
-    return game
-}
+const attachPgeGroupedGameState = (game) => attachGroupedGameState(game, {
+    services: {
+        res: '_res',
+        stub: '_stub',
+    },
+    world: {
+        currentRoom: '_currentRoom',
+        loadMap: '_loadMap',
+        blinkingConradCounter: '_blinkingConradCounter',
+    },
+    ui: {
+        skillLevel: '_skillLevel',
+        score: '_score',
+    },
+    session: {
+        startedFromLevelSelect: '_startedFromLevelSelect',
+    },
+    pge: {
+        currentPgeInputMask: '_currentPgeInputMask',
+        currentPgeRoom: '_currentPgeRoom',
+        shouldProcessCurrentPgeObjectNode: '_shouldProcessCurrentPgeObjectNode',
+        currentPgeFacingIsMirrored: '_currentPgeFacingIsMirrored',
+    },
+    collision: {
+        currentPgeCollisionGridX: '_currentPgeCollisionGridX',
+        currentPgeCollisionGridY: '_currentPgeCollisionGridY',
+        nextFreeDynamicPgeCollisionSlotPoolIndex: '_nextFreeDynamicPgeCollisionSlotPoolIndex',
+        dynamicPgeCollisionSlotsByPosition: '_dynamicPgeCollisionSlotsByPosition',
+        dynamicPgeCollisionSlotObjectPool: '_dynamicPgeCollisionSlotObjectPool',
+    },
+    runtimeData: {
+        livePgesByIndex: '_livePgesByIndex',
+        livePgeStore: '_livePgeStore',
+        pendingSignalsByTargetPgeIndex: '_pendingSignalsByTargetPgeIndex',
+    },
+})
 
 function createPgeGame() {
-    return attachGroupedGameState({
+    return attachPgeGroupedGameState({
         _blinkingConradCounter: 0,
         _currentPgeCollisionGridX: 0,
         _currentPgeCollisionGridY: 0,

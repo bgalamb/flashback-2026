@@ -20,6 +20,10 @@ export function getRuntimeRegistryState(game: Game): RuntimeRegistryState {
     return game.runtimeData
 }
 
+export function getRoomPges(game: Game, room: number): LivePGE[] {
+    return game.runtimeData.livePgeStore.liveByRoom[room] ?? []
+}
+
 export function getRenderDataState(game: Game): RenderDataState {
     return game.renderData
 }

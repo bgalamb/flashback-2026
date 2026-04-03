@@ -16,6 +16,7 @@ const {
 const { LocaleData } = require('../src/resource/resource.ts')
 const { Menu } = require('../src/game/menu.ts')
 const { kAutoSaveSlot } = require('../src/game/game.ts')
+const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 const {
     gamePlayCutscene,
     gameRunLoop,
@@ -47,141 +48,82 @@ function createPlayerInput() {
     }
 }
 
-function attachGroupedGameState(game) {
-    game.services = {
-        get res() { return game._res },
-        set res(value) { game._res = value },
-        get vid() { return game._vid },
-        set vid(value) { game._vid = value },
-        get mix() { return game._mix },
-        set mix(value) { game._mix = value },
-        get cut() { return game._cut },
-        set cut(value) { game._cut = value },
-        get stub() { return game._stub },
-        set stub(value) { game._stub = value },
-        get fs() { return game._fs },
-        set fs(value) { game._fs = value },
-    }
-    game.world = {
-        get currentLevel() { return game._currentLevel },
-        set currentLevel(value) { game._currentLevel = value },
-        get currentRoom() { return game._currentRoom },
-        set currentRoom(value) { game._currentRoom = value },
-        get currentIcon() { return game._currentIcon },
-        set currentIcon(value) { game._currentIcon = value },
-        get loadMap() { return game._loadMap },
-        set loadMap(value) { game._loadMap = value },
-        get printLevelCodeCounter() { return game._printLevelCodeCounter },
-        set printLevelCodeCounter(value) { game._printLevelCodeCounter = value },
-        get credits() { return game._credits },
-        set credits(value) { game._credits = value },
-        get blinkingConradCounter() { return game._blinkingConradCounter },
-        set blinkingConradCounter(value) { game._blinkingConradCounter = value },
-        get textToDisplay() { return game._textToDisplay },
-        set textToDisplay(value) { game._textToDisplay = value },
-        get eraseBackground() { return game._eraseBackground },
-        set eraseBackground(value) { game._eraseBackground = value },
-        get deathCutsceneCounter() { return game._deathCutsceneCounter },
-        set deathCutsceneCounter(value) { game._deathCutsceneCounter = value },
-    }
-    game.ui = {
-        get skillLevel() { return game._skillLevel },
-        set skillLevel(value) { game._skillLevel = value },
-        get score() { return game._score },
-        set score(value) { game._score = value },
-        get currentRoomOverlayCounter() { return game._currentRoomOverlayCounter },
-        set currentRoomOverlayCounter(value) { game._currentRoomOverlayCounter = value },
-        get currentInventoryIconNum() { return game._currentInventoryIconNum },
-        set currentInventoryIconNum(value) { game._currentInventoryIconNum = value },
-        get saveStateCompleted() { return game._saveStateCompleted },
-        set saveStateCompleted(value) { game._saveStateCompleted = value },
-    }
-    game.session = {
-        get randSeed() { return game._randSeed },
-        set randSeed(value) { game._randSeed = value },
-        get endLoop() { return game._endLoop },
-        set endLoop(value) { game._endLoop = value },
-        get skipNextLevelCutscene() { return game._skipNextLevelCutscene },
-        set skipNextLevelCutscene(value) { game._skipNextLevelCutscene = value },
-        get startedFromLevelSelect() { return game._startedFromLevelSelect },
-        set startedFromLevelSelect(value) { game._startedFromLevelSelect = value },
-        get frameTimestamp() { return game._frameTimestamp },
-        set frameTimestamp(value) { game._frameTimestamp = value },
-        get autoSave() { return game._autoSave },
-        set autoSave(value) { game._autoSave = value },
-        get saveTimestamp() { return game._saveTimestamp },
-        set saveTimestamp(value) { game._saveTimestamp = value },
-        get stateSlot() { return game._stateSlot },
-        set stateSlot(value) { game._stateSlot = value },
-        get validSaveState() { return game._validSaveState },
-        set validSaveState(value) { game._validSaveState = value },
-    }
-    game.pge = {
-        get currentPgeRoom() { return game._currentPgeRoom },
-        set currentPgeRoom(value) { game._currentPgeRoom = value },
-        get currentPgeFacingIsMirrored() { return game._currentPgeFacingIsMirrored },
-        set currentPgeFacingIsMirrored(value) { game._currentPgeFacingIsMirrored = value },
-        get shouldProcessCurrentPgeObjectNode() { return game._shouldProcessCurrentPgeObjectNode },
-        set shouldProcessCurrentPgeObjectNode(value) { game._shouldProcessCurrentPgeObjectNode = value },
-        get currentPgeInputMask() { return game._currentPgeInputMask },
-        set currentPgeInputMask(value) { game._currentPgeInputMask = value },
-        get opcodeTempVar1() { return game._opcodeTempVar1 },
-        set opcodeTempVar1(value) { game._opcodeTempVar1 = value },
-        get opcodeTempVar2() { return game._opcodeTempVar2 },
-        set opcodeTempVar2(value) { game._opcodeTempVar2 = value },
-        get opcodeComparisonResult1() { return game._opcodeComparisonResult1 },
-        set opcodeComparisonResult1(value) { game._opcodeComparisonResult1 = value },
-        get opcodeComparisonResult2() { return game._opcodeComparisonResult2 },
-        set opcodeComparisonResult2(value) { game._opcodeComparisonResult2 = value },
-    }
-    game.collision = {
-        get nextFreeDynamicPgeCollisionSlotPoolIndex() { return game._nextFreeDynamicPgeCollisionSlotPoolIndex },
-        set nextFreeDynamicPgeCollisionSlotPoolIndex(value) { game._nextFreeDynamicPgeCollisionSlotPoolIndex = value },
-        get dynamicPgeCollisionSlotsByPosition() { return game._dynamicPgeCollisionSlotsByPosition },
-        set dynamicPgeCollisionSlotsByPosition(value) { game._dynamicPgeCollisionSlotsByPosition = value },
-        get dynamicPgeCollisionSlotObjectPool() { return game._dynamicPgeCollisionSlotObjectPool },
-        set dynamicPgeCollisionSlotObjectPool(value) { game._dynamicPgeCollisionSlotObjectPool = value },
-        get roomCollisionGridPatchRestoreSlotPool() { return game._roomCollisionGridPatchRestoreSlotPool },
-        set roomCollisionGridPatchRestoreSlotPool(value) { game._roomCollisionGridPatchRestoreSlotPool = value },
-        get nextFreeRoomCollisionGridPatchRestoreSlot() { return game._nextFreeRoomCollisionGridPatchRestoreSlot },
-        set nextFreeRoomCollisionGridPatchRestoreSlot(value) { game._nextFreeRoomCollisionGridPatchRestoreSlot = value },
-        get activeRoomCollisionGridPatchRestoreSlots() { return game._activeRoomCollisionGridPatchRestoreSlots },
-        set activeRoomCollisionGridPatchRestoreSlots(value) { game._activeRoomCollisionGridPatchRestoreSlots = value },
-        get activeRoomCollisionSlotWindow() { return game._activeRoomCollisionSlotWindow },
-        set activeRoomCollisionSlotWindow(value) { game._activeRoomCollisionSlotWindow = value },
-        get activeCollisionLeftRoom() { return game._activeCollisionLeftRoom },
-        set activeCollisionLeftRoom(value) { game._activeCollisionLeftRoom = value },
-        get activeCollisionRightRoom() { return game._activeCollisionRightRoom },
-        set activeCollisionRightRoom(value) { game._activeCollisionRightRoom = value },
-        get currentPgeCollisionGridX() { return game._currentPgeCollisionGridX },
-        set currentPgeCollisionGridX(value) { game._currentPgeCollisionGridX = value },
-        get currentPgeCollisionGridY() { return game._currentPgeCollisionGridY },
-        set currentPgeCollisionGridY(value) { game._currentPgeCollisionGridY = value },
-    }
-    game.runtimeData = {
-        get livePgesByIndex() { return game._livePgesByIndex },
-        set livePgesByIndex(value) { game._livePgesByIndex = value },
-        get livePgeStore() { return game._livePgeStore },
-        set livePgeStore(value) { game._livePgeStore = value },
-        get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
-        set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
-        get inventoryItemIndicesByOwner() { return game._inventoryItemIndicesByOwner },
-        set inventoryItemIndicesByOwner(value) { game._inventoryItemIndicesByOwner = value },
-    }
-    game.renderData = {
-        get animBuffer0State() { return game._animBuffer0State },
-        set animBuffer0State(value) { game._animBuffer0State = value },
-        get animBuffer1State() { return game._animBuffer1State },
-        set animBuffer1State(value) { game._animBuffer1State = value },
-        get animBuffer2State() { return game._animBuffer2State },
-        set animBuffer2State(value) { game._animBuffer2State = value },
-        get animBuffer3State() { return game._animBuffer3State },
-        set animBuffer3State(value) { game._animBuffer3State = value },
-        get animBuffers() { return game._animBuffers },
-        set animBuffers(value) { game._animBuffers = value },
-    }
-    return game
-}
+const attachRuntimeGroupedGameState = (game) => attachGroupedGameState(game, {
+    services: {
+        res: '_res',
+        vid: '_vid',
+        mix: '_mix',
+        cut: '_cut',
+        stub: '_stub',
+        fs: '_fs',
+    },
+    world: {
+        currentLevel: '_currentLevel',
+        currentRoom: '_currentRoom',
+        currentIcon: '_currentIcon',
+        loadMap: '_loadMap',
+        printLevelCodeCounter: '_printLevelCodeCounter',
+        credits: '_credits',
+        blinkingConradCounter: '_blinkingConradCounter',
+        textToDisplay: '_textToDisplay',
+        eraseBackground: '_eraseBackground',
+        deathCutsceneCounter: '_deathCutsceneCounter',
+    },
+    ui: {
+        skillLevel: '_skillLevel',
+        score: '_score',
+        currentRoomOverlayCounter: '_currentRoomOverlayCounter',
+        currentInventoryIconNum: '_currentInventoryIconNum',
+        saveStateCompleted: '_saveStateCompleted',
+    },
+    session: {
+        randSeed: '_randSeed',
+        endLoop: '_endLoop',
+        skipNextLevelCutscene: '_skipNextLevelCutscene',
+        startedFromLevelSelect: '_startedFromLevelSelect',
+        frameTimestamp: '_frameTimestamp',
+        autoSave: '_autoSave',
+        saveTimestamp: '_saveTimestamp',
+        stateSlot: '_stateSlot',
+        validSaveState: '_validSaveState',
+    },
+    pge: {
+        currentPgeRoom: '_currentPgeRoom',
+        currentPgeFacingIsMirrored: '_currentPgeFacingIsMirrored',
+        shouldProcessCurrentPgeObjectNode: '_shouldProcessCurrentPgeObjectNode',
+        currentPgeInputMask: '_currentPgeInputMask',
+        opcodeTempVar1: '_opcodeTempVar1',
+        opcodeTempVar2: '_opcodeTempVar2',
+        opcodeComparisonResult1: '_opcodeComparisonResult1',
+        opcodeComparisonResult2: '_opcodeComparisonResult2',
+    },
+    collision: {
+        nextFreeDynamicPgeCollisionSlotPoolIndex: '_nextFreeDynamicPgeCollisionSlotPoolIndex',
+        dynamicPgeCollisionSlotsByPosition: '_dynamicPgeCollisionSlotsByPosition',
+        dynamicPgeCollisionSlotObjectPool: '_dynamicPgeCollisionSlotObjectPool',
+        roomCollisionGridPatchRestoreSlotPool: '_roomCollisionGridPatchRestoreSlotPool',
+        nextFreeRoomCollisionGridPatchRestoreSlot: '_nextFreeRoomCollisionGridPatchRestoreSlot',
+        activeRoomCollisionGridPatchRestoreSlots: '_activeRoomCollisionGridPatchRestoreSlots',
+        activeRoomCollisionSlotWindow: '_activeRoomCollisionSlotWindow',
+        activeCollisionLeftRoom: '_activeCollisionLeftRoom',
+        activeCollisionRightRoom: '_activeCollisionRightRoom',
+        currentPgeCollisionGridX: '_currentPgeCollisionGridX',
+        currentPgeCollisionGridY: '_currentPgeCollisionGridY',
+    },
+    runtimeData: {
+        livePgesByIndex: '_livePgesByIndex',
+        livePgeStore: '_livePgeStore',
+        pendingSignalsByTargetPgeIndex: '_pendingSignalsByTargetPgeIndex',
+        inventoryItemIndicesByOwner: '_inventoryItemIndicesByOwner',
+    },
+    renderData: {
+        animBuffer0State: '_animBuffer0State',
+        animBuffer1State: '_animBuffer1State',
+        animBuffer2State: '_animBuffer2State',
+        animBuffer3State: '_animBuffer3State',
+        animBuffers: '_animBuffers',
+    },
+})
 
 function createBaseGame(overrides = {}) {
     const playerInput = createPlayerInput()
@@ -358,7 +300,7 @@ function createBaseGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return attachGroupedGameState(game)
+    return attachRuntimeGroupedGameState(game)
 }
 
 test('gamePlayCutscene plays chained cutscenes and stops music afterwards', async () => {

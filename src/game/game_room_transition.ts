@@ -4,7 +4,7 @@ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom, gamescreenW } from '../c
 import { initPgeFlagInCurrentRoomList, pgeFlagActive } from '../core/game_constants'
 import { gameRequestMapReload } from './game_lifecycle'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
-import { getRuntimeRegistryState } from './game_runtime_data'
+import { getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
 import { getGameWorldState } from './game_state'
 
 type PgeTransitionLogger = (scope: string, message: string, pge?: LivePGE) => void
@@ -40,7 +40,7 @@ function activatePgeForCurrentFrame(game: Game, pge: LivePGE, log: PgeTransition
 }
 
 function activateCurrentRoomPges(game: Game, room: number, log: PgeTransitionLogger) {
-    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room] ?? []) {
+    for (const pge of getRoomPges(game, room)) {
         if (pge.initPge.flags & initPgeFlagInCurrentRoomList) {
             activatePgeForCurrentFrame(game, pge, log, `activate current-room pge=${pge.index} pos=(${pge.posX},${pge.posY})`)
         }
@@ -51,7 +51,7 @@ function activateNeighborRoomPges(game: Game, room: number, minY: number, label:
     if (room < 0 || room >= 0x40) {
         return
     }
-    for (const pge of getRuntimeRegistryState(game).livePgeStore.liveByRoom[room] ?? []) {
+    for (const pge of getRoomPges(game, room)) {
         if (pge.initPge.objectType !== 10 && pge.posY >= minY && (pge.initPge.flags & initPgeFlagInCurrentRoomList)) {
             activatePgeForCurrentFrame(game, pge, log, `activate ${label} pge=${pge.index} room=${room} pos=(${pge.posX},${pge.posY})`)
         }
