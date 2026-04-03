@@ -84,16 +84,20 @@ function createVideoFixture(overrides = {}) {
 
     const conradPaletteWords = Array.from({ length: 16 }, (_, i) => 0x111 + i)
     const res = {
-        _fnt: new Uint8Array(0),
-        _fs: {
+        ui: {
+            fnt: new Uint8Array(0),
+        },
+        fileSystem: {
             findPath(filename) {
                 return filename
             },
         },
-        _loadedConradVisualsByVariantId: new Map([
-            [1, { paletteSlot: 4, palette: createLePalette(conradPaletteWords) }],
-            [2, { paletteSlot: 4, palette: createLePalette(conradPaletteWords.map((word) => word + 0x111)) }],
-        ]),
+        sprites: {
+            loadedConradVisualsByVariantId: new Map([
+                [1, { paletteSlot: 4, palette: createLePalette(conradPaletteWords) }],
+                [2, { paletteSlot: 4, palette: createLePalette(conradPaletteWords.map((word) => word + 0x111)) }],
+            ]),
+        },
     }
 
     Object.assign(res, overrides.res)

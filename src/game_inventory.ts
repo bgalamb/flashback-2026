@@ -192,8 +192,8 @@ export async function gameHandleInventory(game: Game) {
         let num_items = 0
         for (const inv_pge of inventoryItemIndices) {
             items[num_items] = {
-                icon_num: game._res._pgeAllInitialStateFromFile[inv_pge].icon_num,
-                init_pge: game._res._pgeAllInitialStateFromFile[inv_pge],
+                icon_num: game._res.level.pgeAllInitialStateFromFile[inv_pge].icon_num,
+                init_pge: game._res.level.pgeAllInitialStateFromFile[inv_pge],
                 live_pge: game._livePgesByIndex[inv_pge]
             }
             ++num_items

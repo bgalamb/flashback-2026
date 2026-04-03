@@ -1,16 +1,24 @@
 import { File } from './file'
 import { FileSystem } from "./fs"
-import { Color, InitPGE, PgeScriptNode, READ_BE_UINT16, READ_BE_UINT32, READ_LE_UINT16, READ_LE_UINT32, SoundFx, CLIP, BankSlot, Buffer, CreateInitPGE, createPgeScriptEntry, ResolvedSpriteSet, LoadedConradVisual } from "../intern"
+import { Color, InitPGE, PgeScriptNode, READ_BE_UINT16, READ_LE_UINT16, READ_LE_UINT32, SoundFx, BankSlot, Buffer, ResolvedSpriteSet, LoadedConradVisual } from "../intern"
 import { _gameSavedSoundLen, _splNames, _spmOffsetsTable, _voicesOffsetsTable, _gameSavedSoundData } from '../staticres'
 import { _conradVisualVariants } from '../staticres'
 import { bytekiller_unpack } from '../unpack'
 import { LocaleData, NUM_BANK_BUFFERS, NUM_CUTSCENE_TEXTS, NUM_SFXS, NUM_SPRITES, ObjectType, kPaulaFreq } from './constants'
 import { createObjectTypeMapping } from './loaders'
-import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData, buildResolvedSpriteViewsByIndex } from './parsers'
 import {CT_DATA_SIZE, GAMESCREEN_H, UINT16_MAX, UINT8_MAX} from '../game_constants'
 import { assert } from "../assert"
-import { getLevelAssetBaseName, getLevelAssetPathCandidates, getSharedAssetPathCandidates } from "../level-asset-paths"
+import { getCandidateEntryNames, getSharedSpriteEntryNames } from './entry-paths'
+import { clearResourceBankCache, createResourceBankCache, findResourceBankData, loadResourceBankData, ResourceBankCacheState } from './bank-cache'
+import { buildResolvedSpriteSet, createEmptyResolvedSpriteSet, initializeConradVisualsByVariant } from './sprite-store'
+import { loadFileDataByCandidateNames, loadFileDataByFileName, openFirstExistingFile, readFileData, tryLoadCollisionOverride } from './file-access'
+import { getAniDataView, getCineStringView, getGameStringView, getMenuStringValue, getTextStringView, loadDefaultLocaleTables } from './text-store'
+import { loadMenuMap, loadMenuPalette, loadSoundEffects, loadVoiceSegment } from './media-loaders'
+import { createResourceAudioState, createResourceLevelState, createResourceSpriteState, createResourceTextState, createResourceUiState, ResourceAudioState, ResourceLevelState, ResourceSpriteState, ResourceTextState, ResourceUiState } from './resource-state'
+import { decodeParsedObjIntoLevelState, decodeParsedPgeIntoLevelState, decodeParsedTbnIntoLevelState, loadCollisionAsset, loadPackedSpriteAsset, loadSpcAsset } from './resource-level-loaders'
+import { clearLevelResourceState, freeObjectNodes, unloadResourceType } from './resource-cleanup'
 
+const kBankDataSize = 0x7000
 
 class Resource {
 	static _voicesOffsetsTable: Uint16Array = _voicesOffsetsTable
@@ -19,210 +27,46 @@ class Resource {
 	static _gameSavedSoundData: Uint8Array = _gameSavedSoundData
 	static _gameSavedSoundLen: number = _gameSavedSoundLen
 
-    _fs: FileSystem
-    _readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
-    _readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?) => number
-    _scratchBuffer: Uint8Array
-    _bankData: Uint8Array
-    _bankDataHead: Uint8Array
-    _bankDataTail: number
-	_bankBuffersCount: number
-    _bankBuffers: BankSlot[] = new Array(NUM_BANK_BUFFERS).fill(null).map(() => ({
-        entryNum: 0,
-        ptr: null,
-    }))
-    _hasSeqData: boolean
-    _entryName: string
-    _fnt: Uint8Array
-    _mbk: Uint8Array
-    _icn: Uint8Array
-    _icnLen: number
-    _tab: Uint8Array
-    _spc: Uint8Array
-    _numSpc: number
-    _rp: Uint8Array = new Uint8Array(0x4A)
-    _pal: Uint8Array
-    _ani: Uint8Array
-    _tbn: Uint8Array[]
-    _ctData: Int8Array = new Int8Array(CT_DATA_SIZE)
-    _spr1: Uint8Array
-    // This is the resolved runtime sprite lookup used by rendering.
-    // Each entry directly points at the sprite bytes for an anim_number.
-    _resolvedSpriteSet: ResolvedSpriteSet = {
-        spritesByIndex: new Array(NUM_SPRITES).fill(null)
-    }
-    _loadedConradVisualsByVariantId: Map<number, LoadedConradVisual> = new Map()
-    _sprm: Uint8Array = new Uint8Array(0x10000)
-
-    // number of total PGEs in the file
-    _pgeTotalNumInFile: number
-    //the initial structure to which all PGEs are loaded from the file
-    _pgeAllInitialStateFromFile: InitPGE[] = new Array(256).fill(null).map(() => CreateInitPGE())
-
-    _bnq: Uint8Array
-    _numObjectNodes: number
-    _objectNodesMap: PgeScriptNode[] = new Array(255)
-    _sfxList: SoundFx[]
-    _numSfx: number
-    _cmd: Uint8Array
-    _pol: Uint8Array
-    _cineStrings: Uint8Array[]
-    _cine_off: Uint8Array
-    _cine_txt: Uint8Array
-    _textsTable: string[]
-    _stringsTable: Uint8Array
-    _clutSize: number
-    _clut: Color[]
-    _perso: Uint8Array
-    _monster: Uint8Array
-    _str: Uint8Array
-    _credits: Uint8Array
+    readonly fileSystem: FileSystem
+    readonly readUint16: (buf: ArrayBuffer|Buffer|Uint8Array, offset?: number) => number
+    readonly readUint32: (buf: ArrayBuffer|Buffer|Uint8Array, offset?: number) => number
+    readonly scratchBuffer: Uint8Array
+    readonly bank: ResourceBankCacheState = createResourceBankCache(kBankDataSize, NUM_BANK_BUFFERS)
+    entryName: string
+    readonly ui: ResourceUiState = createResourceUiState()
+    readonly sprites: ResourceSpriteState = createResourceSpriteState(NUM_SPRITES)
+    readonly level: ResourceLevelState = createResourceLevelState()
+    readonly text: ResourceTextState = createResourceTextState()
+    readonly audio: ResourceAudioState = createResourceAudioState()
 
     constructor(fs: FileSystem) {
-        // 	memset(this, 0, sizeof(Resource));
-        this._fs = fs
-        this._cine_txt = null
-        this._cine_off = null
-        this._perso = null
-        this._monster = null
-        this._str = null
-        this._credits = null
-        this._cmd = null
-        this._pol = null
-        this._cineStrings = null
-        this._fnt = null
-        this._mbk = null
-        this._icn = null
-        this._icnLen = 0
-        this._tab = null
-        this._spc = null
-        this._numSpc = 0
-        this._pal = null
-        this._ani = null
-        this._tbn = []
-        this._spr1 = null
-        // this._resolvedSpriteSet = null
-        // this._sprm = null
-        this._pgeTotalNumInFile = 0
-        // this._pgeInit = null
-        this._bnq = null
-        this._readUint16 = READ_LE_UINT16
-        this._readUint32 = READ_LE_UINT32
-        this._scratchBuffer = new Uint8Array(320 * GAMESCREEN_H + 1024)
-
-        const kBankDataSize = 0x7000
-        this._bankData = new Uint8Array(kBankDataSize)
-
-        this._bankDataTail = kBankDataSize
+        this.fileSystem = fs
+        this.readUint16 = READ_LE_UINT16
+        this.readUint32 = READ_LE_UINT32
+        this.scratchBuffer = new Uint8Array(320 * GAMESCREEN_H + 1024)
         this.clearBankData()
 
-    }
-
-    // GENERAL FILE LOADERS
-    protected loadFileData(f: File, offset: number = 0, seek: boolean = true, customLength?: number): Uint8Array {
-        const len = customLength ?? (f.size() - offset);
-        const data = new Uint8Array(len);
-        if (offset > 0 && seek) {
-            f.seek(offset);
-        }
-        f.read(data.buffer, len);
-        if (f.ioErr()) {
-            throw(`I/O error when reading '${this._entryName}'`)
-        }
-        return data;
-    }
-
-    private async loadFileDataByFileName(filename: string): Promise<Uint8Array> {
-        const file = new File();
-        if (await file.open(filename, "rb", this._fs)) {
-            return this.loadFileData(file);
-        } else {
-            throw(`Failed to open '${filename}'`);
-        }
-    }
-
-    private async loadFileDataByCandidateNames(filenames: string[]): Promise<{ data: Uint8Array, filename: string }> {
-        for (const filename of filenames) {
-            const file = new File()
-            if (await file.open(filename, "rb", this._fs)) {
-                return {
-                    data: this.loadFileData(file),
-                    filename
-                }
-            }
-        }
-        throw(`Failed to open '${filenames[0]}'`)
     }
 
     // MAIN LOADER table
     private readonly OBJECT_TYPE_MAPPING = createObjectTypeMapping(this);
 
     // MAIN LOADER
-    private async tryLoadCollisionOverride(dirName: string, fileBaseName: string) {
-        const dirCandidates = getLevelAssetPathCandidates(dirName, "ct.bin", fileBaseName)
-        for (const overridePath of dirCandidates) {
-            const overrideFile = new File()
-            if (!await overrideFile.open(overridePath, "rb", this._fs)) {
-                continue
-            }
-            const overrideSize = overrideFile.size()
-            if (overrideSize !== this._ctData.byteLength) {
-                console.warn(`[Resource][CT] Ignoring override '${overridePath}' (unexpected size ${overrideSize}, expected ${this._ctData.byteLength}). Falling back to packed CT.`)
-                overrideFile.close()
-                continue
-            }
-            overrideFile.read(this._ctData.buffer, this._ctData.byteLength)
-            const hasIoErr = overrideFile.ioErr()
-            overrideFile.close()
-            if (hasIoErr) {
-                continue
-            }
-            this._entryName = overridePath
-            console.log(`[Resource][CT] Loaded override binary '${overridePath}' (${overrideSize} bytes)`)
+    private async tryLoadCollisionOverride(levelName: string) {
+        const override = await tryLoadCollisionOverride(this.fileSystem, levelName, this.level.ctData)
+        if (override) {
+            this.entryName = override.filename
+            console.log(`[Resource][CT] Loaded override binary '${override.filename}' (${override.size} bytes)`)
             return true
         }
         return false
     }
 
     async loadCollisionData(levelName: string) {
-        const fileBaseName = getLevelAssetBaseName(levelName)
-        if (await this.tryLoadCollisionOverride(levelName, fileBaseName)) {
+        if (await this.tryLoadCollisionOverride(levelName)) {
             return
         }
         await this.load(levelName, ObjectType.OT_CT)
-    }
-
-    private getRawLevelEntryNames(levelName: string, extension: string, useBaseName: boolean): string[] {
-        return getLevelAssetPathCandidates(levelName, extension, useBaseName ? getLevelAssetBaseName(levelName) : levelName)
-    }
-
-    private getSharedSpriteEntryNames(fileName: string, extension: string): string[] {
-        return getSharedAssetPathCandidates(fileName, extension, "me_and_monsters")
-    }
-
-    private getCandidateEntryNames(objName: string, objType: number, ext?: string): string[] {
-        const typeConfig = this.OBJECT_TYPE_MAPPING[objType]
-        const resolvedExtension = (ext || typeConfig.extension).toLowerCase()
-
-        if (objType === ObjectType.OT_PGE) {
-            return [this.getParsedPgePath(objName)]
-        }
-        if (objType === ObjectType.OT_OBJ) {
-            return [this.getParsedObjPath(objName)]
-        }
-        if (objType === ObjectType.OT_TBN) {
-            return [this.getParsedTbnPath(objName)]
-        }
-        if (objType === ObjectType.OT_CT || objType === ObjectType.OT_MBK || objType === ObjectType.OT_RP || objType === ObjectType.OT_BNQ) {
-            return this.getRawLevelEntryNames(objName, resolvedExtension, true)
-        }
-        if (objType === ObjectType.OT_ANI) {
-            return this.getRawLevelEntryNames(objName, resolvedExtension, false)
-        }
-        if (objType === ObjectType.OT_SPR || objType === ObjectType.OT_OFF) {
-            return this.getSharedSpriteEntryNames(objName, resolvedExtension)
-        }
-        return [`${objName}.${resolvedExtension}`]
     }
 
     async load(objName: string, objType: number, ext?: string) {
@@ -232,35 +76,36 @@ class Resource {
             throw new Error(`Load not implemented for object type: ${objType}`);
         }
 
-        const entryNames = this.getCandidateEntryNames(objName, objType, ext)
+        const resolvedExtension = (ext || typeConfig.extension).toLowerCase()
+        const entryNames = getCandidateEntryNames(objName, objType, resolvedExtension)
 
         if (objType === ObjectType.OT_CT) {
-            const fileBaseName = getLevelAssetBaseName(objName)
-            if (await this.tryLoadCollisionOverride(objName, fileBaseName)) {
+            if (await this.tryLoadCollisionOverride(objName)) {
                 return
             }
         }
 
         for (const entryName of entryNames) {
-            this._entryName = entryName
-            const file = new File()
-            if (await file.open(this._entryName, "rb", this._fs)) {
+            this.entryName = entryName
+            const opened = await openFirstExistingFile(this.fileSystem, [this.entryName])
+            if (opened) {
+                this.entryName = opened.filename
                 try {
-                    typeConfig.loader.call(this, file)
+                    typeConfig.loader.call(this, opened.file)
                     return
                 } catch (error) {
-                    throw new Error(`Failed to load ${this._entryName}: ${error.message}`)
+                    throw new Error(`Failed to load ${this.entryName}: ${error.message}`)
                 }
             }
         }
 
-        this._entryName = entryNames[0]
+        this.entryName = entryNames[0]
         if (objType === ObjectType.OT_PGE) {
-            throw new Error(`Missing parsed PGE file '${this._entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
+            throw new Error(`Missing parsed PGE file '${this.entryName}'. Regenerate PGE JSON assets from DATA/levels/legacy-level-data.`)
         } else if (objType === ObjectType.OT_OBJ) {
-            throw new Error(`Missing parsed OBJ file '${this._entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
+            throw new Error(`Missing parsed OBJ file '${this.entryName}'. Regenerate OBJ JSON assets from DATA/levels/legacy-level-data.`)
         } else if (objType === ObjectType.OT_TBN) {
-            throw new Error(`Missing parsed TBN file '${this._entryName}'. Regenerate TBN JSON assets from level-scoped TBN files.`)
+            throw new Error(`Missing parsed TBN file '${this.entryName}'. Regenerate TBN JSON assets from level-scoped TBN files.`)
         }
     }
 
@@ -293,29 +138,12 @@ class Resource {
 // | text_num          | uint16    | 2             | Text/string number                         |
 // +--------------------------------------------------------------------------------------------+
     loadParsedPGE(f: File) {
-        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        const parsedJson = new TextDecoder("utf-8").decode(readFileData(f, this.entryName))
         this.decodeParsedPGE(parsedJson)
     }
 
     decodeParsedPGE(json: string) {
-        const parsed = hydrateParsedPGEData(JSON.parse(json), this._pgeAllInitialStateFromFile.length)
-        this._pgeTotalNumInFile = parsed.pgeNum
-        this._pgeAllInitialStateFromFile = parsed.pgeInit
-    }
-
-    private getParsedPgePath(objName: string): string {
-        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
-        return `levels/${objName}/${baseName}.pge.json`
-    }
-
-    private getParsedObjPath(objName: string): string {
-        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
-        return `levels/${objName}/${baseName}.obj.json`
-    }
-
-    private getParsedTbnPath(objName: string): string {
-        const baseName = objName.indexOf("_") >= 0 ? objName.split("_")[0] : objName
-        return `levels/${objName}/${baseName}.tbn.json`
+        decodeParsedPgeIntoLevelState(this.level, json)
     }
 
 // +--------------------------------------------------------------------------------------------+
@@ -347,140 +175,97 @@ class Resource {
 // | opcode_arg3       | int16     | 2             | Opcode argument 3                          |
 // +--------------------------------------------------------------------------------------------+
     load_OBJ_JSON(f: File) {
-        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        const parsedJson = new TextDecoder("utf-8").decode(readFileData(f, this.entryName))
         this.decodeParsedOBJ(parsedJson)
     }
 
     decodeParsedOBJ(json: string) {
-        const parsed = hydrateParsedOBJData(JSON.parse(json))
-        this._numObjectNodes = parsed.numObjectNodes
-        this._objectNodesMap = parsed.objectNodesMap
+        decodeParsedObjIntoLevelState(this.level, json)
     }
 
     load_SPM(f: File) {
-        debugger
-        const kPersoDatSize = 178647
         const len = f.size()
-
-        //read last 4 bytes
-        f.seek(len - 4)
-        const size = f.readUint32BE()
-
-        //go back to the begining of the file
-        f.seek(0)
-        const tmp = this.loadFileData(f)
-        if (size === kPersoDatSize) {
-            this._spr1 = new Uint8Array(size)
-            if (!bytekiller_unpack(this._spr1, size, tmp, len)) {
-                throw("Bad CRC for SPM data")
-            }
-        } else {
-            assert(!(size > this._sprm.byteLength), `Assertion failed: ${size} <= ${this._sprm.byteLength}`)
-            // assert(size <= sizeof(_sprm));
-            // sprm = sprite monster?
-            if (!bytekiller_unpack(this._sprm, this._sprm.byteLength, tmp, len)) {
-                throw("Bad CRC for SPRM data")
-            }
-        }
-
-
-        for (let i = 0; i < NUM_SPRITES; ++i) {
-            const offset = Resource._spmOffsetsTable[i]
-            if (offset >= kPersoDatSize) {
-                this._resolvedSpriteSet.spritesByIndex[i] = this._sprm.subarray(offset - kPersoDatSize)
-            } else {
-                this._resolvedSpriteSet.spritesByIndex[i] = this._spr1.subarray(offset)
-            }
-        }
+        const tmp = readFileData(f, this.entryName)
+        loadPackedSpriteAsset(this.sprites, tmp, len, NUM_SPRITES, Resource._spmOffsetsTable, bytekiller_unpack)
     }
 
     load_SPRM(f: File) {
-        this._sprm = this.loadFileData(f,12)
+        this.sprites.sprm = readFileData(f, this.entryName, 12)
     }
 
     load_ANI(f: File) {
-        this._ani = this.loadFileData(f)
+        this.level.ani = readFileData(f, this.entryName)
     }
 
     load_BNQ(f: File) {
-        this._bnq = this.loadFileData(f)
+        this.level.bnq = readFileData(f, this.entryName)
     }
 
     load_PAL(f: File) {
-        this._pal = this.loadFileData(f)
+        this.level.pal = readFileData(f, this.entryName)
     }
 
     load_RP(f: File) {
         const len = f.size()
         if (len !== 0x4A) {
-            throw(`Unexpected size ${len} for '${this._entryName}'`)
+            throw(`Unexpected size ${len} for '${this.entryName}'`)
         }
-       this._rp =this.loadFileData(f)
+       this.ui.rp = readFileData(f, this.entryName)
 
     }
 
     load_MBK(f: File) {
-        this._mbk = this.loadFileData(f)
+        this.level.mbk = readFileData(f, this.entryName)
     }
 
     load_CT(pf: File) {
         const len = pf.size()
-        const tmp = this.loadFileData(pf)
-        if (len === this._ctData.byteLength) {
-            new Uint8Array(this._ctData.buffer).set(tmp)
-            console.log(`[Resource][CT] Loaded raw CT data from '${this._entryName}' (${len} bytes)`)
-            return
-        }
-        if (!bytekiller_unpack(new Uint8Array(this._ctData.buffer), this._ctData.byteLength, tmp, len)) {
-            throw("Bad CRC for collision data")
-        }
-        console.log(`[Resource][CT] Loaded packed CT data from '${this._entryName}' (${len} bytes -> ${this._ctData.byteLength} bytes)`)
+        const tmp = readFileData(pf, this.entryName)
+        loadCollisionAsset(this.entryName, this.level.ctData, tmp, len, bytekiller_unpack)
     }
 
     load_FNT(f: File) {
-        this._fnt = this.loadFileData(f)
+        this.ui.fnt = readFileData(f, this.entryName)
     }
 
     loadParsedTBN(f: File) {
-        const parsedJson = new TextDecoder("utf-8").decode(this.loadFileData(f))
+        const parsedJson = new TextDecoder("utf-8").decode(readFileData(f, this.entryName))
         this.decodeParsedTBN(parsedJson)
     }
 
     decodeParsedTBN(json: string) {
-        this._tbn = hydrateParsedTbnData(JSON.parse(json))
+        decodeParsedTbnIntoLevelState(this.level, json)
     }
 
     load_CMD(f: File) {
-        this._cmd = this.loadFileData(f)
+        this.text.cmd = readFileData(f, this.entryName)
     }
 
     load_POL(f: File) {
-        this._pol = this.loadFileData(f)
+        this.text.pol = readFileData(f, this.entryName)
     }
 
     load_ICN(f: File) {
-        this._icnLen = f.size()
-        this._icn = this.loadFileData(f)
+        this.ui.icnLen = f.size()
+        this.ui.icn = readFileData(f, this.entryName)
     }
 
     load_SPC(f: File) {
-        this._spc = this.loadFileData(f)
-        this._numSpc = READ_BE_UINT16(this._spc.buffer) / 2
+        loadSpcAsset(this.sprites, readFileData(f, this.entryName))
     }
 
     load_SPRITE(f: File) {
-        this._spr1 = this.loadFileData(f,12)
+        this.sprites.spr1 = readFileData(f, this.entryName, 12)
     }
 
     clearBankData() {
-        this._bankBuffersCount = 0
-        this._bankDataHead = this._bankData
+        clearResourceBankCache(this.bank)
     }
     
     getBankDataSize(num: number) {
-        let len = READ_BE_UINT16(this._mbk, num * 6 + 4)
+        let len = READ_BE_UINT16(this.level.mbk, num * 6 + 4)
         if (len & 0x8000) {
-                if (this._mbk === this._bnq) { // demo .bnq use signed int
+                if (this.level.mbk === this.level.bnq) { // demo .bnq use signed int
                     len = -(len << 16 >> 16)
 
                 }else {
@@ -492,347 +277,118 @@ class Resource {
     }
 
     findBankData(num: number) {
-        for (let i = 0; i < this._bankBuffersCount; ++i) {
-            if (this._bankBuffers[i].entryNum === num) {
-                return this._bankBuffers[i].ptr
-            }
-        }
-        return null
+        return findResourceBankData(this.bank, num)
     }
 
     loadBankData(num: number) {
-        const ptr = this._mbk.subarray(num * 6)
-        let dataOffset = READ_BE_UINT32(ptr)
-
-        // first byte of the data buffer corresponds
-        // to the total count of entries
-        dataOffset &= UINT16_MAX
-
         const size = this.getBankDataSize(num)
-        const avail = this._bankDataTail - this._bankDataHead.byteOffset
-
-        if (avail < size) {
-            this.clearBankData()
-        }
-        assert(!((this._bankDataHead.byteOffset + size) > this._bankDataTail), `Assertion failed: ${this._bankDataHead.byteOffset + size} <= ${this._bankDataTail}`)
-        assert(!(this._bankBuffersCount >= this._bankBuffers.length), `Assertion failed: ${this._bankBuffersCount} < ${this._bankBuffers.length}`)
-        this._bankBuffers[this._bankBuffersCount].entryNum = num
-        this._bankBuffers[this._bankBuffersCount].ptr = this._bankDataHead
-        const data = this._mbk.subarray(dataOffset)
-        if (READ_BE_UINT16(ptr, 4) & 0x8000) {
-            this._bankDataHead.set(data.subarray(0, size))
-        } else {
-            assert(!(dataOffset <= 4), `Assertion failed: ${dataOffset} > 4`)
-            assert(!(size !== (READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)), `Assertion failed: ${size} === ${(READ_BE_UINT32(data.buffer, data.byteOffset - 4) << 32 >> 32)}`)
-
-            if (!bytekiller_unpack(this._bankDataHead, this._bankDataTail, data, 0)) {
-                console.error(`Bad CRC for bank data ${num}`)
-            }
-        }
-        const bankData = this._bankDataHead
-        this._bankDataHead = this._bankDataHead.subarray(size)
-        return bankData
+        return loadResourceBankData(this.bank, this.level.mbk, num, size, bytekiller_unpack)
     }
 
     load_TEXT() {
-        this._stringsTable = null
-        this._stringsTable = LocaleData._stringsTableEN
-        this._textsTable = null
-        this._textsTable = LocaleData._textsTableEN
+        const localeTables = loadDefaultLocaleTables()
+        this.text.stringsTable = localeTables.stringsTable
+        this.text.textsTable = localeTables.textsTable
 
     }
 
     async load_VCE(num: number, segment: number) {
-        let res = {
-            buf: null as Uint8Array,
-            bufSize: 0
-        }
-        let offset = _voicesOffsetsTable[num]
-        if (offset !== UINT16_MAX) {
-            const p = _voicesOffsetsTable.subarray(offset / 2)
-            let pIndex = 0
-            offset = p[pIndex++] * 2048
-            let count = p[pIndex++]
-            if (segment < count) {
-                const f = new File()
-                if (await f.open("VOICE.VCE", "rb", this._fs)) {
-                    let voiceSize = p[pIndex + segment] * 2048 / 5
-                    const voiceBuf = new Uint8Array(voiceSize)
-                    if (voiceBuf) {
-                        let dst = 0
-                        offset += 0x2000
-                        for (let s = 0; s < count; ++s) {
-                            let len = p[pIndex + s] * 2048
-                            for (let i = 0; i < (len / (0x2000 + 2048)) >> 0; ++i) {
-                                if (s === segment) {
-                                    f.seek(offset)
-                                    let n = 2048
-                                    while (n--) {
-                                        let v = f.readByte()
-                                        if (v & 0x80) {
-                                            v = -(v & 0x7F)
-                                        }
-                                        voiceBuf[dst++] = (v & UINT8_MAX) >>> 0
-                                    }
-                                }
-                                offset += 0x2000 + 2048
-                            }
-                            if (s === segment) {
-                                break
-                            }
-                        }
-
-                        res.buf = voiceBuf
-                        res.bufSize = voiceSize
-                    }
-                }
-            }
-        }
-        return res
+        return loadVoiceSegment(this.fileSystem, _voicesOffsetsTable, num, segment)
     }
 
 
     //LOAD SPRITE
-    private readonly SPRITE_TERMINATOR = UINT16_MAX;
-    private readonly INVALID_OFFSET = 0xFFFFFFFF;
-    private readonly ENTRY_SIZE = 6; // 2 bytes for pos + 4 bytes for offset
-
     async load_SPRITE_OFFSETS(fileName: string, sprData: Uint8Array) {
-        const candidates = this.getSharedSpriteEntryNames(fileName, "OFF")
-        this._entryName = candidates[0]
-        const { data: offData, filename } = await this.loadFileDataByCandidateNames(candidates)
-        this._entryName = filename
+        const candidates = getSharedSpriteEntryNames(fileName, "OFF")
+        this.entryName = candidates[0]
+        const { data: offData, filename } = await loadFileDataByCandidateNames(this.fileSystem, candidates)
+        this.entryName = filename
         if (!offData) {
-            throw new Error(`Cannot load '${this._entryName}'`);
+            throw new Error(`Cannot load '${this.entryName}'`);
         }
-        this._processOffsetData(offData, sprData);
-    }
-
-    private _processOffsetData(offDataForAMonster: Uint8Array, sprDataForAMonster: Uint8Array): void {
-        this._resolvedSpriteSet.spritesByIndex = buildResolvedSpriteViewsByIndex(
-            offDataForAMonster,
-            sprDataForAMonster,
-            NUM_SPRITES,
-            this.SPRITE_TERMINATOR,
-            this.INVALID_OFFSET,
-            this.ENTRY_SIZE
-        )
+        this.sprites.resolvedSpriteSet = buildResolvedSpriteSet(NUM_SPRITES, offData, sprData)
     }
 
     async loadMonsterResolvedSpriteSet(fileName: string): Promise<ResolvedSpriteSet> {
-        const monsterSpriteCandidates = this.getSharedSpriteEntryNames(fileName, "SPR")
-        const monsterSpriteFile = new File()
+        const monsterSpriteCandidates = getSharedSpriteEntryNames(fileName, "SPR")
         let monsterSpriteEntryName = monsterSpriteCandidates[0]
-        let opened = false
-        for (const candidate of monsterSpriteCandidates) {
-            if (await monsterSpriteFile.open(candidate, "rb", this._fs)) {
-                monsterSpriteEntryName = candidate
-                opened = true
-                break
-            }
-        }
+        const opened = await openFirstExistingFile(this.fileSystem, monsterSpriteCandidates)
         if (!opened) {
             throw new Error(`Cannot load '${monsterSpriteEntryName}'`)
         }
-        const monsterSpriteBlob = this.loadFileData(monsterSpriteFile, 12)
-        const { data: offData } = await this.loadFileDataByCandidateNames(this.getSharedSpriteEntryNames(fileName, "OFF"))
-        return {
-            spritesByIndex: buildResolvedSpriteViewsByIndex(
-                offData,
-                monsterSpriteBlob,
-                NUM_SPRITES,
-                this.SPRITE_TERMINATOR,
-                this.INVALID_OFFSET,
-                this.ENTRY_SIZE
-            )
-        }
+        monsterSpriteEntryName = opened.filename
+        const monsterSpriteBlob = readFileData(opened.file, monsterSpriteEntryName, 12)
+        const { data: offData } = await loadFileDataByCandidateNames(this.fileSystem, getSharedSpriteEntryNames(fileName, "OFF"))
+        return buildResolvedSpriteSet(NUM_SPRITES, offData, monsterSpriteBlob)
     }
 
     initializeConradVisuals(): void {
-        this._loadedConradVisualsByVariantId.clear()
-        for (const conradVisualVariant of _conradVisualVariants) {
-            this._loadedConradVisualsByVariantId.set(conradVisualVariant.id, {
-                id: conradVisualVariant.id,
-                palette: conradVisualVariant.palette,
-                paletteSlot: conradVisualVariant.paletteSlot,
-                resolvedSpriteSet: this._resolvedSpriteSet
-            })
-        }
+        this.sprites.loadedConradVisualsByVariantId = initializeConradVisualsByVariant(_conradVisualVariants, this.sprites.resolvedSpriteSet)
     }
 
     // LOAD SOUND EFFECTS
     async load_FIB(fileName: string) {
-        this._entryName = `${fileName}.FIB`
-        const f = new File()
-        if (await f.open(this._entryName, "rb", this._fs)) {
-            //the first byte contains the number of different effects in this file
-            this._numSfx = f.readUint16LE()
-
-            this._sfxList = new Array(this._numSfx).fill(null).map(() => ({
-                offset: 0,
-                freq: 0,
-                len: 0,
-                peak: 0,
-                data: null,
-            }))
-
-            for (let i = 0; i < this._numSfx; ++i) {
-                const sfx:SoundFx = this._sfxList[i]
-                sfx.offset = f.readUint32LE()
-                sfx.len = f.readUint16LE()
-                sfx.freq = 6000
-                sfx.data = null
-            }
-            for (let i = 0; i < this._numSfx; ++i) {
-                const sfx:SoundFx = this._sfxList[i]
-                if (sfx.len === 0) {
-                    continue
-                }
-                f.seek(sfx.offset)
-                const len = (sfx.len * 2) - 1
-                const data = new Uint8Array(len)
-
-                sfx.data = data
-                let index = 0
-                // Fibonacci-delta decoding
-                const codeToDelta:number[] = [ -34, -21, -13, -8, -5, -3, -2, -1, 0, 1, 2, 3, 5, 8, 13, 21 ]
-                let c = f.readByte() << 24 >>24
-                data[index++] = c
-                sfx.peak = Math.abs(c)
-                for (let j = 1; j < sfx.len; ++j) {
-                    const d = f.readByte()
-
-                    c += codeToDelta[d >> 4]
-
-                    data[index++] = CLIP(c, -128, 127)
-                    if (Math.abs(c) > sfx.peak) {
-                        sfx.peak = Math.abs(c)
-                    }
-    
-                    c += codeToDelta[d & 15]
-                    data[index++] = CLIP(c, -128, 127)
-                    if (Math.abs(c) > sfx.peak) {
-                        sfx.peak = Math.abs(c)
-                    }
-                }
-                sfx.len = len
-            }
-            if (f.ioErr()) {
-                console.error(`I/O error when reading '${this._entryName}'`)
-            }
-        } else {
-            console.error(`Cannot open '${this._entryName}'`)
+        this.entryName = `${fileName}.FIB`
+        const loaded = await loadSoundEffects(this.fileSystem, this.entryName)
+        if (loaded) {
+            this.audio.numSfx = loaded.numSfx
+            this.audio.sfxList = loaded.sfxList
         }
     }
 
     async load_MAP_menu(fileName: string, dstPtr: Uint8Array) {
-        const kMenuMapSize = 0x3800 * 4
-        this._entryName = `${fileName}.MAP`
-        const f = new File()
-        if (await f.open(this._entryName, "rb", this._fs)) {
-            if (f.read(dstPtr.buffer, kMenuMapSize) != kMenuMapSize) {
-                console.error(`Failed to read '${this._entryName}'`)
-            }
-            if (f.ioErr()) {
-                console.error(`I/O error when reading '${this._entryName}'`)
-            }
-            return
-        }
-        console.error(`Cannot load '${this._entryName}'`)
+        this.entryName = `${fileName}.MAP`
+        await loadMenuMap(this.fileSystem, this.entryName, dstPtr)
     }
 
     async load_PAL_menu(fileName: string, dstPtr: Uint8Array) {
-        const kMenuPalSize = 768
-        this._entryName = `${fileName}.PAL`
-        const f = new File()
-        if (await f.open(this._entryName, "rb", this._fs)) {
-            if (f.read(dstPtr.buffer, kMenuPalSize) !== kMenuPalSize) {
-                console.error(`Failed to read '${this._entryName}'`)
-            }
-            if (f.ioErr()) {
-                console.error(`I/O error when reading '${this._entryName}'`)
-            }
-            return
-        }
-        console.error(`Cannot load '${this._entryName}'`)
+        this.entryName = `${fileName}.PAL`
+        await loadMenuPalette(this.fileSystem, this.entryName, dstPtr)
     }
 
     async load_CINE() {
-        if (this._cine_off === null) {
-            this._cine_off = await this.loadFileDataByFileName(`ENGCINE.BIN`)
+        if (this.text.cineOff === null) {
+            this.text.cineOff = await loadFileDataByFileName(this.fileSystem, `ENGCINE.BIN`)
         }
 
-        if (this._cine_txt === null) {
-            this._cine_txt =await this.loadFileDataByFileName(`ENGCINE.TXT`)
+        if (this.text.cineTxt === null) {
+            this.text.cineTxt = await loadFileDataByFileName(this.fileSystem, `ENGCINE.TXT`)
         }
     }
 
     getAniData(num: number) {
-       const offset = READ_LE_UINT16(this._ani, 2 + num * 2)
-        // Return a subarray starting from the calculated offset
-        return this._ani.subarray(2 + offset)
+        return getAniDataView(this.level.ani, num)
     }
 
     getTextString(level: number, num: number) {
-        return this._tbn[num] || new Uint8Array(1)
+        return getTextStringView(this.level.tbn, num)
 	}
 
 	getGameString(num: number) {
-		return this._stringsTable.subarray(READ_LE_UINT16(this._stringsTable, num * 2))
+		return getGameStringView(this.text.stringsTable, num)
 	}
 
 	getCineString(num: number) {
-		if (this._cine_off) {
-			const offset = READ_BE_UINT16(this._cine_off, num * 2)
-			return this._cine_txt.subarray(offset)
-		}
-		return (num >= 0 && num < NUM_CUTSCENE_TEXTS) ? this._cineStrings[num] : 0;
+		return getCineStringView(this.text.cineOff, this.text.cineTxt, this.text.cineStrings, num)
 	}
 
 	getMenuString(num: number) {
-		return (num >= 0 && num < LocaleData.Id.LI_NUM) ? this._textsTable[num] : "";
+		return getMenuStringValue(this.text.textsTable, num)
 	}
 
     // Unload, Clear, Free data
     ///////////////////////////
     unload(objType: number) {
-        switch (objType) {
-            case ObjectType.OT_CMD:
-                this._cmd = null
-                break
-            case ObjectType.OT_POL:
-                this._pol = null
-                break
-            case ObjectType.OT_CMP:
-                this._cmd = null
-                this._pol = null
-                break
-            default:
-                console.error(`Unimplemented Resource::unload() type ${objType}`)
-                break
-        }
+        unloadResourceType(this.text, objType)
     }
 
 
     free_OBJ() {
-        let prevNode: PgeScriptNode = null
-        for (let i = 0; i < this._numObjectNodes; ++i) {
-            if (this._objectNodesMap[i] !== prevNode) {
-                const curNode = this._objectNodesMap[i]
-                curNode.objects.length = 0
-                prevNode = curNode
-            }
-            this._objectNodesMap[i] = null
-        }
+        freeObjectNodes(this.level)
     }
 
     clearLevelAllResources() {
-        this._tbn = []
-        this._mbk = null
-        this._pal = null
-        this._bnq = null
-        this._ani = null
-        this.free_OBJ()
+        clearLevelResourceState(this.level)
     }
 
 }

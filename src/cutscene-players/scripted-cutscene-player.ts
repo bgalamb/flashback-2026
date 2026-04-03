@@ -182,7 +182,7 @@ class ScriptedCutscenePlayer {
         len = str.length
 
         const dcf = this._vid._drawChar
-        const fnt = this._res._fnt
+        const fnt = this._res.ui.fnt
         let lastSep = 0
         if (textJustify !== kTextJustifyLeft) {
             lastSep = this.findTextSeparators(p, len)
@@ -285,12 +285,12 @@ class ScriptedCutscenePlayer {
 
     /** @deprecated Use Cutscene (mp4/delegated flow) instead. */
     getCommandData() {
-        return this._res._cmd
+        return this._res.text.cmd
     }
 
     /** @deprecated Use Cutscene (mp4/delegated flow) instead. */
     getPolygonData() {
-        return this._res._pol
+        return this._res.text.pol
     }
 
     /** @deprecated Use Cutscene (mp4/delegated flow) instead. */
@@ -356,7 +356,7 @@ class ScriptedCutscenePlayer {
         await _res.load(name, ObjectType.OT_POL)
 
         await _res.load_CINE()
-        return !!(_res._cmd && _res._pol)
+        return !!(_res.text.cmd && _res.text.pol)
     }
 
     /** @deprecated Use Cutscene (mp4/delegated flow) instead. */

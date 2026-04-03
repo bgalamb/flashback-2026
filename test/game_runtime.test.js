@@ -111,7 +111,9 @@ function createBaseGame(overrides = {}) {
         _randSeed: 0,
         _score: 0,
         _res: {
-            _spr1: {},
+            sprites: {
+                spr1: {},
+            },
             load_TEXT() {},
             async load() {},
             async load_SPRITE_OFFSETS() {},
@@ -255,7 +257,9 @@ test('gameRun boots resources, shows the menu, and exits when quit is selected',
             async handleTitleScreen() {},
         },
         _res: {
-            _spr1: { loaded: true },
+            sprites: {
+                spr1: { loaded: true },
+            },
             load_TEXT() {
                 loads.push(['load_TEXT'])
             },

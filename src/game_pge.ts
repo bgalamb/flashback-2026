@@ -67,7 +67,7 @@ function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode: 
 
 
 export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom: number) {
-    const initial_pge_from_file: InitPGE = game._res._pgeAllInitialStateFromFile[idx]
+    const initial_pge_from_file: InitPGE = game._res.level.pgeAllInitialStateFromFile[idx]
     const live_pge: LivePGE = game._livePgesByIndex[idx]
 
     live_pge.init_PGE = initial_pge_from_file
@@ -110,8 +110,8 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
     }
 
     live_pge.flags = flags
-    assert(!(initial_pge_from_file.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${initial_pge_from_file.script_node_index} < ${game._res._numObjectNodes}}`)
-    const on: PgeScriptNode = game._res._objectNodesMap[initial_pge_from_file.script_node_index]
+    assert(!(initial_pge_from_file.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${initial_pge_from_file.script_node_index} < ${game._res.level.numObjectNodes}}`)
+    const on: PgeScriptNode = game._res.level.objectNodesMap[initial_pge_from_file.script_node_index]
 
     let scriptEntryIndex = 0
     let i = 0
@@ -131,12 +131,12 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
 
 export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
     const anim_data = game._res.getAniData(pge.script_state_type)
-    if (pge.anim_seq < game._res._readUint16(anim_data)) {
+    if (pge.anim_seq < game._res.readUint16(anim_data)) {
         pge.anim_seq = 0
     }
     const anim_frame = anim_data.subarray(6 + pge.anim_seq * 4)
-    if (game._res._readUint16(anim_frame) !== UINT16_MAX) {
-        let f = game._res._readUint16(anim_data)
+    if (game._res.readUint16(anim_frame) !== UINT16_MAX) {
+        let f = game._res.readUint16(anim_data)
         if (pge.flags & PGE_FLAG_MIRRORED) {
             f ^= 0x8000
         }
@@ -145,11 +145,11 @@ export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
             pge.flags |= PGE_FLAG_FLIP_X
         }
         pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
-        if (game._res._readUint16(anim_data, 4) & UINT16_MAX) {
+        if (game._res.readUint16(anim_data, 4) & UINT16_MAX) {
             pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
 
-        pge.anim_number = game._res._readUint16(anim_frame) & 0x7FFF
+        pge.anim_number = game._res.readUint16(anim_frame) & 0x7FFF
     }
 }
 
@@ -207,7 +207,7 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
         }
     }
     live_pge.script_state_type = scriptEntry.next_script_state_type
-    const nextScriptNode = game._res._objectNodesMap[live_pge.init_PGE.script_node_index]
+    const nextScriptNode = game._res.level.objectNodesMap[live_pge.init_PGE.script_node_index]
     if (scriptEntry.next_script_entry_index < 0 || scriptEntry.next_script_entry_index >= nextScriptNode.objects.length || scriptEntry.next_script_entry_index > nextScriptNode.last_obj_number) {
         warnInvalidScriptEntryTransition(game, live_pge, nextScriptNode, scriptEntry)
     }
@@ -252,8 +252,8 @@ export function gameExecutePgeObjectStep(game: Game, live_pge: LivePGE, init_pge
 
 export function gameObjectNodeHasPgeGroupCondition(game: Game, pge: LivePGE) {
     const init_pge: InitPGE = pge.init_PGE
-    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
-    const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+    assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
+    const on: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
     let objIndex = pge.first_script_entry_index
     let scriptEntry: PgeScriptEntry = on.objects[objIndex]
     let i = pge.first_script_entry_index
@@ -319,13 +319,13 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
         gameApplyNextPgeAnimationFrameFromGroups(game, pge, pendingGroups)
     }
     let anim_data = game._res.getAniData(pge.script_state_type)
-    game.renders > game.debugStartFrame && console.log(`read=${game._res._readUint16(anim_data)} anim_seq=${pge.anim_seq}`)
-    if (game._res._readUint16(anim_data) <= pge.anim_seq) {
+    game.renders > game.debugStartFrame && console.log(`read=${game._res.readUint16(anim_data)} anim_seq=${pge.anim_seq}`)
+    if (game._res.readUint16(anim_data) <= pge.anim_seq) {
         game.renders > game.debugStartFrame && console.log('if')
         const init_pge: InitPGE = pge.init_PGE
-        assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
+        assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
 
-        const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+        const on: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
         let objIndex = pge.first_script_entry_index
         let scriptEntry: PgeScriptEntry = on.objects[objIndex]
         let i = 0
@@ -376,13 +376,13 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
 
 export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
     const anim_data = game._res.getAniData(pge.script_state_type)
-    if (game._res._readUint16(anim_data) < pge.anim_seq) {
+    if (game._res.readUint16(anim_data) < pge.anim_seq) {
         pge.anim_seq = 0
     }
     const anim_frame = anim_data.subarray(6 + pge.anim_seq * 4)
 
-    if (game._res._readUint16(anim_frame) !== UINT16_MAX) {
-        let fl = game._res._readUint16(anim_frame)
+    if (game._res.readUint16(anim_frame) !== UINT16_MAX) {
+        let fl = game._res.readUint16(anim_frame)
         if (pge.flags & PGE_FLAG_MIRRORED) {
             fl ^= 0x8000
             pge.pos_x = pge.pos_x - (anim_frame[2] << 24 >> 24)
@@ -395,10 +395,10 @@ export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
             pge.flags |= PGE_FLAG_FLIP_X
         }
         pge.flags &= ~PGE_FLAG_SPECIAL_ANIM
-        if (game._res._readUint16(anim_data, 4) & UINT16_MAX) {
+        if (game._res.readUint16(anim_data, 4) & UINT16_MAX) {
             pge.flags |= PGE_FLAG_SPECIAL_ANIM
         }
-        pge.anim_number = game._res._readUint16(anim_frame) & 0x7FFF
+        pge.anim_number = game._res.readUint16(anim_frame) & 0x7FFF
     }
 }
 
@@ -406,16 +406,16 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
     let room_ct_data: Int8Array = null
     if (pge.pos_x <= -10) {
         pge.pos_x += GAMESCREEN_W
-        room_ct_data = game._res._ctData.subarray(CT_LEFT_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_LEFT_ROOM)
     } else if (pge.pos_x >= GAMESCREEN_W) {
         pge.pos_x -= GAMESCREEN_W
-        room_ct_data = game._res._ctData.subarray(CT_RIGHT_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_RIGHT_ROOM)
     } else if (pge.pos_y < 0) {
         pge.pos_y += 216
-        room_ct_data = game._res._ctData.subarray(CT_UP_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_UP_ROOM)
     } else if (pge.pos_y >= 216) {
         pge.pos_y -= 216
-        room_ct_data = game._res._ctData.subarray(CT_DOWN_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_DOWN_ROOM)
     }
     if (room_ct_data) {
         logPgeInteraction(game, 'pge-transition', `crossing room boundary from=${pge.room_location} pos=(${pge.pos_x},${pge.pos_y}) objectType=${init_pge.object_type}`, pge)
@@ -436,7 +436,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
                         pge_it.flags |= PGE_FLAG_ACTIVE
                     }
                 }
-                room = game._res._ctData[CT_UP_ROOM + game._currentRoom]
+                room = game._res.level.ctData[CT_UP_ROOM + game._currentRoom]
                 if (room >= 0 && room < 0x40) {
                     for (const pge_it of game._livePgeStore.liveByRoom[room]) {
                         if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 48 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
@@ -446,7 +446,7 @@ export function gameHandlePgeRoomTransitionAndActivation(game: Game, pge: LivePG
                         }
                     }
                 }
-                room = game._res._ctData[CT_DOWN_ROOM + game._currentRoom]
+                room = game._res.level.ctData[CT_DOWN_ROOM + game._currentRoom]
                 if (room >= 0 && room < 0x40) {
                     for (const pge_it of game._livePgeStore.liveByRoom[room]) {
                         if (pge_it.init_PGE.object_type !== 10 && pge_it.pos_y >= 176 && (pge_it.init_PGE.flags & INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST)) {
@@ -489,16 +489,16 @@ export function gamePlayPgeAnimationSound(game: Game, pge: LivePGE, arg2: number
 
 export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePGE, pendingGroups: { senderPgeIndex: number; signalId: number }[]) {
     const init_pge: InitPGE = pge.init_PGE
-    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
+    assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
 
     const set_anim = () => {
         const anim_data = game._res.getAniData(pge.script_state_type)
-        const _dh = game._res._readUint16(anim_data) & 0x00FF
+        const _dh = game._res.readUint16(anim_data) & 0x00FF
         let _dl = pge.anim_seq
         const anim_frame = anim_data.subarray(6 + _dl * 4)
         let index = 0
         while (_dh > _dl) {
-            if (game._res._readUint16(anim_frame, index) !== UINT16_MAX) {
+            if (game._res.readUint16(anim_frame, index) !== UINT16_MAX) {
                 if (game._currentPgeFacingIsMirrored) {
                     pge.pos_x = pge.pos_x - (anim_frame[2 + index] << 24 >> 24)
                 } else {
@@ -514,7 +514,7 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
         game._currentPgeCollisionGridX = (pge.pos_x + 8) >> 4
     }
 
-    const on: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+    const on: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
     let onIndex = pge.first_script_entry_index
     let scriptEntry: PgeScriptEntry = on.objects[onIndex]
     let i = pge.first_script_entry_index
@@ -597,7 +597,7 @@ export function gameRebuildPgeCollisionStateForCurrentRoom(game: Game, currentRo
         }
     }
 
-    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
+    for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
         const pge2 = game._livePgeStore.activeFrameByIndex[i]
         if (pge2 && currentRoom !== pge2.room_location) {
             gameRegisterPgeCollisionSegments(game, pge2)

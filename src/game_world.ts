@@ -38,7 +38,7 @@ function getLevelStartRoom(game: Game) {
             return override.room
         }
     }
-    return game._res._pgeAllInitialStateFromFile[0].init_room
+    return game._res.level.pgeAllInitialStateFromFile[0].init_room
 }
 
 function applyDirectLevelStartOverride(game: Game) {
@@ -50,7 +50,7 @@ function applyDirectLevelStartOverride(game: Game) {
         return
     }
     const conrad = game._livePgesByIndex[0]
-    const conradScriptNode: PgeScriptNode = game._res._objectNodesMap[conrad.init_PGE.script_node_index]
+    const conradScriptNode: PgeScriptNode = game._res.level.objectNodesMap[conrad.init_PGE.script_node_index]
     conrad.room_location = override.room
     if (typeof override.posX === 'number') {
         conrad.pos_x = override.posX
@@ -163,7 +163,7 @@ export function gameHasLevelMap(game: Game, room: number) {
     if (room < 0 || room >= 0x40) {
         return false
     }
-    const ct = game._res._ctData
+    const ct = game._res.level.ctData
     if (
         ct[CT_UP_ROOM + room] !== 0 ||
         ct[CT_DOWN_ROOM + room] !== 0 ||
@@ -199,8 +199,8 @@ export function gameCreatePgeLiveTable1(game: Game) {
     game._livePgeStore.liveByRoom.forEach((roomList) => {
         roomList.length = 0
     })
-    for (let i = 0; i < game._res._pgeTotalNumInFile; ++i) {
-        if (game._res._pgeAllInitialStateFromFile[i].skill <= game._skillLevel) {
+    for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
+        if (game._res.level.pgeAllInitialStateFromFile[i].skill <= game._skillLevel) {
             game.renders > game.debugStartFrame && console.log(`i=${i} => skill!`)
             const pge = game._livePgesByIndex[i]
             game._livePgeStore.liveByRoom[pge.room_location].push(pge)
@@ -220,7 +220,7 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     await game._res.load(lvl.name2, ObjectType.OT_OBJ)
     await game._res.load(lvl.name2, ObjectType.OT_ANI)
     await game._res.load(lvl.name2, ObjectType.OT_TBN)
-    if (!game._res._ani) {
+    if (!game._res.level.ani) {
         throw new Error(`Missing ANI data for ${lvl.name2}`)
     }
 
@@ -232,11 +232,11 @@ export async function gameLoadLevelData(game: Game): Promise<number> {
     game._activeRoomCollisionGridPatchRestoreSlots = null
 
     gameClearLivePGETables(game)
-    game._livePgeStore.initByIndex = game._res._pgeAllInitialStateFromFile
+    game._livePgeStore.initByIndex = game._res.level.pgeAllInitialStateFromFile
     const currentRoom = getLevelStartRoom(game)
     game._currentRoom = currentRoom
 
-    let n = game._res._pgeTotalNumInFile
+    let n = game._res.level.pgeTotalNumInFile
     while (n--) {
         game.loadPgeForCurrentLevel(n, currentRoom)
     }
@@ -308,7 +308,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 
         assert(!(pge.anim_number >= 1287), `Assertion failed: ${pge.anim_number} < 1287`)
         const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
-        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res._resolvedSpriteSet
+        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res.sprites.resolvedSpriteSet
         const paletteColorMaskOverride = getPaletteColorMaskOverrideForPge(game, pge)
         dataPtr = resolvedSpriteSet.spritesByIndex[pge.anim_number]
         if (dataPtr === null) {
@@ -344,8 +344,8 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
             game._animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         }
     } else {
-        assert(!(pge.anim_number >= game._res._numSpc), `Assertion failed: ${pge.anim_number} < ${game._res._numSpc}`)
-        const dataPtr = game._res._spc.subarray(READ_BE_UINT16(game._res._spc, pge.anim_number * 2))
+        assert(!(pge.anim_number >= game._res.sprites.numSpc), `Assertion failed: ${pge.anim_number} < ${game._res.sprites.numSpc}`)
+        const dataPtr = game._res.sprites.spc.subarray(READ_BE_UINT16(game._res.sprites.spc, pge.anim_number * 2))
         const xpos = dx + pge.pos_x + 8
         const ypos = dy + pge.pos_y + 2
         if (pge.init_PGE.object_type === 11) {
@@ -372,7 +372,7 @@ export async function gamePrepareAdjacentRoomAnims(
     shouldPrepare: (game: Game, pge: LivePGE) => boolean,
     currentRoom: number
 ) {
-    const pge_room = game._res._ctData[roomOffset + currentRoom]
+    const pge_room = game._res.level.ctData[roomOffset + currentRoom]
     if (pge_room >= 0 && pge_room < 0x40) {
         for (const pge of game._livePgeStore.liveByRoom[pge_room]) {
             if (shouldPrepare(game, pge)) {

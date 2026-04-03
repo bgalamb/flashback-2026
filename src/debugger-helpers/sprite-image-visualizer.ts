@@ -32,8 +32,8 @@ class SpriteImageVisualizer {
         try {
             let renderData = spritePayload
             if (!(encodedWidth & 0x80)) {
-                this._game._vid.PC_decodeSpm(spritePayload, this._game._res._scratchBuffer)
-                renderData = this._game._res._scratchBuffer
+                this._game._vid.PC_decodeSpm(spritePayload, this._game._res.scratchBuffer)
+                renderData = this._game._res.scratchBuffer
             }
             this._game.drawCharacter(renderData, 0, 0, encodedHeight, encodedWidth, flags, paletteColorMaskOverride)
         } finally {
@@ -44,7 +44,7 @@ class SpriteImageVisualizer {
     }
 
     downloadConradSprite(animNumber: number, conradVariantId: number = 1, flags: number = 0): void {
-        const conradVisual = this._game._res._loadedConradVisualsByVariantId.get(conradVariantId)
+        const conradVisual = this._game._res.sprites.loadedConradVisualsByVariantId.get(conradVariantId)
         if (!conradVisual) {
             throw new Error(`Conrad visual ${conradVariantId} has not been initialized`)
         }

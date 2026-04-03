@@ -120,22 +120,26 @@ function createWorldGame(overrides = {}) {
         _printLevelCodeCounter: 0,
         _randSeed: 0x1234,
         _res: {
-            _ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
-            _numSpc: 1,
-            _objectNodesMap: {
-                12: { objects: [{ type: 1 }, { type: 57 }] },
-                22: { objects: [{ type: 1 }] },
+            level: {
+                ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
+                objectNodesMap: {
+                    12: { objects: [{ type: 1 }, { type: 57 }] },
+                    22: { objects: [{ type: 1 }] },
+                },
+                pgeAllInitialStateFromFile: [
+                    { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
+                    { init_room: 9, object_type: 1, script_node_index: 22, skill: 2 },
+                ],
+                pgeTotalNumInFile: 2,
+                ani: Uint8Array.from([1]),
             },
-            _pgeAllInitialStateFromFile: [
-                { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
-                { init_room: 9, object_type: 1, script_node_index: 22, skill: 2 },
-            ],
-            _pgeTotalNumInFile: 2,
-            _resolvedSpriteSet: {
-                spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9, 8, 7])],
+            sprites: {
+                numSpc: 1,
+                resolvedSpriteSet: {
+                    spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9, 8, 7])],
+                },
+                spc: Uint8Array.from([0, 0, 5, 6, 7]),
             },
-            _spc: Uint8Array.from([0, 0, 5, 6, 7]),
-            _ani: Uint8Array.from([1]),
             async load(name, type) {
                 loadCalls.push(['load', name, type])
             },
@@ -208,7 +212,7 @@ function createWorldGame(overrides = {}) {
             this.loadPgeForCurrentLevelCalls.push([index, currentRoom])
             const pge = this._livePgesByIndex[index]
             pge.room_location = currentRoom
-            pge.init_PGE = this._res._pgeAllInitialStateFromFile[index]
+            pge.init_PGE = this._res.level.pgeAllInitialStateFromFile[index]
         },
         async loadMonsterSprites(pge, currentRoom) {
             return gameLoadMonsterSprites(this, pge, currentRoom)
@@ -297,22 +301,26 @@ test('gamePrepareAnimsHelper loads monster visuals and queues monster sprites wi
     const game = createWorldGame({
         _currentLevel: 1,
         _res: {
-            _ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
-            _numSpc: 1,
-            _objectNodesMap: {
-                12: { objects: [{ type: 1 }, { type: 57 }] },
-                22: { objects: [{ type: 1 }] },
+            level: {
+                ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
+                objectNodesMap: {
+                    12: { objects: [{ type: 1 }, { type: 57 }] },
+                    22: { objects: [{ type: 1 }] },
+                },
+                pgeAllInitialStateFromFile: [
+                    { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
+                    { init_room: 9, object_type: 1, script_node_index: 22, skill: 2 },
+                ],
+                pgeTotalNumInFile: 2,
+                ani: Uint8Array.from([1]),
             },
-            _pgeAllInitialStateFromFile: [
-                { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
-                { init_room: 9, object_type: 1, script_node_index: 22, skill: 2 },
-            ],
-            _pgeTotalNumInFile: 2,
-            _resolvedSpriteSet: {
-                spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9, 8, 7])],
+            sprites: {
+                numSpc: 1,
+                resolvedSpriteSet: {
+                    spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9, 8, 7])],
+                },
+                spc: Uint8Array.from([0, 0, 5, 6, 7]),
             },
-            _spc: Uint8Array.from([0, 0, 5, 6, 7]),
-            _ani: Uint8Array.from([1]),
             async loadMonsterResolvedSpriteSet(name) {
                 game.loadCalls.push(['loadMonsterResolvedSpriteSet', name])
                 return {
@@ -352,11 +360,11 @@ test('gameHasLevelMap detects room exits and collision-grid data', () => {
 
     assert.equal(gameHasLevelMap(game, room), false)
 
-    game._res._ctData[CT_UP_ROOM + room] = 1
+    game._res.level.ctData[CT_UP_ROOM + room] = 1
     assert.equal(gameHasLevelMap(game, room), true)
 
-    game._res._ctData[CT_UP_ROOM + room] = 0
-    game._res._ctData[CT_HEADER_SIZE + room * CT_GRID_STRIDE + 3] = 9
+    game._res.level.ctData[CT_UP_ROOM + room] = 0
+    game._res.level.ctData[CT_HEADER_SIZE + room * CT_GRID_STRIDE + 3] = 9
     assert.equal(gameHasLevelMap(game, room), true)
     assert.equal(gameHasLevelMap(game, -1), false)
     assert.equal(gameHasLevelMap(game, 0x40), false)
@@ -399,20 +407,24 @@ test('gameLoadLevelData loads level assets, recreates live tables, and applies d
         _currentLevel: 3,
         _startedFromLevelSelect: true,
         _res: {
-            _ani: Uint8Array.from([1]),
-            _ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
-            _numSpc: 1,
-            _objectNodesMap: {
-                12: { objects: [{ type: 1 }, { type: 57 }] },
-                22: { objects: [{ type: 1 }] },
+            level: {
+                ani: Uint8Array.from([1]),
+                ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
+                objectNodesMap: {
+                    12: { objects: [{ type: 1 }, { type: 57 }] },
+                    22: { objects: [{ type: 1 }] },
+                },
+                pgeAllInitialStateFromFile: [
+                    { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
+                    { init_room: 9, object_type: 1, script_node_index: 22, skill: 0 },
+                ],
+                pgeTotalNumInFile: 2,
             },
-            _pgeAllInitialStateFromFile: [
-                { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
-                { init_room: 9, object_type: 1, script_node_index: 22, skill: 0 },
-            ],
-            _pgeTotalNumInFile: 2,
-            _resolvedSpriteSet: { spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9])] },
-            _spc: Uint8Array.from([0, 0, 5]),
+            sprites: {
+                numSpc: 1,
+                resolvedSpriteSet: { spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9])] },
+                spc: Uint8Array.from([0, 0, 5]),
+            },
             async load(name, type) {
                 game.loadCalls.push(['load', name, type])
             },
@@ -443,7 +455,7 @@ test('gameLoadLevelData loads level assets, recreates live tables, and applies d
         assert.equal(game._printLevelCodeCounter, 150)
         assert.equal(game._nextFreeRoomCollisionGridPatchRestoreSlot, game._roomCollisionGridPatchRestoreSlotPool[0])
         assert.equal(game._activeRoomCollisionGridPatchRestoreSlots, null)
-        assert.equal(game._livePgeStore.initByIndex, game._res._pgeAllInitialStateFromFile)
+        assert.equal(game._livePgeStore.initByIndex, game._res.level.pgeAllInitialStateFromFile)
         assert.equal(game._validSaveState, false)
         assert.equal(game.resetPgeGroupsCalls, 1)
         assert.deepEqual(game._mix.calls, [Mixer.MUSIC_TRACK + 6])
@@ -602,10 +614,10 @@ test('animation preparation walks current and adjacent rooms with the correct fi
     game._livePgeStore.liveByRoom[4] = [currentPge]
     game._livePgeStore.liveByRoom[5] = [leftPge]
     game._livePgeStore.liveByRoom[6] = [rightPge, skippedRightPge]
-    game._res._ctData[CT_LEFT_ROOM + 4] = 5
-    game._res._ctData[CT_RIGHT_ROOM + 4] = 6
-    game._res._ctData[CT_UP_ROOM + 4] = UINT8_MAX
-    game._res._ctData[CT_DOWN_ROOM + 4] = UINT8_MAX
+    game._res.level.ctData[CT_LEFT_ROOM + 4] = 5
+    game._res.level.ctData[CT_RIGHT_ROOM + 4] = 6
+    game._res.level.ctData[CT_UP_ROOM + 4] = UINT8_MAX
+    game._res.level.ctData[CT_DOWN_ROOM + 4] = UINT8_MAX
 
     await gamePrepareCurrentRoomAnims(game, 4)
     await gamePrepareAdjacentRoomAnims(game, CT_LEFT_ROOM, -GAMESCREEN_W, 0, gameIsLeftRoomPge, 4)

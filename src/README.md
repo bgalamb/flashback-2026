@@ -134,7 +134,7 @@ That is the main switch-door pattern.
 
 `GLOBAL.FIB` is the global sound-effect bank, not a standalone ambient scheduler.
 
-The runtime loads `GLOBAL.FIB` once at startup and decodes it into the `_sfxList` array of sound samples:
+The runtime loads `GLOBAL.FIB` once at startup and decodes it into `Resource.audio.sfxList`, the runtime sound-sample array:
 
 - [src/game_runtime.ts](/Users/balazsgalambos/git/flashback-web/src/game_runtime.ts#L59)
 - [src/resource/resource.ts](/Users/balazsgalambos/git/flashback-web/src/resource/resource.ts#L605)

@@ -365,7 +365,7 @@ const getActiveRoomCollisionSlotHeadsByArea = (game: Game, area: number) => {
 const pge_updateCollisionState = (pge: LivePGE, pge_dy: number, var8: number, game: Game) => {
 	let pge_collision_segments = pge.init_PGE.number_of_collision_segments
 	if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
-        const grid_data = game._res._ctData.subarray(CT_HEADER_SIZE)
+        const grid_data = game._res.level.ctData.subarray(CT_HEADER_SIZE)
 		let dataIndex = CT_GRID_STRIDE * pge.room_location
 		let pge_pos_y = (((pge.pos_y / 36)>>0) & ~1) + pge_dy
 		let pge_pos_x = (pge.pos_x + 8) >> 4
@@ -460,7 +460,7 @@ const pge_op_copyPge = (args: PgeOpcodeArgs, game: Game) => {
 const pge_op_canUseCurrentInventoryItem = (args: PgeOpcodeArgs, game: Game) => {
 	const pge:LivePGE = game._livePgesByIndex[0]
 	const currentInventoryItemIndex = game.getCurrentInventoryItemIndex(pge)
-	if (currentInventoryItemIndex !== UINT8_MAX && game._res._pgeAllInitialStateFromFile[currentInventoryItemIndex].object_id === args.a) {
+	if (currentInventoryItemIndex !== UINT8_MAX && game._res.level.pgeAllInitialStateFromFile[currentInventoryItemIndex].object_id === args.a) {
 		return 1
 	}
 
@@ -529,8 +529,8 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 				if (_cx > CT_GRID_WIDTH) {
 					_cx = CT_GRID_WIDTH
 				}
-            let var2 = new Int8Array(game._res._ctData.buffer)
-            let var2Index = game._res._ctData.byteOffset + CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
+            let var2 = new Int8Array(game._res.level.ctData.buffer)
+            let var2Index = game._res.level.ctData.byteOffset + CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 
 	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 	            let activeRoomSlotIndex = grid_pos_y + grid_pos_x
@@ -545,13 +545,13 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 						if (col_area < 0) {
 	                        return 0
 	                    }
-						pge_room = game._res._ctData[CT_LEFT_ROOM + pge_room]
+						pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
 						if (pge_room < 0) {
 	                        return 0
 	                    }
 						var12 = CT_GRID_WIDTH - 1
-						var2 = new Int8Array(game._res._ctData.buffer)
-	                    var2Index = game._res._ctData.byteOffset + CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + (CT_GRID_WIDTH - 1) + CT_GRID_WIDTH
+						var2 = new Int8Array(game._res.level.ctData.buffer)
+	                    var2Index = game._res.level.ctData.byteOffset + CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + (CT_GRID_WIDTH - 1) + CT_GRID_WIDTH
 						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 						activeRoomSlotIndex = grid_pos_y + CT_GRID_WIDTH
 					}
@@ -579,7 +579,7 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 					_cx = CT_GRID_WIDTH
 				}
 
-	            let var2 = game._res._ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x)
+	            let var2 = game._res.level.ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x)
 				let var2Index = 0
 	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 	            let activeRoomSlotIndex = grid_pos_y + grid_pos_x
@@ -592,13 +592,13 @@ const pge_o_unk0x40 = (args: PgeOpcodeArgs, game: Game) => {
 					if (col_area > 2) {
                         return 0
                     }
-					pge_room = game._res._ctData[CT_RIGHT_ROOM + pge_room]
+					pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
 					if (pge_room < 0) {
                         return 0
                     }
 
 						var12 = 0
-						var2 = game._res._ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH)
+						var2 = game._res.level.ctData.subarray(CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH)
 	                    var2Index = 0
 						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 						activeRoomSlotIndex = grid_pos_y - 1
@@ -717,10 +717,10 @@ const pge_op_isNotFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
 		} else if (args.a === 0) {
 			if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
 				if (game._currentPgeFacingIsMirrored) {
-					if (pge_conrad.room_location === game._res._ctData[CT_RIGHT_ROOM + pge.room_location])
+					if (pge_conrad.room_location === game._res.level.ctData[CT_RIGHT_ROOM + pge.room_location])
 						return UINT16_MAX
 				} else {
-					if (pge_conrad.room_location === game._res._ctData[CT_LEFT_ROOM + pge.room_location])
+					if (pge_conrad.room_location === game._res.level.ctData[CT_LEFT_ROOM + pge.room_location])
 						return UINT16_MAX
 				}
 			}
@@ -758,10 +758,10 @@ const pge_op_isFacingConrad = (args: PgeOpcodeArgs, game: Game) => {
 		} else if (args.a === 0) {
 			if (!(pge.room_location & 0x80) && pge.room_location < CT_ROOM_SIZE) {
 				if (game._currentPgeFacingIsMirrored) {
-					if (pge_conrad.room_location === game._res._ctData[CT_LEFT_ROOM + pge.room_location])
+					if (pge_conrad.room_location === game._res.level.ctData[CT_LEFT_ROOM + pge.room_location])
 						return UINT16_MAX
 				} else {
-					if (pge_conrad.room_location === game._res._ctData[CT_RIGHT_ROOM + pge.room_location])
+					if (pge_conrad.room_location === game._res.level.ctData[CT_RIGHT_ROOM + pge.room_location])
 						return UINT16_MAX
 				}
 			}
@@ -788,7 +788,7 @@ const pge_op_isBelowConrad = (args: PgeOpcodeArgs, game: Game) => {
 			return UINT16_MAX
 		}
 	} else if (pge.room_location < CT_ROOM_SIZE) {
-		if (conrad.room_location === game._res._ctData[CT_UP_ROOM + pge.room_location]) {
+		if (conrad.room_location === game._res.level.ctData[CT_UP_ROOM + pge.room_location]) {
 			return UINT16_MAX
 		}
 	}
@@ -803,7 +803,7 @@ const pge_op_isAboveConrad = (args: PgeOpcodeArgs, game: Game) => {
 			return UINT16_MAX
 		}
 	} else if (pge.room_location < CT_ROOM_SIZE) {
-		if (conrad.room_location === game._res._ctData[CT_DOWN_ROOM + pge.room_location]) {
+		if (conrad.room_location === game._res.level.ctData[CT_DOWN_ROOM + pge.room_location]) {
 			return UINT16_MAX
 		}
 	}
@@ -1150,16 +1150,16 @@ const pge_op_removePgeIfNotNear = (args: PgeOpcodeArgs, game: Game) => {
 	if (pge.room_location === game._currentRoom) {
         return skip_pge()
     }
-	if (pge.room_location === game._res._ctData[CT_UP_ROOM + game._currentRoom]) {
+	if (pge.room_location === game._res.level.ctData[CT_UP_ROOM + game._currentRoom]) {
         return skip_pge()
     }
-	if (pge.room_location === game._res._ctData[CT_DOWN_ROOM + game._currentRoom]) {
+	if (pge.room_location === game._res.level.ctData[CT_DOWN_ROOM + game._currentRoom]) {
         return skip_pge()
     }
-	if (pge.room_location === game._res._ctData[CT_RIGHT_ROOM + game._currentRoom]) {
+	if (pge.room_location === game._res.level.ctData[CT_RIGHT_ROOM + game._currentRoom]) {
         return skip_pge()
     }
-	if (pge.room_location === game._res._ctData[CT_LEFT_ROOM + game._currentRoom]) {
+	if (pge.room_location === game._res.level.ctData[CT_LEFT_ROOM + game._currentRoom]) {
         return skip_pge()
     }
 
@@ -1278,7 +1278,7 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 					_cx = CT_GRID_WIDTH
 				}
 
-				ct_data = game._res._ctData
+				ct_data = game._res.level.ctData
 				ctIndex = CT_HEADER_SIZE + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 				let activeRoomSlotIndex = grid_pos_y + grid_pos_x + 1
@@ -1291,7 +1291,7 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 					if (col_area < 0) {
 						return 0
 					}
-					pge_room = game._res._ctData[CT_LEFT_ROOM + pge_room]
+					pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
 					if (pge_room < 0) {
 							return 0
 						}
@@ -1324,7 +1324,7 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 					_cx = CT_GRID_WIDTH
 				}
 
-				ct_data = game._res._ctData
+				ct_data = game._res.level.ctData
 				ctIndex = CT_HEADER_SIZE + 1 + pge_room * CT_GRID_STRIDE + grid_pos_y * 2 + CT_GRID_WIDTH + grid_pos_x
 				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, col_area)
 				let activeRoomSlotIndex = grid_pos_y + grid_pos_x + 1
@@ -1338,7 +1338,7 @@ const pge_o_unk0x6A = (args: PgeOpcodeArgs, game: Game) => {
 						if (col_area > 2) {
 							return 0
 							}
-							pge_room = game._res._ctData[CT_RIGHT_ROOM + pge_room]
+							pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
 						if (pge_room < 0) {
 							return 0
 							}
@@ -1427,13 +1427,13 @@ const pge_o_unk0x5F = (args: PgeOpcodeArgs, game: Game) => {
 			}
 		}
 		if (grid_pos_x < 0) {
-			pge_room = game._res._ctData[CT_LEFT_ROOM + pge_room]
+			pge_room = game._res.level.ctData[CT_LEFT_ROOM + pge_room]
 			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
                 return 0
             }
 				grid_pos_x += CT_GRID_WIDTH
 			} else if (grid_pos_x > CT_GRID_WIDTH - 1) {
-			pge_room = game._res._ctData[CT_RIGHT_ROOM + pge_room]
+			pge_room = game._res.level.ctData[CT_RIGHT_ROOM + pge_room]
 			if (pge_room < 0 || pge_room >= CT_ROOM_SIZE) {
                 return 0
             }
@@ -1593,8 +1593,8 @@ const pge_o_unk0x71 = (args: PgeOpcodeArgs, game: Game) => {
 
 const pge_o_unk0x72 = (args: PgeOpcodeArgs, game: Game) => {
 	const roomCollisionGrid = new Int8Array(
-		game._res._ctData.buffer,
-		game._res._ctData.byteOffset + CT_HEADER_SIZE + args.pge.room_location * CT_GRID_STRIDE,
+		game._res.level.ctData.buffer,
+		game._res.level.ctData.byteOffset + CT_HEADER_SIZE + args.pge.room_location * CT_GRID_STRIDE,
 		CT_GRID_STRIDE
 	)
 	const pgeCollisionGridY = (((args.pge.pos_y / 36) >> 0) & ~1) + args.a
@@ -1743,7 +1743,7 @@ const pge_op_changeRoom = (args: PgeOpcodeArgs, game: Game) => {
 			}
 			destinationPge.script_state_type = sourcePge.script_state_type
 			destinationPge.anim_seq = 0
-			const objectNode = game._res._objectNodesMap[destinationPge.init_PGE.script_node_index]
+			const objectNode = game._res.level.objectNodesMap[destinationPge.init_PGE.script_node_index]
 			let firstObjNumber = 0
 			while (objectNode.objects[firstObjNumber].type !== destinationPge.script_state_type) {
 				++firstObjNumber

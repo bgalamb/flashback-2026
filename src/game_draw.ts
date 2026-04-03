@@ -21,7 +21,7 @@ function getLineLength(str: Uint8Array) {
 export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, colMask: number) {
     const buf = new Uint8Array(16 * 16)
 
-    game._vid.PC_decodeIcn(game._res._icn, iconNum, buf)
+    game._vid.PC_decodeIcn(game._res.ui.icn, iconNum, buf)
 
     game._vid.drawSpriteSub1(buf, game._vid._frontLayer.subarray(x + y * game._vid._w), 16, 16, 16, colMask << 4)
     game._vid.markBlockAsDirty(x, y, 16, 16, 1)
@@ -30,7 +30,7 @@ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, 
 export function gameDrawCurrentInventoryItem(game: Game) {
     const src = game.getCurrentInventoryItemIndex(game._livePgesByIndex[0])
     if (src !== UINT8_MAX) {
-        game._currentIcon = game._res._pgeAllInitialStateFromFile[src].icon_num
+        game._currentIcon = game._res.level.pgeAllInitialStateFromFile[src].icon_num
         game.drawIcon(game._currentIcon, 232, 8, 0xC)
     }
 }
@@ -193,8 +193,8 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
                 const ptr = state[index].dataPtr
                 const val = new DataView(ptr.buffer, ptr.byteOffset - 2).getUint8(0)
                 if (!(val & 0x80)) {
-                    game._vid.PC_decodeSpm(state[index].dataPtr, game._res._scratchBuffer)
-                    game.drawCharacter(game._res._scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
+                    game._vid.PC_decodeSpm(state[index].dataPtr, game._res.scratchBuffer)
+                    game.drawCharacter(game._res.scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 } else {
                     game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 }
@@ -214,7 +214,7 @@ export function gameDrawPge(game: Game, state: AnimBufferState) {
 
 export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
     assert(!(dataPtr[0] >= 0x4A), `Assertion failed: ${dataPtr[0]} < 0x4A`)
-    const slot = game._res._rp[dataPtr[0]]
+    const slot = game._res.ui.rp[dataPtr[0]]
     let data = game._res.findBankData(slot)
     if (data === null) {
         data = game._res.loadBankData(slot)
@@ -254,9 +254,9 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
     const sprite_h = (((sprite_flags >> 0) & 3) + 1) * 8
     const sprite_w = (((sprite_flags >> 2) & 3) + 1) * 8
 
-    game._vid.PC_decodeSpc(new Uint8Array(bankDataPtr.buffer, src), sprite_w, sprite_h, game._res._scratchBuffer)
+    game._vid.PC_decodeSpc(new Uint8Array(bankDataPtr.buffer, src), sprite_w, sprite_h, game._res.scratchBuffer)
 
-    src = game._res._scratchBuffer.byteOffset
+    src = game._res.scratchBuffer.byteOffset
     let sprite_mirror_x = false
     let sprite_clipped_w: number
     if (sprite_x >= 0) {
@@ -311,15 +311,15 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
 
     if (game._eraseBackground) {
         if (!(sprite_flags & 0x10)) {
-            game._vid.drawSpriteSub1(new Uint8Array(game._res._scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub1(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub2(new Uint8Array(game._res._scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub2(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     } else {
         if (!(sprite_flags & 0x10)) {
-            game._vid.drawSpriteSub3(new Uint8Array(game._res._scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub3(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         } else {
-            game._vid.drawSpriteSub4(new Uint8Array(game._res._scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
+            game._vid.drawSpriteSub4(new Uint8Array(game._res.scratchBuffer.buffer, src), game._vid._frontLayer.subarray(dst_offset), sprite_w, sprite_clipped_h, sprite_clipped_w, sprite_col_mask)
         }
     }
     game._vid.markBlockAsDirty(sprite_x, sprite_y, sprite_clipped_w, sprite_clipped_h, 1)

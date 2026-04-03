@@ -54,9 +54,11 @@ function createCollisionGame() {
         _nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
         _pendingSignalsByTargetPgeIndex: new Map(),
         _res: {
-            _ctData: ctData,
-            _numObjectNodes: 4,
-            _objectNodesMap: {},
+            level: {
+                ctData,
+                numObjectNodes: 4,
+                objectNodesMap: {},
+            },
         },
         queueCalls: [],
         queuePgeGroupSignal(sender, target, signal) {
@@ -68,7 +70,7 @@ function createCollisionGame() {
 
 test('collision lane position lookup crosses into neighboring rooms and packs room-local indices', () => {
     const game = createCollisionGame()
-    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res.level.ctData[CT_RIGHT_ROOM + 1] = 2
 
     const pos = gameGetCollisionLanePositionIndexByXY(game, {
         room_location: 1,
@@ -114,8 +116,8 @@ test('collision lookup window maps dynamic buckets into left/current/right room 
     const leftBucket = [{ id: 'left' }]
     const rightBucket = [{ id: 'right' }]
 
-    game._res._ctData[CT_LEFT_ROOM + 5] = 4
-    game._res._ctData[CT_RIGHT_ROOM + 5] = 6
+    game._res.level.ctData[CT_LEFT_ROOM + 5] = 4
+    game._res.level.ctData[CT_RIGHT_ROOM + 5] = 6
     game._dynamicPgeCollisionSlotsByPosition.set(5 * 64 + 3, currentBucket)
     game._dynamicPgeCollisionSlotsByPosition.set(4 * 64 + 7, leftBucket)
     game._dynamicPgeCollisionSlotsByPosition.set(6 * 64 + 9, rightBucket)
@@ -132,9 +134,9 @@ test('room collision grid data reads from current room and neighboring room edge
     const pge = { room_location: 2 }
     game._currentPgeCollisionGridX = 0
     game._currentPgeCollisionGridY = 2
-    game._res._ctData[CT_LEFT_ROOM + 2] = 1
-    game._res._ctData[CT_HEADER_SIZE + 2 * CT_GRID_STRIDE + 2 * CT_GRID_WIDTH + 0] = 9
-    game._res._ctData[CT_HEADER_SIZE + 1 * CT_GRID_STRIDE + 2 * CT_GRID_WIDTH + (CT_GRID_WIDTH - 1)] = 7
+    game._res.level.ctData[CT_LEFT_ROOM + 2] = 1
+    game._res.level.ctData[CT_HEADER_SIZE + 2 * CT_GRID_STRIDE + 2 * CT_GRID_WIDTH + 0] = 9
+    game._res.level.ctData[CT_HEADER_SIZE + 1 * CT_GRID_STRIDE + 2 * CT_GRID_WIDTH + (CT_GRID_WIDTH - 1)] = 7
 
     assert.equal(gameGetRoomCollisionGridData(game, pge, 0, 0), 9)
     assert.equal(gameGetRoomCollisionGridData(game, pge, 0, -1), 7)
@@ -166,7 +168,7 @@ test('collision helper recognizes group membership from script opcodes', () => {
         first_script_entry_index: 0,
         init_PGE: { object_type: 10, script_node_index: 1 },
     }
-    game._res._objectNodesMap[1] = {
+    game._res.level.objectNodesMap[1] = {
         last_obj_number: 1,
         objects: [
             { type: 7, opcode1: 0x22, opcode_arg1: 4, opcode2: 0, opcode_arg2: 0 },
@@ -196,7 +198,7 @@ test('col_detectHit walks collision buckets and queues signals on eligible targe
         script_state_type: 9,
         init_PGE: { object_type: 10, script_node_index: 2 },
     }
-    game._res._objectNodesMap[2] = {
+    game._res.level.objectNodesMap[2] = {
         last_obj_number: 1,
         objects: [
             { type: 9, opcode1: 0, opcode_arg1: 0, opcode2: 0, opcode_arg2: 0 },
@@ -215,7 +217,7 @@ test('col_detectHitCallback1 stops movement when room collision data is solid', 
     const game = createCollisionGame()
     game._currentPgeCollisionGridX = 0
     game._currentPgeCollisionGridY = 2
-    game._res._ctData[CT_HEADER_SIZE + 1 * CT_GRID_STRIDE + 3 * CT_GRID_WIDTH] = 1
+    game._res.level.ctData[CT_HEADER_SIZE + 1 * CT_GRID_STRIDE + 3 * CT_GRID_WIDTH] = 1
 
     const blocked = col_detectHitCallback1({ room_location: 1 }, 0, 0, 0, game)
 

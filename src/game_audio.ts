@@ -5,8 +5,8 @@ import { CT_DOWN_ROOM, CT_LEFT_ROOM, CT_RIGHT_ROOM, CT_UP_ROOM } from './game'
 import { PGE_FLAG_ACTIVE, UINT8_MAX } from './game_constants'
 
 export function gamePlaySound(game: Game, num: number, softVol: number) {
-    if (num < game._res._numSfx) {
-        const sfx: SoundFx = game._res._sfxList[num]
+    if (num < game._res.audio.numSfx) {
+        const sfx: SoundFx = game._res.audio.sfxList[num]
         if (sfx.data) {
             const volume = MAX_VOLUME >> (2 * softVol)
             game._mix.play(sfx.data, sfx.len, sfx.freq, volume)
@@ -29,10 +29,10 @@ export function gamePlayPgeAnimationSoundEffect(game: Game, pge: LivePGE, arg2: 
         if (game._currentRoom === pge.room_location) {
             game.playSound(sfxId, 0)
         } else {
-            if (game._res._ctData[CT_DOWN_ROOM + game._currentRoom] === pge.room_location ||
-                game._res._ctData[CT_UP_ROOM + game._currentRoom] === pge.room_location ||
-                game._res._ctData[CT_RIGHT_ROOM + game._currentRoom] === pge.room_location ||
-                game._res._ctData[CT_LEFT_ROOM + game._currentRoom] === pge.room_location) {
+            if (game._res.level.ctData[CT_DOWN_ROOM + game._currentRoom] === pge.room_location ||
+                game._res.level.ctData[CT_UP_ROOM + game._currentRoom] === pge.room_location ||
+                game._res.level.ctData[CT_RIGHT_ROOM + game._currentRoom] === pge.room_location ||
+                game._res.level.ctData[CT_LEFT_ROOM + game._currentRoom] === pge.room_location) {
                 game.playSound(sfxId, 1)
             }
         }

@@ -71,7 +71,7 @@ class Cutscene {
 
         const mappedVideo = this.resolveMP4CutsceneFileName(id, cutName, cutOff)
         if (mappedVideo) {
-            const player = new Mp4CutscenePlayer(this._stub, this._res._fs)
+            const player = new Mp4CutscenePlayer(this._stub, this._res.fileSystem)
             this._interrupted = !(await player.play(mappedVideo))
         } else if (cutName !== UINT16_MAX) {
             ;(this._scripted as any)._textCurBuf = null

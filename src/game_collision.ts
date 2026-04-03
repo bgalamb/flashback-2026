@@ -61,8 +61,8 @@ export function gameRebuildActiveRoomCollisionSlotLookup(game: Game, currentRoom
     game._activeRoomCollisionSlotWindow.left.fill(null)
     game._activeRoomCollisionSlotWindow.current.fill(null)
     game._activeRoomCollisionSlotWindow.right.fill(null)
-    game._activeCollisionLeftRoom = game._res._ctData[CT_LEFT_ROOM + currentRoom]
-    game._activeCollisionRightRoom = game._res._ctData[CT_RIGHT_ROOM + currentRoom]
+    game._activeCollisionLeftRoom = game._res.level.ctData[CT_LEFT_ROOM + currentRoom]
+    game._activeCollisionRightRoom = game._res.level.ctData[CT_RIGHT_ROOM + currentRoom]
 
     game._dynamicPgeCollisionSlotsByPosition.forEach((slotBucket, collisionGridPositionIndex) => {
         const localIndex = collisionGridPositionIndex & 0x3F
@@ -96,7 +96,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
     let room_ct_data: Int8Array
     let next_room = 0
     if (pge_grid_x < 0) {
-        room_ct_data = game._res._ctData.subarray(CT_LEFT_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_LEFT_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
@@ -105,7 +105,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         room_ct_data = room_ct_data.subarray(pge_grid_x + CT_GRID_WIDTH + pge_grid_y * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[CT_DOWN_ROOM]
     } else if (pge_grid_x >= CT_GRID_WIDTH) {
-        room_ct_data = game._res._ctData.subarray(CT_RIGHT_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_RIGHT_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
@@ -113,7 +113,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         room_ct_data = room_ct_data.subarray(pge_grid_x - CT_GRID_WIDTH + pge_grid_y * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0x80]
     } else if (pge_grid_y < 1) {
-        room_ct_data = game._res._ctData.subarray(CT_UP_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_UP_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
@@ -121,7 +121,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y + CT_GRID_HEIGHT - 1) * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0x100]
     } else if (pge_grid_y >= CT_GRID_HEIGHT) {
-        room_ct_data = game._res._ctData.subarray(CT_DOWN_ROOM)
+        room_ct_data = game._res.level.ctData.subarray(CT_DOWN_ROOM)
         next_room = room_ct_data[pge.room_location]
         if (next_room < 0) {
             return 1
@@ -130,7 +130,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         room_ct_data = room_ct_data.subarray(pge_grid_x + (pge_grid_y - (CT_GRID_HEIGHT - 1)) * CT_GRID_WIDTH + next_room * CT_GRID_STRIDE)
         return room_ct_data[0xC0]
     } else {
-        room_ct_data = game._res._ctData.subarray(CT_HEADER_SIZE)
+        room_ct_data = game._res.level.ctData.subarray(CT_HEADER_SIZE)
         room_ct_data = room_ct_data.subarray(pge_grid_x + pge_grid_y * CT_GRID_WIDTH + pge.room_location * CT_GRID_STRIDE)
         return room_ct_data[0]
     }
@@ -145,24 +145,24 @@ export function gameGetCollisionLanePositionIndexByXY(game: Game, pge: LivePGE, 
     let collision_point_within_room = pge.room_location
     if (collision_point_within_room < 0) return UINT16_MAX
 
-    // each room has "64" collision points and they are in _ctData
+    // each room has "64" collision points and they are in level.ctData
     // 0->64 up room, 64->128 down room, 128->192 left room, 192->256 right room
     // collision_point_within_room is only used to exit
     // this is used to check in which room's which coordinate is now the collision
     if (x < 0) {
-        collision_point_within_room = game._res._ctData[CT_LEFT_ROOM + collision_point_within_room]
+        collision_point_within_room = game._res.level.ctData[CT_LEFT_ROOM + collision_point_within_room]
         if (collision_point_within_room < 0) return UINT16_MAX
         x += GAMESCREEN_W
     } else if (x >= GAMESCREEN_W) {
-        collision_point_within_room = game._res._ctData[CT_RIGHT_ROOM + collision_point_within_room]
+        collision_point_within_room = game._res.level.ctData[CT_RIGHT_ROOM + collision_point_within_room]
         if (collision_point_within_room < 0) return UINT16_MAX
         x -= GAMESCREEN_W
     } else if (y < 0) {
-        collision_point_within_room = game._res._ctData[CT_UP_ROOM + collision_point_within_room]
+        collision_point_within_room = game._res.level.ctData[CT_UP_ROOM + collision_point_within_room]
         if (collision_point_within_room < 0) return UINT16_MAX
         y += 216
     } else if (y >= 216) {
-        collision_point_within_room = game._res._ctData[CT_DOWN_ROOM + collision_point_within_room]
+        collision_point_within_room = game._res.level.ctData[CT_DOWN_ROOM + collision_point_within_room]
         if (collision_point_within_room < 0) return UINT16_MAX
         y -= 216
     }

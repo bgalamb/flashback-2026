@@ -66,11 +66,13 @@ function createOpcodeGame(overrides = {}) {
         _opcodeTempVar1: 0,
         _pendingSignalsByTargetPgeIndex: new Map(),
         _res: {
-            _ctData: new Int8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * CT_ROOM_SIZE).fill(-1),
-            _objectNodesMap: {
-                1: { objects: [{ type: 2 }, { type: 7 }] },
+            level: {
+                ctData: new Int8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * CT_ROOM_SIZE).fill(-1),
+                objectNodesMap: {
+                    1: { objects: [{ type: 2 }, { type: 7 }] },
+                },
             },
-            _readUint16(buffer, offset = 0) {
+            readUint16(buffer, offset = 0) {
                 return ((buffer[offset] << 8) | buffer[offset + 1]) >>> 0
             },
             getAniData() {
@@ -196,7 +198,7 @@ test('changeRoom copies source placement, updates room lists, and syncs matching
     game._livePgesByIndex[2] = source
     game._livePgeStore.liveByRoom[4].push(destination)
     game._livePgeStore.liveByRoom[6].push(source)
-    game._res._objectNodesMap[5] = { objects: [{ type: 2 }, { type: 7 }, { type: 9 }] }
+    game._res.level.objectNodesMap[5] = { objects: [{ type: 2 }, { type: 7 }, { type: 9 }] }
 
     const result = runOpcode(0x82, { pge: trigger, a: 0, b: 0 }, game)
 

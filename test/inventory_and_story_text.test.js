@@ -39,11 +39,13 @@ function createInventoryGame(overrides = {}) {
             { index: 2, life: 9, init_PGE: { object_id: 12 } },
         ],
         _res: {
-            _pgeAllInitialStateFromFile: [
-                {},
-                { icon_num: 10, text_num: 101, init_flags: 4 },
-                { icon_num: 11, text_num: 102, init_flags: 0 },
-            ],
+            level: {
+                pgeAllInitialStateFromFile: [
+                    {},
+                    { icon_num: 10, text_num: 101, init_flags: 4 },
+                    { icon_num: 11, text_num: 102, init_flags: 0 },
+                ],
+            },
             getTextString(_level, textNum) {
                 return `ITEM_${textNum}`
             },

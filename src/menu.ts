@@ -349,17 +349,17 @@ class Menu {
     async loadPicture(prefix: string) {
         const kPictureW = GAMESCREEN_W
         const kPictureH = GAMESCREEN_H
-        await this._res.load_MAP_menu(prefix, this._res._scratchBuffer)
+        await this._res.load_MAP_menu(prefix, this._res.scratchBuffer)
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {
                 for (let x = 0; x < kPictureW / 4; ++x) {
-                    this._vid._frontLayer[i + x * 4 + kPictureW * y] = this._res._scratchBuffer[0x3800 * i + x + 64 * y]
+                    this._vid._frontLayer[i + x * 4 + kPictureW * y] = this._res.scratchBuffer[0x3800 * i + x + 64 * y]
                 }
             }
         }
         this._vid._backLayer.set(this._vid._frontLayer.subarray(0, this._vid._layerSize))
-        await this._res.load_PAL_menu(prefix, this._res._scratchBuffer)
-        this._stub.setPalette(this._res._scratchBuffer, 256)
+        await this._res.load_PAL_menu(prefix, this._res.scratchBuffer)
+        this._stub.setPalette(this._res.scratchBuffer, 256)
     }
 
 }

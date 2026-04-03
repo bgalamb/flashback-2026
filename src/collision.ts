@@ -79,12 +79,12 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res._ctData[CT_LEFT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[CT_LEFT_ROOM + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX += 16
 			}
 			if (gridPosX >= 16) {
-				pgeRoom = game._res._ctData[CT_RIGHT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[CT_RIGHT_ROOM + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX -= 16
 			}
@@ -111,9 +111,9 @@ const col_detectHit = (pge: LivePGE, arg2: number, arg4: number, callback1: col_
 
 const col_detectHitCallbackHelper = (pge:LivePGE, groupId: number, game: Game) => {
 	const init_pge:InitPGE = pge.init_PGE
-    assert(!(init_pge.script_node_index >= game._res._numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res._numObjectNodes}`)
-	// assert(init_pge->script_node_index < _res._numObjectNodes);
-	const scriptNode: PgeScriptNode = game._res._objectNodesMap[init_pge.script_node_index]
+    assert(!(init_pge.script_node_index >= game._res.level.numObjectNodes), `Assertion failed: ${init_pge.script_node_index} < ${game._res.level.numObjectNodes}`)
+	// assert(init_pge->script_node_index < _res.level.numObjectNodes);
+	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[init_pge.script_node_index]
 	const maxEntryIndex = Math.min(scriptNode.last_obj_number, scriptNode.objects.length - 1)
 	if (pge.first_script_entry_index < 0 || pge.first_script_entry_index > maxEntryIndex) {
 		console.warn(
@@ -340,14 +340,14 @@ const col_detectGunHit = (pge: LivePGE, arg2: number, arg4: number, callback1: c
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res._ctData[CT_LEFT_ROOM + pgeRoom]
+				pgeRoom = game._res.level.ctData[CT_LEFT_ROOM + pgeRoom]
 				if (pgeRoom < 0) {
                     return 0
                 }
 				gridPosX += 0x10;
 			}
 			if (gridPosX >= 0x10) {
-				pgeRoom = game._res._ctData[CT_RIGHT_ROOM + pgeRoom];
+				pgeRoom = game._res.level.ctData[CT_RIGHT_ROOM + pgeRoom];
 				if (pgeRoom < 0) {
                     return 0
                 }

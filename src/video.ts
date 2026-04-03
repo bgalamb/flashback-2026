@@ -70,7 +70,7 @@ class Video {
 
     }
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
-        const fnt = this._res._fnt
+        const fnt = this._res.ui.fnt
         for (let i = 0; i < len; ++i) {
             this._drawChar(this._frontLayer, this._w, x + i * CHAR_W, y, fnt, color, str.charCodeAt(i))
         }
@@ -78,7 +78,7 @@ class Video {
     }
 
     PC_drawChar(c: number, y: number, x: number) {
-        const fnt = this._res._fnt
+        const fnt = this._res.ui.fnt
         y *= CHAR_W
         x *= CHAR_H
         let src = (c - 32) * 32
@@ -440,7 +440,7 @@ pitch = 16
     }
 
     drawString(str: string, x: number, y: number, col: number): string {
-        const fnt =  this._res._fnt
+        const fnt =  this._res.ui.fnt
         let len = 0
         let index = 0
 
@@ -497,7 +497,7 @@ pitch = 16
         for (const filename of candidates) {
             const file = new File()
             try {
-                const opened = await file.open(filename, "rb", this._res._fs)
+                const opened = await file.open(filename, "rb", this._res.fileSystem)
                 if (!opened) {
                     continue
                 }
@@ -604,7 +604,7 @@ pitch = 16
         for (const filename of names) {
             const file = new File()
             try {
-                const opened = await file.open(filename, "rb", this._res._fs)
+                const opened = await file.open(filename, "rb", this._res.fileSystem)
                 if (!opened) {
                     continue
                 }
@@ -697,7 +697,7 @@ pitch = 16
         // The room PNG provides room palette banks only; slot 0x4 must stay
         // independent so Conrad remains decoupled from per-room PNG palettes.
         const conradVariantId = this._unkPalSlot1 === this._map_palette_offset_slot3 ? 1 : 2
-        return this._res._loadedConradVisualsByVariantId.get(conradVariantId)
+        return this._res.sprites.loadedConradVisualsByVariantId.get(conradVariantId)
     }
 
     PC_setLevelPalettes(level: number) {
@@ -768,7 +768,7 @@ pitch = 16
             // Dedicated runtime switch/door bank resolved from the header slot1 mapping.
             this.setPaletteColors(0x6, headerSlot1Colors || jsonColors.slot1)
             // Conrad visuals are loaded from PERSO at startup and wrapped into
-            // Resource._loadedConradVisualsByVariantId, which keeps the shared
+            // Resource.sprites.loadedConradVisualsByVariantId, which keeps the shared
             // resolved sprite set together with each palette variant for slot 4.
             const activeConradVisual = this.getActiveConradVisualFromPaletteHeader()
             this.setPaletteSlotLE(activeConradVisual.paletteSlot, activeConradVisual.palette)
@@ -787,7 +787,7 @@ pitch = 16
             this.setTextPalette()
             return
         }
-        console.warn(`Palette colors source: none level=${level} (JSON palette colors/offsets required; _pal fallback disabled)`)
+        console.warn(`Palette colors source: none level=${level} (JSON palette colors/offsets required; level.pal fallback disabled)`)
     }
 
     PC_drawStringChar(dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) {
@@ -832,7 +832,7 @@ pitch = 16
 
         if (palSlot === 4 && global_game_options.use_white_tshirt) {
             const color12: Color = Video.AMIGA_convertColor(0x888)
-            const conradDarkShirtVisual = this._res._loadedConradVisualsByVariantId.get(2)
+            const conradDarkShirtVisual = this._res.sprites.loadedConradVisualsByVariantId.get(2)
             const color13: Color = Video.AMIGA_convertColor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)
             this._stub.setPaletteEntry(palSlot * 16 + 12, color12)
             this._stub.setPaletteEntry(palSlot * 16 + 13, color13)
@@ -841,7 +841,7 @@ pitch = 16
 
     setPaletteSlotBE(palette_color_slot: number, pal_offset: number) {
         let p = pal_offset * 32
-        const pal = this._res._pal
+        const pal = this._res.level.pal
         for (let i = 0; i < 16; ++i) {
             const color = READ_BE_UINT16(pal, p)
             p += 2

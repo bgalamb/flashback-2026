@@ -12,7 +12,7 @@ function createMenuFixture(overrides = {}) {
     const scratchSize = 0x3800 * 4
     const scratchBuffer = new Uint8Array(scratchSize)
     const res = {
-        _scratchBuffer: scratchBuffer,
+        scratchBuffer,
         async load_MAP_menu() {},
         async load_PAL_menu() {},
         getMenuString(id) {
@@ -100,7 +100,7 @@ test('loadPicture copies the packed menu image into the front and back layers an
     assert.deepEqual(Array.from(vid._frontLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
     assert.deepEqual(Array.from(vid._frontLayer.slice(GAMESCREEN_W, GAMESCREEN_W + 4)), [21, 22, 23, 24])
     assert.deepEqual(Array.from(vid._backLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
-    assert.deepEqual(stub.paletteCalls, [[res._scratchBuffer, 256]])
+    assert.deepEqual(stub.paletteCalls, [[res.scratchBuffer, 256]])
 })
 
 test('drawString switches menu colors for the requested style and restores previous video colors', () => {

@@ -37,10 +37,12 @@ function createPgeGame() {
         _loadMap: false,
         _pendingSignalsByTargetPgeIndex: new Map(),
         _res: {
-            _ctData: new Int8Array(0x200).fill(-1),
-            _numObjectNodes: 4,
-            _objectNodesMap: {},
-            _readUint16(buffer, offset = 0) {
+            level: {
+                ctData: new Int8Array(0x200).fill(-1),
+                numObjectNodes: 4,
+                objectNodesMap: {},
+            },
+            readUint16(buffer, offset = 0) {
                 return (buffer[offset] << 8) | buffer[offset + 1]
             },
             getAniData() {
@@ -118,7 +120,7 @@ test('gameApplyNextPgeAnimationFrameFromGroups fast-forwards to the end of the m
         pos_y: 20,
         script_state_type: 3,
     }
-    game._res._objectNodesMap[1] = {
+    game._res.level.objectNodesMap[1] = {
         last_obj_number: 1,
         objects: [
             { type: 3, opcode1: 0, opcode_arg1: 0, opcode2: 0x22, opcode_arg2: 5 },
@@ -154,8 +156,8 @@ test('gameLoadPgeForCurrentLevel initializes Conrad with player defaults and the
     }
 
     game._livePgesByIndex[0] = conrad
-    game._res._pgeAllInitialStateFromFile = [initialState]
-    game._res._objectNodesMap[1] = {
+    game._res.level.pgeAllInitialStateFromFile = [initialState]
+    game._res.level.objectNodesMap[1] = {
         num_objects: 2,
         objects: [
             { type: 1 },
@@ -201,8 +203,8 @@ test('gameLoadPgeForCurrentLevel initializes monsters with doubled expert life a
 
     game._skillLevel = 2
     game._livePgesByIndex[1] = monster
-    game._res._pgeAllInitialStateFromFile = [{}, initialState]
-    game._res._objectNodesMap[2] = {
+    game._res.level.pgeAllInitialStateFromFile = [{}, initialState]
+    game._res.level.objectNodesMap[2] = {
         num_objects: 2,
         objects: [
             { type: 1 },
@@ -245,7 +247,7 @@ test('gameHandlePgeRoomTransitionAndActivation updates Conrad room changes and a
         flags: 0,
         init_PGE: { flags: INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST },
     }
-    game._res._ctData[CT_LEFT_ROOM + 1] = 2
+    game._res.level.ctData[CT_LEFT_ROOM + 1] = 2
     game._livePgeStore.liveByRoom[1] = [conrad]
     game._livePgeStore.liveByRoom[2] = [roomMate]
     gameCollision.gameRebuildActiveRoomCollisionSlotLookup = (_game, room) => {
@@ -296,8 +298,8 @@ test('gameRunPgeFrameLogic moves Conrad into the next room and advances his next
     game._livePgesByIndex[0] = conrad
     game._livePgeStore.liveByRoom[1] = [conrad]
     game._livePgeStore.liveByRoom[2] = [roomMate]
-    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
-    game._res._objectNodesMap[1] = {
+    game._res.level.ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res.level.objectNodesMap[1] = {
         last_obj_number: 1,
         objects: [
             {
@@ -379,8 +381,8 @@ test('gameRunPgeFrameLogic moves monsters between room lists without changing th
     game._livePgesByIndex[4] = monster
     game._livePgeStore.liveByRoom[1] = [monster]
     game._livePgeStore.liveByRoom[2] = []
-    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
-    game._res._objectNodesMap[2] = {
+    game._res.level.ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res.level.objectNodesMap[2] = {
         last_obj_number: 1,
         objects: [
             {
@@ -452,8 +454,8 @@ test('gameRunPgeFrameLogic moves visible non-player PGEs between room lists and 
     game._livePgesByIndex[5] = visiblePge
     game._livePgeStore.liveByRoom[1] = [visiblePge]
     game._livePgeStore.liveByRoom[2] = []
-    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
-    game._res._objectNodesMap[3] = {
+    game._res.level.ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res.level.objectNodesMap[3] = {
         last_obj_number: 1,
         objects: [
             {
@@ -517,7 +519,7 @@ test('gameExecutePgeObjectStep updates score, life, mirrored movement, and state
         pos_y: 40,
         script_state_type: 2,
     }
-    game._res._objectNodesMap[1] = {
+    game._res.level.objectNodesMap[1] = {
         objects: [{}, {}],
     }
     game._opcodeHandlers = [
