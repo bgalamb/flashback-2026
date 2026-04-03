@@ -293,6 +293,59 @@ test('gameLoadMonsterSprites loads and caches visuals for monsters in the curren
     assert.equal(game._vid.calls.some((call) => Array.isArray(call) && call[0] === 'setPaletteSlotLE'), true)
 })
 
+test('gamePrepareAnimsHelper loads monster visuals and queues monster sprites with the monster palette slot', async () => {
+    const game = createWorldGame({
+        _currentLevel: 1,
+        _res: {
+            _ctData: new Uint8Array(CT_HEADER_SIZE + CT_GRID_STRIDE * 0x40),
+            _numSpc: 1,
+            _objectNodesMap: {
+                12: { objects: [{ type: 1 }, { type: 57 }] },
+                22: { objects: [{ type: 1 }] },
+            },
+            _pgeAllInitialStateFromFile: [
+                { init_room: 7, object_type: 1, script_node_index: 12, skill: 0 },
+                { init_room: 9, object_type: 1, script_node_index: 22, skill: 2 },
+            ],
+            _pgeTotalNumInFile: 2,
+            _resolvedSpriteSet: {
+                spritesByIndex: [Uint8Array.from([1, 2, 3, 4, 9, 8, 7])],
+            },
+            _spc: Uint8Array.from([0, 0, 5, 6, 7]),
+            _ani: Uint8Array.from([1]),
+            async loadMonsterResolvedSpriteSet(name) {
+                game.loadCalls.push(['loadMonsterResolvedSpriteSet', name])
+                return {
+                    spritesByIndex: [Uint8Array.from([2, 1, 5, 6, 7, 8, 9])],
+                }
+            },
+        },
+    })
+    const monster = {
+        index: 4,
+        anim_number: 0,
+        flags: 0,
+        init_PGE: { object_type: 10, script_node_index: 34 },
+        pos_x: 30,
+        pos_y: 50,
+        room_location: 4,
+    }
+
+    await gamePrepareAnimsHelper(game, monster, 0, 0, 4)
+
+    assert.deepEqual(game._animBuffers.addStateCalls, [[
+        0,
+        36,
+        51,
+        Uint8Array.from([7, 8, 9]),
+        monster,
+        5,
+        6,
+        80,
+    ]])
+    assert.equal(game._loadedMonsterVisualsByScriptNodeIndex.has(34), true)
+})
+
 test('gameHasLevelMap detects room exits and collision-grid data', () => {
     const game = createWorldGame()
     const room = 5
@@ -449,6 +502,52 @@ test('gamePrepareAnimsHelper adds visible sprites to the appropriate animation b
         4,
         -1,
     ])
+})
+
+test('gamePrepareAnimationsInRooms keeps Conrad on the dedicated player animation layer in the current room', async () => {
+    const game = createWorldGame()
+    const conrad = game._livePgesByIndex[0]
+
+    game._livePgeStore.liveByRoom[conrad.room_location] = [conrad]
+
+    await gamePrepareAnimationsInRooms(game, conrad.room_location)
+
+    assert.deepEqual(game._animBuffers.addStateCalls, [[
+        1,
+        47,
+        100,
+        Uint8Array.from([9, 8, 7]),
+        conrad,
+        3,
+        4,
+        -1,
+    ]])
+})
+
+test('gamePrepareAnimsHelper queues visible non-player PGEs on their object layer with the barrier palette override', async () => {
+    const game = createWorldGame()
+    const visiblePge = {
+        index: 6,
+        anim_number: 0,
+        flags: 0x10,
+        init_PGE: { object_type: 6, script_node_index: 55 },
+        pos_x: 60,
+        pos_y: 70,
+        room_location: 0,
+    }
+
+    await gamePrepareAnimsHelper(game, visiblePge, 0, 0, 0)
+
+    assert.deepEqual(game._animBuffers.addStateCalls, [[
+        2,
+        67,
+        70,
+        Uint8Array.from([9, 8, 7]),
+        visiblePge,
+        3,
+        4,
+        96,
+    ]])
 })
 
 test('gamePrepareAnimsHelper handles special animations and flip-x sprites', async () => {

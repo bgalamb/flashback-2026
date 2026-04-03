@@ -122,6 +122,7 @@ class Menu {
 
     async handleLevelScreen() {
         let currentEntry = Math.min(this._level, this._levelItems.length - 1)
+        const initialEntry = currentEntry
         const paneX = 9
         const paneY = 3
         const paneW = 21

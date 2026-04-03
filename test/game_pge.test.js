@@ -15,7 +15,7 @@ const {
     PGE_FLAG_SPECIAL_ANIM,
     UINT16_MAX,
 } = require('../src/game_constants.ts')
-const { CT_LEFT_ROOM } = require('../src/game.ts')
+const { CT_LEFT_ROOM, CT_RIGHT_ROOM } = require('../src/game.ts')
 const gameCollision = require('../src/game_collision.ts')
 const gamePge = require('../src/game_pge.ts')
 
@@ -135,6 +135,97 @@ test('gameApplyNextPgeAnimationFrameFromGroups fast-forwards to the end of the m
     assert.equal(game._currentPgeCollisionGridY, 0)
 })
 
+test('gameLoadPgeForCurrentLevel initializes Conrad with player defaults and the default animation', () => {
+    const game = createPgeGame()
+    const conrad = {}
+    const initialState = {
+        type: 57,
+        pos_x: 48,
+        pos_y: 96,
+        init_room: 7,
+        room_location: 0,
+        life: 5,
+        skill: 0,
+        object_type: 1,
+        mirror_x: 1,
+        init_flags: 0,
+        flags: INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST,
+        script_node_index: 1,
+    }
+
+    game._livePgesByIndex[0] = conrad
+    game._res._pgeAllInitialStateFromFile = [initialState]
+    game._res._objectNodesMap[1] = {
+        num_objects: 2,
+        objects: [
+            { type: 1 },
+            { type: 57 },
+        ],
+    }
+
+    gamePge.gameLoadPgeForCurrentLevel(game, 0, 7)
+
+    assert.equal(conrad.init_PGE, initialState)
+    assert.equal(conrad.script_state_type, 57)
+    assert.equal(conrad.pos_x, 48)
+    assert.equal(conrad.pos_y, 96)
+    assert.equal(conrad.room_location, 7)
+    assert.equal(conrad.life, 20)
+    assert.equal(conrad.first_script_entry_index, 1)
+    assert.equal(conrad.anim_seq, 0)
+    assert.equal(conrad.anim_number, 9)
+    assert.equal((conrad.flags & PGE_FLAG_ACTIVE) !== 0, true)
+    assert.equal((conrad.flags & PGE_FLAG_MIRRORED) !== 0, true)
+    assert.equal((conrad.flags & PGE_FLAG_FLIP_X) !== 0, true)
+    assert.equal((conrad.flags & PGE_FLAG_SPECIAL_ANIM) !== 0, true)
+    assert.equal(game._livePgeStore.activeFrameByIndex[0], conrad)
+})
+
+test('gameLoadPgeForCurrentLevel initializes monsters with doubled expert life and their default animation', () => {
+    const game = createPgeGame()
+    const monster = {}
+    const initialState = {
+        type: 9,
+        pos_x: 70,
+        pos_y: 120,
+        init_room: 5,
+        room_location: 1,
+        life: 7,
+        skill: 0,
+        object_type: 10,
+        mirror_x: 0,
+        init_flags: 0,
+        flags: 0,
+        script_node_index: 2,
+    }
+
+    game._skillLevel = 2
+    game._livePgesByIndex[1] = monster
+    game._res._pgeAllInitialStateFromFile = [{}, initialState]
+    game._res._objectNodesMap[2] = {
+        num_objects: 2,
+        objects: [
+            { type: 1 },
+            { type: 9 },
+        ],
+    }
+
+    gamePge.gameLoadPgeForCurrentLevel(game, 1, 3)
+
+    assert.equal(monster.init_PGE, initialState)
+    assert.equal(monster.script_state_type, 9)
+    assert.equal(monster.pos_x, 70)
+    assert.equal(monster.pos_y, 120)
+    assert.equal(monster.room_location, 5)
+    assert.equal(monster.life, 14)
+    assert.equal(monster.first_script_entry_index, 1)
+    assert.equal(monster.anim_seq, 0)
+    assert.equal(monster.anim_number, 9)
+    assert.equal((monster.flags & PGE_FLAG_ACTIVE) !== 0, true)
+    assert.equal((monster.flags & PGE_FLAG_SPECIAL_ANIM) !== 0, true)
+    assert.equal(game._livePgeStore.activeFrameByIndex[1], monster)
+})
+
 test('gameHandlePgeRoomTransitionAndActivation updates Conrad room changes and activates current-room entries', () => {
     const originalRebuild = gameCollision.gameRebuildActiveRoomCollisionSlotLookup
     const rebuildCalls = []
@@ -174,6 +265,244 @@ test('gameHandlePgeRoomTransitionAndActivation updates Conrad room changes and a
     assert.deepEqual(rebuildCalls, [2])
     assert.equal(game._livePgeStore.activeFrameByIndex[3], roomMate)
     assert.equal((roomMate.flags & PGE_FLAG_ACTIVE) !== 0, true)
+})
+
+test('gameRunPgeFrameLogic moves Conrad into the next room and advances his next animation frame', () => {
+    const originalRebuild = gameCollision.gameRebuildActiveRoomCollisionSlotLookup
+    const rebuildCalls = []
+    const game = createPgeGame()
+    const conrad = {
+        index: 0,
+        anim_number: 0,
+        anim_seq: 0,
+        first_script_entry_index: 0,
+        flags: 0,
+        init_PGE: { object_type: 1, script_node_index: 1 },
+        life: 20,
+        pos_x: 255,
+        pos_y: 80,
+        room_location: 1,
+        script_state_type: 1,
+    }
+    const roomMate = {
+        index: 2,
+        room_location: 2,
+        pos_x: 40,
+        pos_y: 100,
+        flags: 0,
+        init_PGE: { flags: INIT_PGE_FLAG_IN_CURRENT_ROOM_LIST },
+    }
+
+    game._livePgesByIndex[0] = conrad
+    game._livePgeStore.liveByRoom[1] = [conrad]
+    game._livePgeStore.liveByRoom[2] = [roomMate]
+    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res._objectNodesMap[1] = {
+        last_obj_number: 1,
+        objects: [
+            {
+                type: 1,
+                dx: 4,
+                dy: 0,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+            {
+                type: 9,
+                dx: 0,
+                dy: 0,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+        ],
+    }
+    game._res.getAniData = (stateType) => Uint8Array.from(
+        stateType === 1
+            ? [0, 0, 0, 0, 0, 0, 0, 12, 0, 0]
+            : [0, 0, 0, 0, 0, 0, 0, 33, 1, 2]
+    )
+    gameCollision.gameRebuildActiveRoomCollisionSlotLookup = (_game, room) => {
+        rebuildCalls.push(room)
+    }
+
+    try {
+        gamePge.gameRunPgeFrameLogic(game, conrad, 1)
+    } finally {
+        gameCollision.gameRebuildActiveRoomCollisionSlotLookup = originalRebuild
+    }
+
+    assert.equal(conrad.room_location, 2)
+    assert.equal(conrad.pos_x, 4)
+    assert.equal(conrad.pos_y, 82)
+    assert.equal(conrad.anim_number, 33)
+    assert.equal(conrad.anim_seq, 1)
+    assert.equal(game._currentRoom, 2)
+    assert.equal(game._loadMap, true)
+    assert.deepEqual(rebuildCalls, [2])
+    assert.deepEqual(game._livePgeStore.liveByRoom[1], [])
+    assert.deepEqual(game._livePgeStore.liveByRoom[2], [roomMate, conrad])
+    assert.equal(game._livePgeStore.activeFrameByIndex[2], roomMate)
+    assert.equal((roomMate.flags & PGE_FLAG_ACTIVE) !== 0, true)
+})
+
+test('gameRunPgeFrameLogic moves monsters between room lists without changing the current room', () => {
+    const game = createPgeGame()
+    const monster = {
+        index: 4,
+        anim_number: 0,
+        anim_seq: 0,
+        first_script_entry_index: 0,
+        flags: 0,
+        init_PGE: { object_type: 10, script_node_index: 2 },
+        life: 6,
+        pos_x: 255,
+        pos_y: 90,
+        room_location: 1,
+        script_state_type: 1,
+    }
+
+    game._currentRoom = 1
+    game._livePgesByIndex[4] = monster
+    game._livePgeStore.liveByRoom[1] = [monster]
+    game._livePgeStore.liveByRoom[2] = []
+    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res._objectNodesMap[2] = {
+        last_obj_number: 1,
+        objects: [
+            {
+                type: 1,
+                dx: 2,
+                dy: 1,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+            {
+                type: 9,
+                dx: 0,
+                dy: 0,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+        ],
+    }
+    game._res.getAniData = (stateType) => Uint8Array.from(
+        stateType === 1
+            ? [0, 0, 0, 0, 0, 0, 0, 12, 0, 0]
+            : [0, 0, 0, 0, 0, 0, 0, 44, 3, 4]
+    )
+
+    gamePge.gameRunPgeFrameLogic(game, monster, 1)
+
+    assert.equal(monster.room_location, 2)
+    assert.equal(monster.pos_x, 4)
+    assert.equal(monster.pos_y, 95)
+    assert.equal(monster.anim_number, 44)
+    assert.equal(monster.anim_seq, 1)
+    assert.equal(game._currentRoom, 1)
+    assert.equal(game._loadMap, false)
+    assert.deepEqual(game._livePgeStore.liveByRoom[1], [])
+    assert.deepEqual(game._livePgeStore.liveByRoom[2], [monster])
+})
+
+test('gameRunPgeFrameLogic moves visible non-player PGEs between room lists and advances animation', () => {
+    const game = createPgeGame()
+    const visiblePge = {
+        index: 5,
+        anim_number: 0,
+        anim_seq: 0,
+        first_script_entry_index: 0,
+        flags: 0,
+        init_PGE: { object_type: 6, script_node_index: 3 },
+        life: 1,
+        pos_x: 255,
+        pos_y: 70,
+        room_location: 1,
+        script_state_type: 1,
+    }
+
+    game._currentRoom = 7
+    game._livePgesByIndex[5] = visiblePge
+    game._livePgeStore.liveByRoom[1] = [visiblePge]
+    game._livePgeStore.liveByRoom[2] = []
+    game._res._ctData[CT_RIGHT_ROOM + 1] = 2
+    game._res._objectNodesMap[3] = {
+        last_obj_number: 1,
+        objects: [
+            {
+                type: 1,
+                dx: 3,
+                dy: -2,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+            {
+                type: 9,
+                dx: 0,
+                dy: 0,
+                flags: 0,
+                next_script_entry_index: 1,
+                next_script_state_type: 9,
+                opcode1: 0,
+                opcode2: 0,
+                opcode3: 0,
+                opcode_arg1: 0,
+                opcode_arg2: 0,
+                opcode_arg3: 0,
+            },
+        ],
+    }
+    game._res.getAniData = (stateType) => Uint8Array.from(
+        stateType === 1
+            ? [0, 0, 0, 0, 0, 0, 0, 12, 0, 0]
+            : [0, 0, 0, 0, 0, 0, 0, 55, 5, 6]
+    )
+
+    gamePge.gameRunPgeFrameLogic(game, visiblePge, 1)
+
+    assert.equal(visiblePge.room_location, 2)
+    assert.equal(visiblePge.pos_x, 7)
+    assert.equal(visiblePge.pos_y, 74)
+    assert.equal(visiblePge.anim_number, 55)
+    assert.equal(visiblePge.anim_seq, 1)
+    assert.equal(game._currentRoom, 7)
+    assert.equal(game._loadMap, false)
+    assert.deepEqual(game._livePgeStore.liveByRoom[1], [])
+    assert.deepEqual(game._livePgeStore.liveByRoom[2], [visiblePge])
 })
 
 test('gameExecutePgeObjectStep updates score, life, mirrored movement, and state transitions', () => {

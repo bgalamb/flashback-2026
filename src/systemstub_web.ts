@@ -1,7 +1,7 @@
 import { CLIP, Color } from './intern'
 import { Scaler, ScalerType, _internalScaler } from './scaler'
 import { assert } from "./assert"
-import { InputRecorder, InputRecording } from './input_recording'
+import type { Game } from './game'
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void
 
@@ -71,7 +71,7 @@ class SystemStub {
 	_audioInitFailed: boolean
 	_audioUnavailableWarned: boolean
 	_events: Event[] = new Array()
-	_inputRecorder: InputRecorder
+	_game: Game | null
 	_rgbPalette: Uint8ClampedArray = new Uint8ClampedArray(256*4)
 	_darkPalette: Uint8ClampedArray = new Uint8ClampedArray(256
 		*4)
@@ -86,23 +86,9 @@ class SystemStub {
 		this._audioContext = new window.AudioContext()
 		this._audioInitFailed = false
 		this._audioUnavailableWarned = false
-		this._inputRecorder = null
+		this._game = null
 		console.log(this._audioContext.sampleRate); //48000
 		this.resumeAudio()
-	}
-
-	startInputRecording(now?: number) {
-		this._inputRecorder = new InputRecorder(now)
-	}
-
-	stopInputRecording() {
-		const recording = this.getInputRecording()
-		this._inputRecorder = null
-		return recording
-	}
-
-	getInputRecording(): InputRecording | null {
-		return this._inputRecorder ? this._inputRecorder.export() : null
 	}
 
 	private async loadAudioWorkletModule() {
@@ -355,9 +341,6 @@ class SystemStub {
 		// to happen
 		if (!e.metaKey && !e.ctrlKey) {
 			e.preventDefault()
-		}
-		if (this._inputRecorder && (e.type === 'keydown' || e.type === 'keyup')) {
-			this._inputRecorder.record(e)
 		}
 		this._events.push(e)
 	}
