@@ -1,0 +1,12 @@
+[
+  {
+    "audioSource": null,
+    "cutsceneId": 61,
+    "cutsceneName": "FIN",
+    "durationCapMs": null,
+    "entryOffset": 0,
+    "moduleName": "fin",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/check-end/61-end.mp4",
+    "routedName": "END"
+  }
+]

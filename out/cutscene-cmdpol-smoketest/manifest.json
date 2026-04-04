@@ -1,0 +1,12 @@
+[
+  {
+    "audioSource": null,
+    "cutsceneId": 37,
+    "cutsceneName": "MISSIONS",
+    "durationCapMs": 5000,
+    "entryOffset": 0,
+    "moduleName": "missions2",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-smoketest/37-mission1.mpg",
+    "routedName": "MISSION1"
+  }
+]

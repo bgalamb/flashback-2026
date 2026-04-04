@@ -1,0 +1,12 @@
+[
+  {
+    "audioSource": null,
+    "cutsceneId": 48,
+    "cutsceneName": "MEMO",
+    "durationCapMs": null,
+    "entryOffset": 0,
+    "moduleName": "memoire",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/verify-memory/48-memory.mp4",
+    "routedName": "MEMORY"
+  }
+]

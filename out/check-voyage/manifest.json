@@ -1,0 +1,12 @@
+[
+  {
+    "audioSource": null,
+    "cutsceneId": 52,
+    "cutsceneName": "VOYAGE",
+    "durationCapMs": null,
+    "entryOffset": 0,
+    "moduleName": "voyage",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/check-voyage/52-voyage.mp4",
+    "routedName": "VOYAGE"
+  }
+]

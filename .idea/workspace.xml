@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="2316" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="TypeScript File" />
+        <option value="JavaScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="39FmDErVZzguEJ62IXsbh25Z6Q6" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Node.js.main.ts.executor": "Debug",
+    "Node.js.monterpalconverter.js.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "big-refactorings",
+    "javascript.preferred.runtime.type.id": "node",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/balazsgalambos/git/flashback-web/test/fixtures",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "npm.check.executor": "Run",
+    "npm.dev.executor": "Run",
+    "npm.export:all-amiga-rooms -- ./DATA ./DATA/decoded_rooms.executor": "Run",
+    "npm.export:all-amiga-rooms -- ./DATA ./DATA/decoded_rooms2.executor": "Run",
+    "npm.export:all-amiga-rooms.executor": "Debug",
+    "npm.export:all-cutscenes.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 27 ./DATA/decoded_rooms_image_ppm/level1-room27.png.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 28 ./DATA/decoded_rooms_image_ppm/level1-room28.png.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 29 ./DATA/decoded_rooms_image_ppm/level1-room29.png.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 29 ./DATA/level1-room0.ppm.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 29 ./DATA/level1-room27.png.executor": "Run",
+    "npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 1 29 ./DATA/level1-room29.ppm.executor": "Run",
+    "npm.export:amiga-room.executor": "Run",
+    "npm.export:cutscene -- ./DATA 13 4 ./out/HOLOMP.mpg.executor": "Debug",
+    "npm.export:cutscene -- ./DATA 15 0 ./out/MISSION1.mpg.executor": "Debug",
+    "npm.start.executor": "Run",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "settings.typescriptcompiler",
+    "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "/Users/balazsgalambos/git/flashback-web/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecapSpentCounter">
+    <option name="endsOfQuotaMs" value="1774512030859" />
+    <option name="spentUsd" value="0.0059325" />
+  </component>
+  <component name="RecapUselessUpdatesCounter">
+    <option name="suspendCountdown" value="0" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/test/fixtures" />
+      <recent name="$PROJECT_DIR$/DATA/music/mp3" />
+      <recent name="$PROJECT_DIR$/DATA/videos" />
+      <recent name="$PROJECT_DIR$/final-tiled-images" />
+      <recent name="$PROJECT_DIR$/DATA/levels/level10" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/sprites_reversed" />
+      <recent name="$PROJECT_DIR$/DATA/levels/chatgtp+gimp+photoshop/level10/room17" />
+      <recent name="$PROJECT_DIR$/DATA/levels/chatgtp/level10" />
+      <recent name="$PROJECT_DIR$/DATA/legacy" />
+      <recent name="$PROJECT_DIR$/DATA/levels" />
+    </key>
+  </component>
+  <component name="RunManager" selected="npm.dev">
+    <configuration name="check" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="check" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm (1)" type="js.build_tools.npm">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="export:amiga-room" />
+      </scripts>
+      <arguments value="-- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level4-room20.ppm " />
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm (1)" />
+      <item itemvalue="npm.export:all-amiga-rooms -- ./DATA ./DATA/decoded_rooms" />
+      <item itemvalue="npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm" />
+      <item itemvalue="npm.check" />
+      <item itemvalue="npm.dev" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.dev" />
+        <item itemvalue="npm.check" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.31033.133" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="" />
+      <created>1770300071247</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1770300071247</updated>
+      <workItem from="1770300072307" duration="9004000" />
+      <workItem from="1770311915887" duration="11120000" />
+      <workItem from="1770367979083" duration="882000" />
+      <workItem from="1770372355283" duration="5031000" />
+      <workItem from="1770409517173" duration="7598000" />
+      <workItem from="1770445995255" duration="20524000" />
+      <workItem from="1770487858954" duration="16819000" />
+      <workItem from="1770548871826" duration="7977000" />
+      <workItem from="1770583851253" duration="338000" />
+      <workItem from="1770666827556" duration="5799000" />
+      <workItem from="1770715819040" duration="2032000" />
+      <workItem from="1770730318004" duration="3133000" />
+      <workItem from="1770736214435" duration="2126000" />
+      <workItem from="1770750184429" duration="3439000" />
+      <workItem from="1770839284640" duration="5850000" />
+      <workItem from="1770887045003" duration="24363000" />
+      <workItem from="1770985124614" duration="3450000" />
+      <workItem from="1770990487168" duration="7611000" />
+      <workItem from="1770998576986" duration="13943000" />
+      <workItem from="1771020276665" duration="431000" />
+      <workItem from="1771060412867" duration="4971000" />
+      <workItem from="1771106039883" duration="8261000" />
+      <workItem from="1771185575726" duration="6568000" />
+      <workItem from="1771275184949" duration="3836000" />
+      <workItem from="1771362374927" duration="4353000" />
+      <workItem from="1771441636581" duration="9187000" />
+      <workItem from="1771532833016" duration="4572000" />
+      <workItem from="1771596826937" duration="8428000" />
+      <workItem from="1771618178227" duration="5770000" />
+      <workItem from="1771675965043" duration="6248000" />
+      <workItem from="1771689007328" duration="19224000" />
+      <workItem from="1771781333698" duration="7985000" />
+      <workItem from="1771877421488" duration="5411000" />
+      <workItem from="1771882862219" duration="249000" />
+      <workItem from="1771883145991" duration="206000" />
+      <workItem from="1771883377347" duration="33000" />
+      <workItem from="1771883771229" duration="3771000" />
+      <workItem from="1771946945148" duration="354000" />
+      <workItem from="1771947369444" duration="2472000" />
+      <workItem from="1771954198328" duration="7393000" />
+      <workItem from="1771971351621" duration="1164000" />
+      <workItem from="1772008903254" duration="19210000" />
+      <workItem from="1772048919001" duration="6709000" />
+      <workItem from="1772268675106" duration="8969000" />
+      <workItem from="1772309717514" duration="6108000" />
+      <workItem from="1772316026184" duration="37000" />
+      <workItem from="1772355680794" duration="4047000" />
+      <workItem from="1772359821751" duration="9719000" />
+      <workItem from="1772394742416" duration="6505000" />
+      <workItem from="1772438051101" duration="2146000" />
+      <workItem from="1772441198995" duration="17972000" />
+      <workItem from="1772487401459" duration="137000" />
+      <workItem from="1772487542757" duration="1757000" />
+      <workItem from="1772570570799" duration="4167000" />
+      <workItem from="1772621473125" duration="71000" />
+      <workItem from="1772632415892" duration="1003000" />
+      <workItem from="1772638748931" duration="1203000" />
+      <workItem from="1772639977878" duration="521000" />
+      <workItem from="1772654166128" duration="5998000" />
+      <workItem from="1772740534362" duration="6292000" />
+      <workItem from="1772746869728" duration="34000" />
+      <workItem from="1772787112341" duration="8759000" />
+      <workItem from="1772827396237" duration="356000" />
+      <workItem from="1772876481598" duration="13526000" />
+      <workItem from="1772914264887" duration="7414000" />
+      <workItem from="1772958483243" duration="13658000" />
+      <workItem from="1773004775719" duration="1497000" />
+      <workItem from="1773084672914" duration="7521000" />
+      <workItem from="1773223979003" duration="10228000" />
+      <workItem from="1773345642559" duration="10898000" />
+      <workItem from="1773397030406" duration="4843000" />
+      <workItem from="1773431569425" duration="6046000" />
+      <workItem from="1773471951167" duration="3321000" />
+      <workItem from="1773495572431" duration="6318000" />
+      <workItem from="1773561222076" duration="12671000" />
+      <workItem from="1773593706464" duration="4316000" />
+      <workItem from="1773599106334" duration="90000" />
+      <workItem from="1773604702193" duration="4417000" />
+      <workItem from="1773657499716" duration="5951000" />
+      <workItem from="1773734729107" duration="33340000" />
+      <workItem from="1773858336805" duration="4441000" />
+      <workItem from="1773866210642" duration="80000" />
+      <workItem from="1773909261056" duration="3902000" />
+      <workItem from="1773923328089" duration="6700000" />
+      <workItem from="1773994610276" duration="8242000" />
+      <workItem from="1774007654034" duration="2297000" />
+      <workItem from="1774016385119" duration="3372000" />
+      <workItem from="1774019778289" duration="36000" />
+      <workItem from="1774022647211" duration="3573000" />
+      <workItem from="1774093054709" duration="2579000" />
+      <workItem from="1774160182748" duration="6495000" />
+      <workItem from="1774295604118" duration="6982000" />
+      <workItem from="1774340008097" duration="2635000" />
+      <workItem from="1774377002638" duration="814000" />
+      <workItem from="1774437117471" duration="5947000" />
+      <workItem from="1774462655705" duration="695000" />
+      <workItem from="1774469883860" duration="3913000" />
+      <workItem from="1774511678392" duration="893000" />
+      <workItem from="1774730324506" duration="868000" />
+      <workItem from="1774734867645" duration="11000" />
+      <workItem from="1774983105140" duration="1025000" />
+      <workItem from="1775064771991" duration="29841000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/audioutils/file.ts</url>
+          <line>257</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/DATA/HEXBinariesContainingSoundForLevel/Level1ExtractedSound/blip.js</url>
+          <line>1599</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/audioutils/main.ts</url>
+          <line>59</line>
+          <option name="timeStamp" value="41" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/cutscene-players/cutscene.ts</url>
+          <line>25</line>
+          <option name="timeStamp" value="64" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

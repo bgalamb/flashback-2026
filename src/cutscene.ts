@@ -32,7 +32,6 @@ const COS = (a: number) => _cosTable[a] << 16 >> 16
 
 const scalePoints = (pt: Point[], count: number, scale: number) => {
     if (scale !== 1) {
-        throw('scalePoints')
         let i = 0
         while (count--) {
             pt[i].x *= scale
