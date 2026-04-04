@@ -1,0 +1,38 @@
+[
+  {
+    "audioSource": "/Users/balazsgalambos/git/flashback-web/dist/DATA/music/mp3/flashback -10- searching for a job.mp3",
+    "captionsEnabled": true,
+    "cutsceneId": 40,
+    "cutsceneName": "MISSIONS",
+    "durationCapMs": 60000,
+    "entryOffset": 3,
+    "exportScale": 1,
+    "moduleName": "missions2",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-mission-captionhold2/40-mission3-low.mp4",
+    "routedName": "MISSION3"
+  },
+  {
+    "audioSource": "/Users/balazsgalambos/git/flashback-web/dist/DATA/music/mp3/flashback -10- searching for a job.mp3",
+    "captionsEnabled": true,
+    "cutsceneId": 40,
+    "cutsceneName": "MISSIONS",
+    "durationCapMs": 60000,
+    "entryOffset": 3,
+    "exportScale": 2,
+    "moduleName": "missions2",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-mission-captionhold2/40-mission3-mid.mp4",
+    "routedName": "MISSION3"
+  },
+  {
+    "audioSource": "/Users/balazsgalambos/git/flashback-web/dist/DATA/music/mp3/flashback -10- searching for a job.mp3",
+    "captionsEnabled": true,
+    "cutsceneId": 40,
+    "cutsceneName": "MISSIONS",
+    "durationCapMs": 60000,
+    "entryOffset": 3,
+    "exportScale": 4,
+    "moduleName": "missions2",
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-mission-captionhold2/40-mission3-high.mp4",
+    "routedName": "MISSION3"
+  }
+]

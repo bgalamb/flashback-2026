@@ -343,14 +343,17 @@ function writeFrameSequence(tempDir: string, w: number, h: number, frames: Captu
     }
 }
 
-function encodeVideo(tempDir: string, fps: number, outputPath: string, audioPath: string | null) {
+function encodeVideo(tempDir: string, fps: number, outputPath: string, audioPath: string | null, trimToShortest: boolean) {
     const args = [
         "-y",
         "-framerate", String(fps),
         "-i", path.join(tempDir, "frame-%06d.ppm")
     ]
     if (audioPath) {
-        args.push("-i", audioPath, "-shortest")
+        args.push("-i", audioPath)
+        if (trimToShortest) {
+            args.push("-shortest")
+        }
     }
     args.push(
         "-c:v", "libx264",
@@ -405,10 +408,9 @@ function getModuleName(cutsceneId: number) {
 
 function getExportVariants(): ExportVariant[] {
     return [
-        { captionsEnabled: true, labelSuffix: "", scale: 1 },
-        { captionsEnabled: false, labelSuffix: "-no-text", scale: 1 },
+        { captionsEnabled: true, labelSuffix: "-low", scale: 1 },
         { captionsEnabled: true, labelSuffix: "-mid", scale: 2 },
-        { captionsEnabled: false, labelSuffix: "-no-text-mid", scale: 2 }
+        { captionsEnabled: true, labelSuffix: "-high", scale: 4 }
     ]
 }
 
@@ -538,6 +540,31 @@ function skipStringAtPos(cut: Cutscene) {
     }
 }
 
+function getCommandOffset(p: Uint8Array, entryOffset: number) {
+    if (entryOffset <= 0) {
+        return 0
+    }
+    return (p[2 + entryOffset * 2] << 8) | p[2 + entryOffset * 2 + 1]
+}
+
+function getCommandBounds(p: Uint8Array, entryOffset: number) {
+    const entryCount = (p[0] << 8) | p[1]
+    const baseOffset = (entryCount + 1) * 2
+    const startOffset = getCommandOffset(p, entryOffset)
+    let endOffset = Number.POSITIVE_INFINITY
+    for (let i = entryOffset + 1; i < entryCount; ++i) {
+        const candidate = getCommandOffset(p, i)
+        if (candidate > startOffset && candidate < endOffset) {
+            endOffset = candidate
+        }
+    }
+    return {
+        baseOffset,
+        endCmdPtrOffset: Number.isFinite(endOffset) ? baseOffset + endOffset : Number.POSITIVE_INFINITY,
+        startCmdPtrOffset: baseOffset + startOffset
+    }
+}
+
 async function runLegacyCmdPolLoop(cut: Cutscene, entryOffset: number) {
     cut._frameDelay = 5
     cut._tstamp = cut._stub.getTimeStamp()
@@ -549,17 +576,17 @@ async function runLegacyCmdPolLoop(cut: Cutscene, entryOffset: number) {
     cut._hasAlphaColor = false
 
     const p = cut.getCommandData()
-    let offset = 0
-    if (entryOffset !== 0) {
-        offset = (p[2 + entryOffset * 2] << 8) | p[2 + entryOffset * 2 + 1]
-    }
-    cut._baseOffset = (((p[0] << 8) | p[1]) + 1) * 2
+    const bounds = getCommandBounds(p, entryOffset)
+    cut._baseOffset = bounds.baseOffset
     cut._varKey = 0
     cut._cmdPtr = cut._cmdPtrBak = new Uint8Array(p.buffer, p.byteOffset, p.byteLength)
-    cut._cmdPtrOffset = cut._cmdPtrBakOffset = cut._baseOffset + offset
+    cut._cmdPtrOffset = cut._cmdPtrBakOffset = bounds.startCmdPtrOffset
     cut._polPtr = cut.getPolygonData()
 
-    while (!cut._stub._pi.quit && !cut._interrupted && !cut._stop) {
+    while (!cut._stub._pi.quit && !cut._interrupted && !cut._stop && cut._cmdPtrOffset < bounds.endCmdPtrOffset) {
+        if (cut._cmdPtrOffset >= bounds.endCmdPtrOffset) {
+            break
+        }
         const raw = cut.fetchNextCmdByte()
         if (raw & 0x80) {
             break
@@ -593,7 +620,10 @@ async function runLegacyCmdPolLoop(cut: Cutscene, entryOffset: number) {
                 break
             case 9:
                 await presentFrame(cut)
-                while (cut.fetchNextCmdByte() !== 0xFF) {
+                while (cut._cmdPtrOffset < bounds.endCmdPtrOffset && cut.fetchNextCmdByte() !== 0xFF) {
+                    if (cut._cmdPtrOffset + 1 >= bounds.endCmdPtrOffset) {
+                        break
+                    }
                     cut.fetchNextCmdWord()
                 }
                 break
@@ -624,6 +654,16 @@ async function runLegacyCmdPolLoop(cut: Cutscene, entryOffset: number) {
     }
 }
 
+function stretchFrameDurationsAfter(frames: CapturedFrame[], startMs: number, factor: number) {
+    let timelineMs = 0
+    for (const frame of frames) {
+        if (timelineMs >= startMs) {
+            frame.durationMs *= factor
+        }
+        timelineMs += frame.durationMs
+    }
+}
+
 async function renderCutscene(
     resolver: ResourceResolver,
     cutsceneId: number,
@@ -637,7 +677,9 @@ async function renderCutscene(
         throw new Error(`Invalid DOS cutscene name for id 0x${cutsceneId.toString(16)}`)
     }
     const routedName = _namesTable[cutsceneId] || null
+    const isMission = !!(routedName && routedName.toUpperCase().includes("MISSION"))
     const durationCapMs = getDurationCapMs(cutsceneId, routedName)
+    const trimToShortest = !isMission
     const moduleName = getModuleName(cutsceneId)
     const audioPath = process.env.SKIP_AUDIO === "1" ? null : resolver.resolveAudioPath(moduleName)
 
@@ -673,13 +715,16 @@ async function renderCutscene(
     if (frames.length === 0) {
         throw new Error(`No frames captured for id 0x${cutsceneId.toString(16)}`)
     }
+    if (isMission) {
+        stretchFrameDurationsAfter(frames, 7000, 4)
+    }
 
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "flashback-cutscene-batch-"))
     const outputPath = getSceneOutputPath(outputDir, cutsceneId, routedName, cutsceneName, variant)
     try {
         writeFrameSequence(tempDir, vid._w, vid._h, frames, DEFAULT_FPS)
         fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-        encodeVideo(tempDir, DEFAULT_FPS, outputPath, audioPath)
+        encodeVideo(tempDir, DEFAULT_FPS, outputPath, audioPath, trimToShortest)
     } finally {
         fs.rmSync(tempDir, { force: true, recursive: true })
     }
@@ -720,7 +765,7 @@ async function main() {
     for (const cutsceneId of cutsceneIds) {
         const routedName = _namesTable[cutsceneId] || Cutscene._namesTableDOS[Cutscene._offsetsTableDOS[cutsceneId * 2] & 0xFF]
         for (const variant of variants) {
-            const variantLabel = `${variant.captionsEnabled ? "text" : "no-text"} @${variant.scale}x`
+            const variantLabel = `${variant.labelSuffix.slice(1)} @${variant.scale}x`
             console.log(`Exporting 0x${cutsceneId.toString(16).padStart(2, "0")} ${routedName} ${variantLabel}`)
             const entry = await renderCutscene(resolver, cutsceneId, outputDir, variant)
             manifest.push(entry)

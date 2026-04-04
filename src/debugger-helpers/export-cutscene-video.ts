@@ -118,6 +118,62 @@ class HeadlessSystemStub {
     }
 }
 
+const _cineSceneVideoFileNamesDOS: Record<string, string> = {
+    "0:0": "DATA/videos/WAKEUP.mp4",
+    "1:1": "DATA/videos/TKCRED0.mp4",
+    "1:2": "DATA/videos/TKGUN.mp4",
+    "1:3": "DATA/videos/TKHOLOCB.mp4",
+    "1:4": "DATA/videos/TAKEKEY0.mp4",
+    "1:5": "DATA/videos/TKTELER0.mp4",
+    "1:6": "DATA/videos/TKCARD.mp4",
+    "1:7": "DATA/videos/GVCREDS1.mp4",
+    "1:8": "DATA/videos/GIVEID.mp4",
+    "1:9": "DATA/videos/GETANTIG.mp4",
+    "1:10": "DATA/videos/GVTELER.mp4",
+    "1:11": "DATA/videos/TAKEBATT.mp4",
+    "1:12": "DATA/videos/GIVEPACK.mp4",
+    "1:13": "DATA/videos/GIVEPACK2.mp4",
+    "1:14": "DATA/videos/GETWORKP.mp4",
+    "1:15": "DATA/videos/GETID.mp4",
+    "1:16": "DATA/videos/TKFUSE.mp4",
+    "1:17": "DATA/videos/GETDYNAM.mp4",
+    "1:19": "DATA/videos/TKTELEX0.mp4",
+    "3:0": "DATA/videos/RECHARG0.mp4",
+    "3:1": "DATA/videos/RCHGBATT.mp4",
+    "4:0": "DATA/videos/FALLJUNG.mp4",
+    "4:1": "DATA/videos/ANTIG.mp4",
+    "6:0": "DATA/videos/DISINTEG.mp4",
+    "9:0": "DATA/videos/HOLOCUBE.mp4",
+    "11:0": "DATA/videos/BRIDGE.mp4",
+    "15:0": "DATA/videos/MISSION1.mp4",
+    "15:1": "DATA/videos/MISSION2.mp4",
+    "15:2": "DATA/videos/MISSION4.mp4",
+    "15:3": "DATA/videos/MISSION3.mp4",
+    "15:4": "DATA/videos/MISSION5.mp4",
+    "15:5": "DATA/videos/MISSVALD.mp4",
+    "15:6": "DATA/videos/MISSEND1.mp4",
+    "15:7": "DATA/videos/MISSEND2.mp4",
+    "15:8": "DATA/videos/MISSEND3.mp4",
+    "15:9": "DATA/videos/MISSEND4.mp4",
+    "15:10": "DATA/videos/MISSEND5.mp4",
+    "17:0": "DATA/videos/MEMORY.mp4",
+    "18:0": "DATA/videos/TAXI.mp4",
+    "20:0": "DATA/videos/VOYAGE.mp4",
+    "21:0": "DATA/videos/TELEPORT.mp4",
+    "22:0": "DATA/videos/LIFTUP.mp4",
+    "22:1": "DATA/videos/LIFTDOWN.mp4",
+    "23:0": "DATA/videos/SPY.mp4",
+    "24:0": "DATA/videos/JOURNAL.mp4",
+    "25:0": "DATA/videos/END.mp4",
+    "25:1": "DATA/videos/BADEND.mp4",
+    "26:0": "DATA/videos/GENEXPL.mp4",
+    "27:0": "DATA/videos/LOGOS.mp4",
+    "27:1": "DATA/videos/LOGOS.mp4",
+    "28:0": "DATA/videos/GAMEOVER.mp4",
+    "32775:0": "DATA/videos/INTRO1.mp4",
+    "30:0": "DATA/videos/INTRO2.mp4"
+}
+
 function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/debugger-helpers/export-cutscene-video.ts <dataDir> <cutsceneId> <output.(avi|mp4)>")
 }
@@ -199,15 +255,18 @@ async function main() {
     stub.setScreenSize(vid._w, vid._h)
     const cut = new Cutscene(res, stub as any, vid)
 
-    const cutNameIndex = Cutscene._offsetsTableDOS[cutsceneId * 2]
-    const entryOffset = Cutscene._offsetsTableDOS[cutsceneId * 2 + 1]
-    if (cutNameIndex === 0xFFFF) {
+    const cutNameRaw = Cutscene._offsetsTableDOS[cutsceneId * 2]
+    const cutOff = Cutscene._offsetsTableDOS[cutsceneId * 2 + 1]
+    const sceneKey = `${cutNameRaw}:${cutOff}`
+    const mappedVideoPath = _cineSceneVideoFileNamesDOS[sceneKey] || null
+    if (cutNameRaw === 0xFFFF) {
         throw new Error(`Cutscene id 0x${cutsceneId.toString(16)} does not map to a DOS cutscene resource`)
     }
-    const cutName = Cutscene._namesTableDOS[cutNameIndex & 0xFF]
+    const cutName = Cutscene._namesTableDOS[cutNameRaw & 0xFF]
     if (!cutName) {
-        throw new Error(`Invalid cutscene name index 0x${cutNameIndex.toString(16)} for cutscene id 0x${cutsceneId.toString(16)}`)
+        throw new Error(`Invalid cutscene name index 0x${cutNameRaw.toString(16)} for cutscene id 0x${cutsceneId.toString(16)}`)
     }
+    console.log(`Exporting scene key '${sceneKey}'${mappedVideoPath ? ` (${mappedVideoPath})` : ""}`)
 
     res._fnt = readDataFile(dataDir, "FB_TXT", "FNT")
     res._cmd = readDataFile(dataDir, cutName, "CMD")
@@ -234,7 +293,7 @@ async function main() {
     cut._creditsSequence = false
     cut._textCurBuf = null
     cut.prepare()
-    await cut.mainLoop(entryOffset)
+    await cut.mainLoop(cutOff)
 
     stub.finishFrames(75)
     const frames = stub.getFrames()

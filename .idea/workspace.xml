@@ -4,14 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="" />
+    <list default="true" id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debugger-helpers/export-all-cutscene-cmdpol-videos.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/debugger-helpers/export-all-cutscene-cmdpol-videos.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debugger-helpers/export-cutscene-video.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/debugger-helpers/export-cutscene-video.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="2316" />
+    <option name="cachedIndexableFilesCount" value="351" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -52,7 +56,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "big-refactorings",
+    "git-widget-placeholder": "export-videos-with-text-captions",
     "javascript.preferred.runtime.type.id": "node",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "/Users/balazsgalambos/git/flashback-web/test/fixtures",
@@ -82,7 +86,7 @@
     "run.code.analysis.last.selected.profile": "pProject Default",
     "settings.editor.selected.configurable": "settings.typescriptcompiler",
     "to.speed.mode.migration.done": "true",
-    "ts.external.directory.path": "/Users/balazsgalambos/git/flashback-web/node_modules/typescript/lib",
+    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -143,8 +147,6 @@
     </configuration>
     <list>
       <item itemvalue="npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm (1)" />
-      <item itemvalue="npm.export:all-amiga-rooms -- ./DATA ./DATA/decoded_rooms" />
-      <item itemvalue="npm.export:amiga-room -- ./DATA/LEVEL1.LEV ./DATA/LEVEL1.MBK ./DATA/LEVEL1.PAL ./DATA/LEVEL1.SGD 0 29 ./DATA/decoded_rooms_image_ppm/level1-room29.ppm" />
       <item itemvalue="npm.check" />
       <item itemvalue="npm.dev" />
     </list>
@@ -271,6 +273,8 @@
       <workItem from="1774734867645" duration="11000" />
       <workItem from="1774983105140" duration="1025000" />
       <workItem from="1775064771991" duration="29841000" />
+      <workItem from="1775281164274" duration="4060000" />
+      <workItem from="1775294513075" duration="4254000" />
     </task>
     <servers />
   </component>

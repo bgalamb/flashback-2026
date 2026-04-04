@@ -1,0 +1,110 @@
+[
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 4,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 2,
+    "exportScale": 1,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/04-tkgun-low.mp4",
+    "routedName": "TKGUN"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 4,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 2,
+    "exportScale": 2,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/04-tkgun-mid.mp4",
+    "routedName": "TKGUN"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 4,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 2,
+    "exportScale": 4,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/04-tkgun-high.mp4",
+    "routedName": "TKGUN"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 10,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 1,
+    "exportScale": 1,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/10-tkcred0-low.mp4",
+    "routedName": "TKCRED0"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 10,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 1,
+    "exportScale": 2,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/10-tkcred0-mid.mp4",
+    "routedName": "TKCRED0"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 10,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 1,
+    "exportScale": 4,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/10-tkcred0-high.mp4",
+    "routedName": "TKCRED0"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 18,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 6,
+    "exportScale": 1,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/18-tkcard-low.mp4",
+    "routedName": "TKCARD"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 18,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 6,
+    "exportScale": 2,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/18-tkcard-mid.mp4",
+    "routedName": "TKCARD"
+  },
+  {
+    "audioSource": null,
+    "captionsEnabled": true,
+    "cutsceneId": 18,
+    "cutsceneName": "OBJET",
+    "durationCapMs": null,
+    "entryOffset": 6,
+    "exportScale": 4,
+    "moduleName": null,
+    "outputPath": "/Users/balazsgalambos/git/flashback-web/out/cutscene-cmdpol-exports-fixcheck/18-tkcard-high.mp4",
+    "routedName": "TKCARD"
+  }
+]
