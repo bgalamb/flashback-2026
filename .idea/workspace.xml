@@ -4,18 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debugger-helpers/export-all-cutscene-cmdpol-videos.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/debugger-helpers/export-all-cutscene-cmdpol-videos.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debugger-helpers/export-cutscene-video.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/debugger-helpers/export-cutscene-video.ts" afterDir="false" />
-    </list>
+    <list default="true" id="16123553-c0fb-4536-9f88-f240148a5c4f" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="351" />
+    <option name="cachedIndexableFilesCount" value="638" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -274,7 +270,7 @@
       <workItem from="1774983105140" duration="1025000" />
       <workItem from="1775064771991" duration="29841000" />
       <workItem from="1775281164274" duration="4060000" />
-      <workItem from="1775294513075" duration="4254000" />
+      <workItem from="1775294513075" duration="4489000" />
     </task>
     <servers />
   </component>
