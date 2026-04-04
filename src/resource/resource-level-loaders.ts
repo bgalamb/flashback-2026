@@ -1,5 +1,5 @@
 import { readBeUint16 } from '../core/intern'
-import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData } from './parsers'
+import { hydrateParsedOBJData, hydrateParsedPGEData, hydrateParsedTbnData, ParsedObjFileData, ParsedPgeFileData, ParsedTbnFileData } from './parsers'
 import { ResourceLevelState, ResourceSpriteState } from './resource-state'
 import { decodePackedSpriteSet } from './sprite-store'
 
@@ -21,20 +21,24 @@ function normalizeParsedJson(value: unknown): unknown {
     return normalized
 }
 
+function parseNormalizedJson<T>(json: string): T {
+    return normalizeParsedJson(JSON.parse(json)) as T
+}
+
 function decodeParsedPgeIntoLevelState(levelState: ResourceLevelState, json: string) {
-    const parsed = hydrateParsedPGEData(normalizeParsedJson(JSON.parse(json)), levelState.pgeAllInitialStateFromFile.length)
+    const parsed = hydrateParsedPGEData(parseNormalizedJson<ParsedPgeFileData>(json), levelState.pgeAllInitialStateFromFile.length)
     levelState.pgeTotalNumInFile = parsed.pgeNum
     levelState.pgeAllInitialStateFromFile = parsed.pgeInit
 }
 
 function decodeParsedObjIntoLevelState(levelState: ResourceLevelState, json: string) {
-    const parsed = hydrateParsedOBJData(normalizeParsedJson(JSON.parse(json)))
+    const parsed = hydrateParsedOBJData(parseNormalizedJson<ParsedObjFileData>(json))
     levelState.numObjectNodes = parsed.numObjectNodes
     levelState.objectNodesMap = parsed.objectNodesMap
 }
 
 function decodeParsedTbnIntoLevelState(levelState: ResourceLevelState, json: string) {
-    levelState.tbn = hydrateParsedTbnData(normalizeParsedJson(JSON.parse(json)))
+    levelState.tbn = hydrateParsedTbnData(parseNormalizedJson<ParsedTbnFileData>(json))
 }
 
 function loadPackedSpriteAsset(

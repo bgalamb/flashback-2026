@@ -3,7 +3,7 @@ import { Resource } from "../resource/resource"
 import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
 import { SystemStub } from "../platform/systemstub_web"
 import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
-import { writeLayerImages, writeLayerPixelData } from "../debugger-helpers/front-layer-image"
+import { writeLayerImages, writeLayerPixelData } from "../tools/debugger/front-layer-image"
 import { assert } from "../core/assert"
 import { applyLevelPalettes, readRoomPaletteOffsets, tryLoadFrontLayerFromFile } from "./video-palette"
 import { createVideoLayerState, createVideoPaletteState, createVideoScreenState, createVideoTextState } from "./video-state"

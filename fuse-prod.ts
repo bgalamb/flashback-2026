@@ -1,7 +1,7 @@
 import { fusebox, pluginLink } from 'fuse-box';
 
 const fuse = fusebox({
-  entry: ['src/index.ts'],
+  entry: ['src/app/main.ts'],
   target: 'browser',
   webIndex: {
     template: './index.html',

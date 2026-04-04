@@ -7,7 +7,7 @@ const {
     bindPlayButton,
     createMain,
     getDebugConfigFromDocument,
-} = require('../src/index.ts')
+} = require('../src/app/main.ts')
 
 test('main loads the game with the configured boot sequence', async () => {
     const calls = {

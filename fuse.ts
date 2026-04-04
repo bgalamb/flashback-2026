@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { exec } from 'child_process'
 
 const fuse = fusebox({
-  entry: ['src/index.ts'],
+  entry: ['src/app/main.ts'],
   target: 'browser',
   devServer: {enabled: true, httpServer: {port:4445}},
   webIndex: {

@@ -31,13 +31,13 @@ const formatOpcodeSnapshotDiff = (before: OpcodeDebugSnapshot | null | undefined
 	}
 	const keys = new Set([...Object.keys(before), ...Object.keys(after)])
 	const changes: string[] = []
-	for (const key of keys) {
+	keys.forEach((key) => {
 		const beforeValue = before[key]
 		const afterValue = after[key]
 		if (beforeValue !== afterValue) {
 			changes.push(`${key}:${beforeValue}->${afterValue}`)
 		}
-	}
+	})
 	return changes.join(' ')
 }
 
