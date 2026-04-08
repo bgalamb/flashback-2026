@@ -57,65 +57,68 @@ const _offsetsTableDOS = Uint16Array.from([
 	UINT16_MAX, 0x0000
 ])
 
-// Manual MPEG filename overrides keyed by raw "_offsetsTableDOS" pairs:
-// "cutName:cutOff" where both values come directly from the Uint16 pair.
-// Add only the cutscenes you want to override manually, for example:
-// 'INTRO2' (0x001E) num 0 -> "30:0": "DATA/videos/INTRO2.mp4"
-const _cineSceneVideoFileNamesDOS = {
-	"0:0": "DATA/videos/WAKEUP.mp4",
-	"1:1": "DATA/videos/TKCRED0.mp4",
-	"1:2": "DATA/videos/TKGUN.mp4",
-	"1:3": "DATA/videos/TKHOLOCB.mp4",
-	"1:4": "DATA/videos/TAKEKEY0.mp4",
-	"1:5": "DATA/videos/TKTELER0.mp4",
-	"1:6": "DATA/videos/TKCARD.mp4",
-	"1:7": "DATA/videos/GVCREDS1.mp4",
-	"1:8": "DATA/videos/GIVEID.mp4",
-	"1:9": "DATA/videos/GETANTIG.mp4",
-	"1:10": "DATA/videos/GVTELER.mp4",
-	"1:11": "DATA/videos/TAKEBATT.mp4",
-	"1:12": "DATA/videos/GIVEPACK.mp4",
-	"1:13": "DATA/videos/GIVEPACK2.mp4",
-	"1:14": "DATA/videos/GETWORKP.mp4",
-	"1:15": "DATA/videos/GETID.mp4",
-	"1:16": "DATA/videos/TKFUSE.mp4",
-	"1:17": "DATA/videos/GETDYNAM.mp4",
-	"1:19": "DATA/videos/TKTELEX0.mp4",
-	"3:0": "DATA/videos/RECHARG0.mp4",
-	"3:1": "DATA/videos/RCHGBATT.mp4",
-	"4:0": "DATA/videos/FALLJUNG.mp4",
-	"4:1": "DATA/videos/ANTIG.mp4",
-	"6:0": "DATA/videos/DISINTEG.mp4",
-	"9:0": "DATA/videos/HOLOCUBE.mp4",
-	"11:0": "DATA/videos/BRIDGE.mp4",
-	"15:0": "DATA/videos/MISSION1.mp4",
-	"15:1": "DATA/videos/MISSION2.mp4",
-	"15:2": "DATA/videos/MISSION4.mp4",
-	"15:3": "DATA/videos/MISSION3.mp4",
-	"15:4": "DATA/videos/MISSION5.mp4",
-	"15:5": "DATA/videos/MISSVALD.mp4",
-	"15:6": "DATA/videos/MISSEND1.mp4",
-	"15:7": "DATA/videos/MISSEND2.mp4",
-	"15:8": "DATA/videos/MISSEND3.mp4",
-	"15:9": "DATA/videos/MISSEND4.mp4",
-	"15:10": "DATA/videos/MISSEND5.mp4",
-	"17:0": "DATA/videos/MEMORY.mp4",
-	"18:0": "DATA/videos/TAXI.mp4",
-	"20:0": "DATA/videos/VOYAGE.mp4",
-	"21:0": "DATA/videos/TELEPORT.mp4",
-	"22:0": "DATA/videos/LIFTUP.mp4",
-	"22:1": "DATA/videos/LIFTDOWN.mp4",
-	"23:0": "DATA/videos/SPY.mp4",
-	"24:0": "DATA/videos/JOURNAL.mp4",
-	"25:0": "DATA/videos/END.mp4",
-	"25:1": "DATA/videos/BADEND.mp4",
-	"26:0": "DATA/videos/GENEXPL.mp4",
-	"27:0": "DATA/videos/LOGOS.mp4",
-	"27:1": "DATA/videos/LOGOS.mp4",
-	"28:0": "DATA/videos/GAMEOVER.mp4",
-	"32775:0": "DATA/videos/INTRO1.mp4",
-	"30:0": "DATA/videos/INTRO2.mp4",
-}
+// Manual MPEG filename overrides keyed by the cutscene id and the raw
+// "_offsetsTableDOS" tuple it resolves to at runtime. The scene id decides which
+// exported MP4 to use, while the cutNameIndex + cutOffset pair protects against
+// stale mappings when the opcode table changes.
+const _cineSceneVideoOverridesDOS = [
+	{ sceneId: 0,  cutNameIndex: 0,     cutOffset: 0,  mpegFileName: "DATA/videos/00-wakeup-low.mp4" },
+	{ sceneId: 1,  cutNameIndex: 1,     cutOffset: 3,  mpegFileName: "DATA/videos/01-tkholocb-low.mp4" },
+	{ sceneId: 2,  cutNameIndex: 1,     cutOffset: 4,  mpegFileName: "DATA/videos/02-takekey0-low.mp4" },
+	{ sceneId: 4,  cutNameIndex: 1,     cutOffset: 2,  mpegFileName: "DATA/videos/04-tkgun-low.mp4" },
+	{ sceneId: 5,  cutNameIndex: 3,     cutOffset: 0,  mpegFileName: "DATA/videos/05-recharg0-low.mp4" },
+	{ sceneId: 6,  cutNameIndex: 4,     cutOffset: 0,  mpegFileName: "DATA/videos/06-falljung-low.mp4" },
+	{ sceneId: 9,  cutNameIndex: 6,     cutOffset: 0,  mpegFileName: "DATA/videos/09-disinteg-low.mp4" },
+	{ sceneId: 10, cutNameIndex: 1,     cutOffset: 1,  mpegFileName: "DATA/videos/10-tkcred0-low.mp4" },
+	{ sceneId: 13, cutNameIndex: 0x8007, cutOffset: 0, mpegFileName: "DATA/videos/13-intro-low.mp4" },
+	{ sceneId: 14, cutNameIndex: 3,     cutOffset: 1,  mpegFileName: "DATA/videos/14-rchgbatt-low.mp4" },
+	{ sceneId: 15, cutNameIndex: 1,     cutOffset: 11, mpegFileName: "DATA/videos/15-takebatt-low.mp4" },
+	{ sceneId: 16, cutNameIndex: 1,     cutOffset: 5,  mpegFileName: "DATA/videos/16-tkteler0-low.mp4" },
+	{ sceneId: 17, cutNameIndex: 9,     cutOffset: 0,  mpegFileName: "DATA/videos/17-holocube-low.mp4" },
+	{ sceneId: 18, cutNameIndex: 1,     cutOffset: 6,  mpegFileName: "DATA/videos/18-tkcard-low.mp4" },
+	{ sceneId: 20, cutNameIndex: 11,    cutOffset: 0,  mpegFileName: "DATA/videos/20-bridge-low.mp4" },
+	{ sceneId: 21, cutNameIndex: 1,     cutOffset: 10, mpegFileName: "DATA/videos/21-gvteler-low.mp4" },
+	{ sceneId: 37, cutNameIndex: 15,    cutOffset: 0,  mpegFileName: "DATA/videos/37-mission1-low.mp4" },
+	{ sceneId: 38, cutNameIndex: 15,    cutOffset: 1,  mpegFileName: "DATA/videos/38-mission2-low.mp4" },
+	{ sceneId: 40, cutNameIndex: 15,    cutOffset: 3,  mpegFileName: "DATA/videos/40-mission3-low.mp4" },
+	{ sceneId: 41, cutNameIndex: 15,    cutOffset: 2,  mpegFileName: "DATA/videos/41-mission4-low.mp4" },
+	{ sceneId: 42, cutNameIndex: 15,    cutOffset: 4,  mpegFileName: "DATA/videos/42-mission5-low.mp4" },
+	{ sceneId: 43, cutNameIndex: 1,     cutOffset: 8,  mpegFileName: "DATA/videos/43-giveid1-low.mp4" },
+	{ sceneId: 44, cutNameIndex: 1,     cutOffset: 7,  mpegFileName: "DATA/videos/44-gvcreds1-low.mp4" },
+	{ sceneId: 45, cutNameIndex: 15,    cutOffset: 5,  mpegFileName: "DATA/videos/45-missvald-low.mp4" },
+	{ sceneId: 47, cutNameIndex: 4,     cutOffset: 1,  mpegFileName: "DATA/videos/47-antig-low.mp4" },
+	{ sceneId: 48, cutNameIndex: 17,    cutOffset: 0,  mpegFileName: "DATA/videos/48-memory-low.mp4" },
+	{ sceneId: 49, cutNameIndex: 1,     cutOffset: 9,  mpegFileName: "DATA/videos/49-getantig-low.mp4" },
+	{ sceneId: 50, cutNameIndex: 18,    cutOffset: 0,  mpegFileName: "DATA/videos/50-taxi-low.mp4" },
+	{ sceneId: 52, cutNameIndex: 20,    cutOffset: 0,  mpegFileName: "DATA/videos/52-voyage-low.mp4" },
+	{ sceneId: 53, cutNameIndex: 21,    cutOffset: 0,  mpegFileName: "DATA/videos/53-teleport-low.mp4" },
+	{ sceneId: 54, cutNameIndex: 22,    cutOffset: 0,  mpegFileName: "DATA/videos/54-liftup-low.mp4" },
+	{ sceneId: 55, cutNameIndex: 22,    cutOffset: 1,  mpegFileName: "DATA/videos/55-liftdown-low.mp4" },
+	{ sceneId: 57, cutNameIndex: 23,    cutOffset: 0,  mpegFileName: "DATA/videos/57-spy-low.mp4" },
+	{ sceneId: 58, cutNameIndex: 1,     cutOffset: 17, mpegFileName: "DATA/videos/58-getdynam-low.mp4" },
+	{ sceneId: 59, cutNameIndex: 24,    cutOffset: 0,  mpegFileName: "DATA/videos/59-journal-low.mp4" },
+	{ sceneId: 60, cutNameIndex: 1,     cutOffset: 19, mpegFileName: "DATA/videos/60-tktelex0-low.mp4" },
+	{ sceneId: 61, cutNameIndex: 25,    cutOffset: 0,  mpegFileName: "DATA/videos/61-end-low.mp4" },
+	{ sceneId: 62, cutNameIndex: 26,    cutOffset: 0,  mpegFileName: "DATA/videos/62-genexpl-low.mp4" },
+	{ sceneId: 63, cutNameIndex: 25,    cutOffset: 1,  mpegFileName: "DATA/videos/63-badend-low.mp4" },
+	{ sceneId: 64, cutNameIndex: 27,    cutOffset: 0,  mpegFileName: "DATA/videos/64-logos-low.mp4" },
+	{ sceneId: 65, cutNameIndex: 28,    cutOffset: 0,  mpegFileName: "DATA/videos/65-gameover-low.mp4" },
+	{ sceneId: 66, cutNameIndex: 15,    cutOffset: 6,  mpegFileName: "DATA/videos/66-missend1-low.mp4" },
+	{ sceneId: 68, cutNameIndex: 15,    cutOffset: 7,  mpegFileName: "DATA/videos/68-missend2-low.mp4" },
+	{ sceneId: 69, cutNameIndex: 15,    cutOffset: 8,  mpegFileName: "DATA/videos/69-missend3-low.mp4" },
+	{ sceneId: 70, cutNameIndex: 15,    cutOffset: 9,  mpegFileName: "DATA/videos/70-missend4-low.mp4" },
+	{ sceneId: 71, cutNameIndex: 15,    cutOffset: 10, mpegFileName: "DATA/videos/71-missend5-low.mp4" },
+	{ sceneId: 73, cutNameIndex: 27,    cutOffset: 1,  mpegFileName: "DATA/videos/73-logos-low.mp4" },
+	{ sceneId: 74, cutNameIndex: 30,    cutOffset: 0,  mpegFileName: "DATA/videos/74-intro2-low.mp4" }
+]
+
+const _cineSceneVideoOverridesBySceneIdDOS = (() => {
+	const table = []
+	for (const entry of _cineSceneVideoOverridesDOS) {
+		table[entry.sceneId] = entry
+	}
+	return table
+})()
 
 // Expanded view of _offsetsTableDOS, keeping each cine scene id paired with its
 // raw cut tuple and resolved DOS cut name when available.
@@ -125,11 +128,11 @@ const _cineSceneIdToCutPairsDOS = (() => {
 		const cutNameIndex = _offsetsTableDOS[sceneId * 2]
 		const cutName = cutNameIndex === UINT16_MAX ? null : _namesTableDOS[cutNameIndex & UINT8_MAX]
 		const cutOffset = _offsetsTableDOS[sceneId * 2 + 1]
-		const key = `${cutNameIndex}:${cutOffset}`
+		const override = _cineSceneVideoOverridesBySceneIdDOS[sceneId]
 		table.push({
 			cutName,
 			cutOffset,
-			mpegFileName: _cineSceneVideoFileNamesDOS[key] || null
+			mpegFileName: override && override.cutNameIndex === cutNameIndex && override.cutOffset === cutOffset ? override.mpegFileName : null
 		})
 	}
 	return table
@@ -2820,4 +2823,4 @@ const _sfxPeriodTable = Uint16Array.from([
 
 
 
-export { _namesTableDOS, _offsetsTableDOS, _cineSceneIdToCutPairsDOS, _cosTable, _sinTable, _musicTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _conradVisualVariants, _textPal, _palSlot0xF, _periodTable, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable }
+export { _namesTableDOS, _offsetsTableDOS, _cineSceneIdToCutPairsDOS, _cineSceneVideoOverridesDOS, _cosTable, _sinTable, _musicTable, _gameLevels, scoreTable, _stringsTableEN, _gameSavedSoundLen, _textsTableEN, _voicesOffsetsTable, _spmOffsetsTable, _splNames, _gameSavedSoundData, _pge_modKeysTable, _protectionCodeData, _protectionWordData, _protectionPal, _conradVisualVariants, _textPal, _palSlot0xF, _periodTable, _namesTable, _musicData68, _musicData70, _musicData72, _musicData73, _musicData74, _musicData75, _musicDataSample1, _musicDataSample2, _musicDataSample3, _musicDataSample4, _musicDataSample5, _musicDataSample6, _musicDataSample7, _musicDataSample8, _module68, _module70, _module72, _module73, _module74, _module75, _sfxPeriodTable }

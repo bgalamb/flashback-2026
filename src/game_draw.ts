@@ -176,6 +176,9 @@ export async function gameDrawAnims(game: Game) {
 
 export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: AnimBufferState[]) {
     assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
+    // Some persisted DevTools breakpoints/logpoints reference "cutId" on this frame.
+    // Keep a local alias so those expressions do not spam the console during gameplay.
+    const cutId = stateNum
     game._animBuffers._states[stateNum] = state
     const lastPos = game._animBuffers._curPos[stateNum]
 
