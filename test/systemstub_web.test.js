@@ -5,9 +5,9 @@ const assert = require('node:assert/strict')
 
 const {
     SystemStub,
-    DIR_RIGHT,
-    DIR_LEFT,
-} = require('../src/systemstub_web.ts')
+    dirRight,
+    dirLeft,
+} = require('../src/platform/systemstub_web.ts')
 
 const createPlayerInput = () => ({
     dirMask: 0,
@@ -66,11 +66,11 @@ test('queued keyboard events update movement input so the game can be played', a
 
     await stub.processEvents()
 
-    assert.equal(stub._pi.dirMask & DIR_RIGHT, DIR_RIGHT)
+    assert.equal(stub._pi.dirMask & dirRight, dirRight)
 
     stub.processEvent({ type: 'keyup', key: 'ArrowRight' })
 
-    assert.equal(stub._pi.dirMask & DIR_RIGHT, 0)
+    assert.equal(stub._pi.dirMask & dirRight, 0)
 })
 
 test('action keys are tracked alongside movement input', () => {
@@ -80,7 +80,7 @@ test('action keys are tracked alongside movement input', () => {
     stub.processEvent({ type: 'keydown', key: 'Shift' })
     stub.processEvent({ type: 'keydown', key: 'Enter' })
 
-    assert.equal(stub._pi.dirMask & DIR_LEFT, DIR_LEFT)
+    assert.equal(stub._pi.dirMask & dirLeft, dirLeft)
     assert.equal(stub._pi.shift, true)
     assert.equal(stub._pi.enter, true)
 
@@ -88,7 +88,7 @@ test('action keys are tracked alongside movement input', () => {
     stub.processEvent({ type: 'keyup', key: 'Shift' })
     stub.processEvent({ type: 'keyup', key: 'Enter' })
 
-    assert.equal(stub._pi.dirMask & DIR_LEFT, 0)
+    assert.equal(stub._pi.dirMask & dirLeft, 0)
     assert.equal(stub._pi.shift, false)
     assert.equal(stub._pi.enter, false)
 })

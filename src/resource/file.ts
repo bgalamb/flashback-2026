@@ -1,5 +1,5 @@
 import { FileSystem } from "./fs"
-import { UINT16_MAX, UINT8_MAX } from '../game_constants'
+import { uint16Max, uint8Max } from '../core/game_constants'
 
 enum SEEK {
     END,
@@ -7,7 +7,7 @@ enum SEEK {
     CUR
 }
 
-interface File_impl {
+interface fileImpl {
 	_ioErr: boolean
 	constructor: Function
 	open: (path: string, mode: string) => Promise<boolean>
@@ -78,7 +78,7 @@ export class FILE {
 }
 
 // Fake C-like FILE implementation
-export class StdioFile implements File_impl {
+export class StdioFile implements fileImpl {
     _fp?: FILE
     _ioErr: boolean
     constructor() {
@@ -142,7 +142,7 @@ export class StdioFile implements File_impl {
     }
 }
 
-export class MemoryBufferFile implements File_impl {
+export class MemoryBufferFile implements fileImpl {
     _ioErr: boolean
     _ptr: ArrayBuffer
     _capacity: number
@@ -211,7 +211,7 @@ export class MemoryBufferFile implements File_impl {
 }
 
 export class File {
-    _impl: File_impl
+    _impl: fileImpl
     constructor() {
         this._impl = null
     }
@@ -329,23 +329,23 @@ export class File {
     }
 
     writeUint16LE(n: number) {
-        this.writeByte(n & UINT8_MAX)
+        this.writeByte(n & uint8Max)
         this.writeByte(n >> 8)
     }
 
     writeUint32LE(n: number) {
-        this.writeByte(n & UINT16_MAX)
+        this.writeByte(n & uint16Max)
         this.writeByte(n >> 16)
     }
 
     writeUint16BE(n: number) {
         this.writeByte(n >> 8)
-        this.writeByte(n & UINT8_MAX)
+        this.writeByte(n & uint8Max)
     }
 
     writeUint32BE(n: number) {
         this.writeByte(n >> 16)
-        this.writeByte(n & UINT16_MAX)
+        this.writeByte(n & uint16Max)
     }
 
     dumpFile(filename: string, p: ArrayBuffer, size: number) {

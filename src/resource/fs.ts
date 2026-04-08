@@ -5,7 +5,7 @@ interface FileName {
     dir: number
 }
 
-export class FileSystem_impl {
+export class filesystemImpl {
     _dirsList: string[]
     _dirsCount: number
     _filesList: FileName[]
@@ -32,7 +32,7 @@ export class FileSystem_impl {
         const i = this.findPathIndex(name)
         if (i >= 0) {
             const dir = this._dirsList[this._filesList[i].dir]
-            console.log(`FileSystem_impl::getPath ${dir}/${this._filesList[i].name}`)
+            console.log(`filesystemImpl::getPath ${dir}/${this._filesList[i].name}`)
             return `${dir}/${this._filesList[i].name}`
         }
     }
@@ -66,12 +66,12 @@ export class FileSystem_impl {
 }
 
 export class FileSystem {
-    _impl: FileSystem_impl
+    _impl: filesystemImpl
     constructor(dataPath?: string) {
         if (typeof dataPath !== 'undefined') {
             throw 'should call setRootDirectory!'
         }
-        this._impl = new FileSystem_impl()
+        this._impl = new filesystemImpl()
     }
 
     async setRootDirectory(dataPath: string) {

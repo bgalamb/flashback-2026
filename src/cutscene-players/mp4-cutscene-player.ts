@@ -1,5 +1,5 @@
 import { FileSystem } from '../resource/fs'
-import { SystemStub } from '../systemstub_web'
+import { SystemStub } from '../platform/systemstub_web'
 
 class Mp4CutscenePlayer {
     private _stub: SystemStub

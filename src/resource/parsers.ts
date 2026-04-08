@@ -1,24 +1,24 @@
-import { CreateInitPGE, createPgeScriptEntry, InitPGE, PgeScriptNode, READ_LE_UINT16, READ_LE_UINT32 } from '../intern'
+import { CreateInitPGE, createPgeScriptEntry, InitPGE, PgeScriptNode, readLeUint16, readLeUint32 } from '../core/intern'
 
 interface ParsedPgeEntryData {
     type: number
-    pos_x: number
-    pos_y: number
-    obj_node_number: number
+    posX: number
+    posY: number
+    objNodeNumber: number
     life: number
-    counter_values: number[]
-    object_type: number
-    init_room: number
-    room_location: number
-    init_flags: number
-    colliding_icon_num: number
-    icon_num: number
-    object_id: number
+    counterValues: number[]
+    objectType: number
+    initRoom: number
+    roomLocation: number
+    initFlags: number
+    collidingIconNum: number
+    iconNum: number
+    objectId: number
     skill: number
-    mirror_x: number
+    mirrorX: number
     flags: number
-    number_of_collision_segments: number
-    text_num: number
+    numberOfCollisionSegments: number
+    textNum: number
 }
 
 interface ParsedPgeFileData {
@@ -30,20 +30,20 @@ interface ParsedObjData {
     type: number
     dx: number
     dy: number
-    init_obj_type: number
+    initObjType: number
     opcode1: number
     opcode2: number
     flags: number
     opcode3: number
-    init_obj_number: number
-    opcode_arg1: number
-    opcode_arg2: number
-    opcode_arg3: number
+    initObjNumber: number
+    opcodeArg1: number
+    opcodeArg2: number
+    opcodeArg3: number
 }
 
 interface ParsedObjectNodeData {
-    last_obj_number: number
-    num_objects: number
+    lastObjNumber: number
+    numObjects: number
     objects: ParsedObjData[]
 }
 
@@ -76,26 +76,26 @@ function hydrateParsedPGEData(parsed: ParsedPgeFileData, maxPges: number): { pge
         }
         const target = pgeInit[i]
         target.type = source.type
-        target.pos_x = source.pos_x
-        target.pos_y = source.pos_y
-        target.script_node_index = source.obj_node_number
+        target.posX = source.posX
+        target.posY = source.posY
+        target.scriptNodeIndex = source.objNodeNumber
         target.life = source.life
-        target.counter_values = new Array(4).fill(0)
+        target.counterValues = new Array(4).fill(0)
         for (let counterIndex = 0; counterIndex < 4; ++counterIndex) {
-            target.counter_values[counterIndex] = Array.isArray(source.counter_values) ? (source.counter_values[counterIndex] || 0) : 0
+            target.counterValues[counterIndex] = Array.isArray(source.counterValues) ? (source.counterValues[counterIndex] || 0) : 0
         }
-        target.object_type = source.object_type
-        target.init_room = source.init_room
-        target.room_location = source.room_location
-        target.init_flags = source.init_flags
-        target.colliding_icon_num = source.colliding_icon_num
-        target.icon_num = source.icon_num
-        target.object_id = source.object_id
+        target.objectType = source.objectType
+        target.initRoom = source.initRoom
+        target.roomLocation = source.roomLocation
+        target.initFlags = source.initFlags
+        target.collidingIconNum = source.collidingIconNum
+        target.iconNum = source.iconNum
+        target.objectId = source.objectId
         target.skill = source.skill
-        target.mirror_x = source.mirror_x
+        target.mirrorX = source.mirrorX
         target.flags = source.flags
-        target.number_of_collision_segments = source.number_of_collision_segments
-        target.text_num = source.text_num
+        target.numberOfCollisionSegments = source.numberOfCollisionSegments
+        target.textNum = source.textNum
     }
     return { pgeNum, pgeInit }
 }
@@ -117,8 +117,8 @@ function hydrateParsedOBJData(parsed: ParsedObjFileData): { numObjectNodes: numb
         if (!sourceNode) {
             throw new Error(`Parsed object node ${i} is missing`)
         }
-        const objects = new Array(sourceNode.num_objects)
-        for (let j = 0; j < sourceNode.num_objects; ++j) {
+        const objects = new Array(sourceNode.numObjects)
+        for (let j = 0; j < sourceNode.numObjects; ++j) {
             const sourceObject = sourceNode.objects[j]
             if (!sourceObject) {
                 throw new Error(`Parsed object node ${i} object ${j} is missing`)
@@ -127,20 +127,20 @@ function hydrateParsedOBJData(parsed: ParsedObjFileData): { numObjectNodes: numb
             targetObject.type = sourceObject.type
             targetObject.dx = sourceObject.dx
             targetObject.dy = sourceObject.dy
-            targetObject.next_script_state_type = sourceObject.init_obj_type
+            targetObject.nextScriptStateType = sourceObject.initObjType
             targetObject.opcode1 = sourceObject.opcode1
             targetObject.opcode2 = sourceObject.opcode2
             targetObject.flags = sourceObject.flags
             targetObject.opcode3 = sourceObject.opcode3
-            targetObject.next_script_entry_index = sourceObject.init_obj_number
-            targetObject.opcode_arg1 = sourceObject.opcode_arg1
-            targetObject.opcode_arg2 = sourceObject.opcode_arg2
-            targetObject.opcode_arg3 = sourceObject.opcode_arg3
+            targetObject.nextScriptEntryIndex = sourceObject.initObjNumber
+            targetObject.opcodeArg1 = sourceObject.opcodeArg1
+            targetObject.opcodeArg2 = sourceObject.opcodeArg2
+            targetObject.opcodeArg3 = sourceObject.opcodeArg3
             objects[j] = targetObject
         }
         objectNodesMap[i] = {
-            last_obj_number: sourceNode.last_obj_number,
-            num_objects: sourceNode.num_objects,
+            lastObjNumber: sourceNode.lastObjNumber,
+            numObjects: sourceNode.numObjects,
             objects
         }
     }
@@ -180,14 +180,14 @@ function buildResolvedSpriteViewsByIndex(
     }
 
     for (let index = 0; index < offDataForAMonster.byteLength; index += entrySize) {
-        const spriteIndex = READ_LE_UINT16(offDataForAMonster.buffer, index)
+        const spriteIndex = readLeUint16(offDataForAMonster.buffer, index)
         if (spriteIndex === spriteTerminator) {
             break
         }
         if (spriteIndex >= numSprites) {
             throw new Error(`Invalid sprite index: ${spriteIndex}`)
         }
-        const spriteOffset = READ_LE_UINT32(offDataForAMonster.buffer, index + 2)
+        const spriteOffset = readLeUint32(offDataForAMonster.buffer, index + 2)
         resolvedSpriteViewsByIndex[spriteIndex] = spriteOffset === invalidOffset ? null : sprDataForAMonster.subarray(spriteOffset)
     }
     return resolvedSpriteViewsByIndex

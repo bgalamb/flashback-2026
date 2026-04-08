@@ -59,6 +59,39 @@
             list-style-type: none;
             text-align: center;
         }
+
+        .debug-panel {
+            margin: 1.5rem auto 0;
+            max-width: 42rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid #ccc;
+            border-radius: 0.75rem;
+            background: #f6f6f6;
+        }
+
+        .debug-panel h3 {
+            margin: 0 0 0.75rem;
+        }
+
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+            gap: 0.5rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .debug-grid label,
+        .debug-frame label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .debug-frame input {
+            width: 7rem;
+            padding: 0.25rem 0.4rem;
+        }
     </style>
     $css
   </head>
@@ -79,6 +112,24 @@
         <p>
             <button id="play">Play !</button>
         </p>
+        <div class="debug-panel">
+            <h3>Debug Logging</h3>
+            <div class="debug-grid">
+                <label><input type="checkbox" data-debug-flag="collision" /> Collision</label>
+                <label><input type="checkbox" data-debug-flag="opcode" /> Opcode</label>
+                <label><input type="checkbox" data-debug-flag="pge" /> PGE</label>
+                <label><input type="checkbox" data-debug-flag="runtime" /> Runtime</label>
+                <label><input type="checkbox" data-debug-flag="session" /> Session</label>
+                <label><input type="checkbox" data-debug-flag="storyText" /> Story Text</label>
+                <label><input type="checkbox" data-debug-flag="world" /> World</label>
+            </div>
+            <div class="debug-frame">
+                <label>
+                    Trace after frame
+                    <input id="debug-start-frame" type="number" min="0" step="1" value="0" />
+                </label>
+            </div>
+        </div>
     </div>
     <div class="main">
         <canvas id="root"></canvas>

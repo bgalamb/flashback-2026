@@ -3,10 +3,10 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { gameHandleInventory } = require('../src/game_inventory.ts')
-const { gameDrawStoryTexts } = require('../src/game_draw.ts')
+const { gameHandleInventory } = require('../src/game/game_inventory.ts')
+const { gameDrawStoryTexts } = require('../src/game/game_draw.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { UINT16_MAX, UINT8_MAX } = require('../src/game_constants.ts')
+const { uint16Max, uint8Max } = require('../src/core/game_constants.ts')
 
 function createPlayerInput() {
     return {
@@ -15,6 +15,54 @@ function createPlayerInput() {
         backspace: false,
         quit: false,
     }
+}
+
+function attachInventoryGroupedGameState(game) {
+    game.world = {
+        get currentLevel() { return game._currentLevel },
+        set currentLevel(value) { game._currentLevel = value },
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+    }
+    game.ui = {
+        get score() { return game._score },
+        set score(value) { game._score = value },
+        get skillLevel() { return game._skillLevel },
+        set skillLevel(value) { game._skillLevel = value },
+        get currentInventoryIconNum() { return game._currentInventoryIconNum },
+        set currentInventoryIconNum(value) { game._currentInventoryIconNum = value },
+    }
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+    }
+    game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
+        get inventoryItemIndicesByOwner() { return game._inventoryItemIndicesByOwner },
+        set inventoryItemIndicesByOwner(value) { game._inventoryItemIndicesByOwner = value },
+    }
+    return game
+}
+
+function attachStoryGroupedGameState(game) {
+    game.world = {
+        get currentRoom() { return game._currentRoom },
+        set currentRoom(value) { game._currentRoom = value },
+        get textToDisplay() { return game._textToDisplay },
+        set textToDisplay(value) { game._textToDisplay = value },
+    }
+    game.ui = {
+        get currentInventoryIconNum() { return game._currentInventoryIconNum },
+        set currentInventoryIconNum(value) { game._currentInventoryIconNum = value },
+    }
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
+    }
+    return game
 }
 
 function createInventoryGame(overrides = {}) {
@@ -35,23 +83,25 @@ function createInventoryGame(overrides = {}) {
         _inventoryItemIndicesByOwner: new Map([[0, [1, 2]]]),
         _livePgesByIndex: [
             { index: 0, life: 10 },
-            { index: 1, life: 5, init_PGE: { object_id: 11 } },
-            { index: 2, life: 9, init_PGE: { object_id: 12 } },
+            { index: 1, life: 5, initPge: { objectId: 11 } },
+            { index: 2, life: 9, initPge: { objectId: 12 } },
         ],
         _res: {
-            _pgeAllInitialStateFromFile: [
-                {},
-                { icon_num: 10, text_num: 101, init_flags: 4 },
-                { icon_num: 11, text_num: 102, init_flags: 0 },
-            ],
+            level: {
+                pgeAllInitialStateFromFile: [
+                    {},
+                    { iconNum: 10, textNum: 101, initFlags: 4 },
+                    { iconNum: 11, textNum: 102, initFlags: 0 },
+                ],
+            },
             getTextString(_level, textNum) {
                 return `ITEM_${textNum}`
             },
             getMenuString(id) {
                 return {
-                    [LocaleData.Id.LI_06_LEVEL]: 'LEVEL',
-                    [LocaleData.Id.LI_13_EASY + 1]: 'NORMAL',
-                }[id] || `TEXT_${id}`
+                    [LocaleData.Id.li06Level]: 'LEVEL',
+                    [LocaleData.Id.li13Easy + 1]: 'NORMAL',
+                }[id] || `text${id}`
             },
         },
         _stub: {
@@ -59,9 +109,24 @@ function createInventoryGame(overrides = {}) {
             async sleep() {},
         },
         _vid: {
-            _frontLayer: frontLayer,
-            _tempLayer: tempLayer,
-            _layerSize: frontLayer.length,
+            layers: {
+                frontLayer,
+                tempLayer,
+                layerSize: frontLayer.length,
+            },
+            text: {
+                charFrontColor: 0,
+                charTransparentColor: 0,
+                charShadowColor: 0,
+            },
+            setTextColors(frontColor, transparentColor, shadowColor) {
+                this.text.charFrontColor = frontColor
+                this.text.charTransparentColor = transparentColor
+                this.text.charShadowColor = shadowColor
+            },
+            setTextTransparentColor(color) {
+                this.text.charTransparentColor = color
+            },
             async updateScreen() {},
             fullRefreshCalls: 0,
             fullRefresh() {
@@ -80,7 +145,7 @@ function createInventoryGame(overrides = {}) {
         playSound(sound, channel) {
             playSoundCalls.push([sound, channel])
         },
-        async inp_update() {},
+        async inpUpdate() {},
         setCurrentInventoryPge(pge) {
             selectedPge = pge
         },
@@ -94,7 +159,7 @@ function createInventoryGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return game
+    return attachInventoryGroupedGameState(game)
 }
 
 function createStoryGame(overrides = {}) {
@@ -125,7 +190,7 @@ function createStoryGame(overrides = {}) {
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 voiceLoads.push([textId, segment])
                 return { buf: null, bufSize: 0 }
             },
@@ -137,9 +202,17 @@ function createStoryGame(overrides = {}) {
         },
         _textToDisplay: 33,
         _vid: {
-            _frontLayer: frontLayer,
-            _tempLayer: tempLayer,
-            _layerSize: frontLayer.length,
+            layers: {
+                frontLayer,
+                tempLayer,
+                layerSize: frontLayer.length,
+            },
+            copyFrontLayerToTemp() {
+                this.layers.tempLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
+            },
+            restoreFrontLayerFromTemp() {
+                this.layers.frontLayer.set(this.layers.tempLayer.subarray(0, this.layers.layerSize))
+            },
             async updateScreen() {},
             drawString(...args) {
                 videoDrawStringCalls.push(args)
@@ -148,7 +221,7 @@ function createStoryGame(overrides = {}) {
         drawIcon(iconNum, x, y, pal) {
             drawIconCalls.push([iconNum, x, y, pal])
         },
-        async inp_update() {},
+        async inpUpdate() {},
         drawIconCalls,
         videoDrawStringCalls,
         voiceLoads,
@@ -157,14 +230,14 @@ function createStoryGame(overrides = {}) {
     }
 
     Object.assign(game, overrides)
-    return game
+    return attachStoryGroupedGameState(game)
 }
 
 test('gameHandleInventory draws the selected item overlay and picks the highlighted inventory item on exit', async () => {
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -186,7 +259,7 @@ test('gameHandleInventory toggles to the score view and draws score and level st
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.enter = true
         } else if (iteration === 1) {
@@ -207,7 +280,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0x0A, 87, 79, 82, 76, 68, 0])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 game.voiceLoads.push([textId, segment])
                 return { buf: null, bufSize: 0 }
             },
@@ -215,7 +288,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
     })
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -231,7 +304,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
     ])
     assert.deepEqual(game.voiceLoads, [[33, 0]])
     assert.equal(game._stub._pi.backspace, false)
-    assert.equal(game._textToDisplay, UINT16_MAX)
+    assert.equal(game._textToDisplay, uint16Max)
 })
 
 test('gameDrawStoryTexts applies color control codes, plays voice, and restores the UI layer between segments', async () => {
@@ -240,12 +313,12 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
         _res: {
             getGameString() {
                 return Uint8Array.from([
-                    UINT8_MAX, 0xED, 0,
+                    uint8Max, 0xED, 0,
                     72, 73, 0x0B,
                     66, 89, 69, 0,
                 ])
             },
-            async load_VCE(textId, segment) {
+            async loadVce(textId, segment) {
                 game.voiceLoads.push([textId, segment])
                 return segment === 0 ? { buf: voiceBuffer, bufSize: voiceBuffer.length } : { buf: null, bufSize: 0 }
             },
@@ -253,7 +326,7 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     })
     let iteration = 0
 
-    game.inp_update = async () => {
+    game.inpUpdate = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         } else if (iteration === 1) {
@@ -261,7 +334,7 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
         }
         iteration += 1
     }
-    game._vid._frontLayer.fill(9)
+    game._vid.layers.frontLayer.fill(9)
 
     await gameDrawStoryTexts(game)
 
@@ -272,5 +345,5 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     assert.deepEqual(game.voiceLoads, [[33, 0], [33, 1]])
     assert.deepEqual(game.playCalls, [[voiceBuffer, 3, 32000, 64]])
     assert.deepEqual(game.stopAllCalls, ['stopAll'])
-    assert.deepEqual(Array.from(game._vid._frontLayer), Array.from(game._vid._tempLayer))
+    assert.deepEqual(Array.from(game._vid.layers.frontLayer), Array.from(game._vid.layers.tempLayer))
 })
