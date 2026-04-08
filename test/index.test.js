@@ -66,7 +66,7 @@ test('main loads the game with the configured boot sequence', async () => {
         200,
         true,
         {
-            name: 'scale@4',
+            name: 'scale',
             factor: 4,
             type: 2,
         },

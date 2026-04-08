@@ -18,6 +18,17 @@ interface VideoLayerState {
     backLayer: Uint8Array
     tempLayer: Uint8Array
     tempLayer2: Uint8Array
+    hiResRoomPixels: Uint8Array | null
+    hiResRoomSource: string | null
+    hiResRoomWidth: number
+    hiResRoomHeight: number
+    hiResRoomScale: number
+    hiResMaskedLayer: Uint8Array
+    hiResMaskedBackLayer: Uint8Array
+    hiResMaskedTempLayer: Uint8Array
+    hiResTopLayer: Uint8Array
+    hiResTopBackLayer: Uint8Array
+    hiResTopTempLayer: Uint8Array
 }
 
 interface VideoPaletteState {
@@ -55,6 +66,17 @@ function createVideoLayerState(w: number = gamescreenW, h: number = gamescreenH)
         backLayer: new Uint8Array(layerSize),
         tempLayer: new Uint8Array(layerSize),
         tempLayer2: new Uint8Array(layerSize),
+        hiResRoomPixels: null,
+        hiResRoomSource: null,
+        hiResRoomWidth: 0,
+        hiResRoomHeight: 0,
+        hiResRoomScale: 1,
+        hiResMaskedLayer: new Uint8Array(layerSize),
+        hiResMaskedBackLayer: new Uint8Array(layerSize),
+        hiResMaskedTempLayer: new Uint8Array(layerSize),
+        hiResTopLayer: new Uint8Array(layerSize),
+        hiResTopBackLayer: new Uint8Array(layerSize),
+        hiResTopTempLayer: new Uint8Array(layerSize),
     }
 }
 

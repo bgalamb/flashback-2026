@@ -6,6 +6,39 @@ import { File } from '../resource/file'
 import { decodeIndexedPng, paletteBankToColors } from '../core/indexed-png'
 import type { PaletteHeaderColors, VideoLayerState, VideoPaletteState } from './video-state'
 
+function clearHiResRoomState(layers: VideoLayerState) {
+    layers.hiResRoomPixels = null
+    layers.hiResRoomSource = null
+    layers.hiResRoomWidth = 0
+    layers.hiResRoomHeight = 0
+    layers.hiResRoomScale = 1
+    layers.hiResMaskedLayer.fill(0)
+    layers.hiResMaskedBackLayer.fill(0)
+    layers.hiResMaskedTempLayer.fill(0)
+    layers.hiResTopLayer.fill(0)
+    layers.hiResTopBackLayer.fill(0)
+    layers.hiResTopTempLayer.fill(0)
+}
+
+function setHiResRoomState(layers: VideoLayerState, pixels: Uint8Array, width: number, height: number, source: string) {
+    clearHiResRoomState(layers)
+    layers.hiResRoomPixels = pixels
+    layers.hiResRoomSource = source
+    layers.hiResRoomWidth = width
+    layers.hiResRoomHeight = height
+    layers.hiResRoomScale = width / layers.w
+}
+
+function isSupportedHiResRoomBackground(layers: VideoLayerState, width: number, height: number) {
+    if (width <= layers.w || height <= layers.h) {
+        return false
+    }
+    if (width % layers.w !== 0 || height % layers.h !== 0) {
+        return false
+    }
+    return width / layers.w === height / layers.h
+}
+
 function parsePaletteSlotColors(value: { colors?: unknown[] } | number | undefined): Color[] | null {
     if (typeof value === 'number' || !Array.isArray(value?.colors)) {
         return null
@@ -124,6 +157,24 @@ async function readRoomPaletteOffsets(resource: Resource, palette: VideoPaletteS
     console.warn(`Palette offsets source: none level=${level} room=${room} (JSON required)`)
 }
 
+async function loadRoomPngBytes(resource: Resource, filename: string) {
+    const file = new File()
+    const opened = await file.open(filename, "rb", resource.fileSystem)
+    if (!opened) {
+        return null
+    }
+    const size = file.size()
+    if (size <= 0) {
+        file.close()
+        return null
+    }
+    const raw = new Uint8Array(size)
+    file.read(raw.buffer, size)
+    const hadIoErr = file.ioErr()
+    file.close()
+    return hadIoErr ? null : raw
+}
+
 async function tryLoadFrontLayerFromIndexedPng(resource: Resource, layers: VideoLayerState, palette: VideoPaletteState, level: number, room: number): Promise<boolean> {
     const levelData = _gameLevels[level]
     const names = levelData ? [
@@ -134,33 +185,36 @@ async function tryLoadFrontLayerFromIndexedPng(resource: Resource, layers: Video
     names.push(`level${level}-room${room}.pixeldata.png`)
 
     for (const filename of names) {
-        const file = new File()
+        const raw = await loadRoomPngBytes(resource, filename)
+        if (!raw) {
+            continue
+        }
         try {
-            const opened = await file.open(filename, "rb", resource.fileSystem)
-            if (!opened) {
-                continue
-            }
-            const size = file.size()
-            if (size <= 0) {
-                file.close()
-                continue
-            }
-            const raw = new Uint8Array(size)
-            file.read(raw.buffer, size)
-            if (file.ioErr()) {
-                file.close()
-                continue
-            }
-            file.close()
             const png = await decodeIndexedPng(raw)
             if (png.width !== layers.w || png.height !== layers.h) {
-                console.warn(`Invalid indexed PNG room size for '${filename}': got ${png.width}x${png.height}, expected ${layers.w}x${layers.h}`)
-                continue
+                if (!isSupportedHiResRoomBackground(layers, png.width, png.height)) {
+                    console.warn(`Invalid indexed PNG room size for '${filename}': got ${png.width}x${png.height}, expected ${layers.w}x${layers.h}`)
+                    continue
+                }
+                setHiResRoomState(layers, png.pixels, png.width, png.height, filename)
+                layers.frontLayer.fill(0)
+                layers.backLayer.fill(0)
+                palette.currentRoomPngPaletteColors = null
+                palette.currentRoomPngPaletteColors = []
+                for (let slot = 0; slot < 16; ++slot) {
+                    const colors = paletteBankToColors(png.palette, slot)
+                    if (colors) {
+                        palette.currentRoomPngPaletteColors[slot] = colors
+                    }
+                }
+                console.log(`Front layer source: hires-background '${filename}' (${png.width}x${png.height})`)
+                return true
             }
             if (png.pixels.length !== layers.frontLayer.length) {
                 console.warn(`Invalid indexed PNG pixel buffer size for '${filename}': got ${png.pixels.length}, expected ${layers.frontLayer.length}`)
                 continue
             }
+            clearHiResRoomState(layers)
             layers.frontLayer.set(png.pixels)
             palette.currentRoomPngPaletteColors = []
             for (let slot = 0; slot < 16; ++slot) {
@@ -171,8 +225,8 @@ async function tryLoadFrontLayerFromIndexedPng(resource: Resource, layers: Video
             }
             console.log(`Front layer source: indexed-png '${filename}'`)
             return true
-        } catch (error) {
-            console.warn(`Could not load indexed PNG front layer file '${filename}'`, error)
+        } catch (_error) {
+            console.warn(`Could not load room PNG file '${filename}'`)
         }
     }
     return false

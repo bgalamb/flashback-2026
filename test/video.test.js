@@ -70,11 +70,15 @@ function createVideoFixture(overrides = {}) {
         _rgbPalette: new Uint8ClampedArray(256 * 4),
         copyRectCalls: [],
         updateScreenCalls: [],
+        hiResRoomLayerCalls: [],
         setPaletteEntry(index, color) {
             paletteEntries.set(index, { ...color })
         },
         copyRect(...args) {
             this.copyRectCalls.push(args)
+        },
+        setHiResRoomLayer(...args) {
+            this.hiResRoomLayerCalls.push(args)
         },
         async updateScreen(offset) {
             this.updateScreenCalls.push(offset)
@@ -119,7 +123,7 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
     pixels[1] = 0x21
     const png = encodeIndexedPng(gamescreenW, gamescreenH, pixels, roomPalette)
     const headerJson = new TextEncoder().encode(createPaletteHeaderJson(headerOffsets, headerSlotColors))
-    const { video, paletteEntries } = createVideoFixture()
+    const { video, stub, paletteEntries } = createVideoFixture()
     const fetch = installFetch({
         [`levels/level2/level2.paletteheader.json`]: headerJson,
         [`levels/level2/level2-room${room}.pixeldata.png`]: png,
@@ -144,6 +148,7 @@ test('PC_decodeMap loads indexed room pixels, copies the back layer, and applies
     assert.deepEqual(paletteEntries.get(0xC0), headerSlotColors[2][0])
     assert.deepEqual(paletteEntries.get(0xD0), headerSlotColors[3][0])
     assert.deepEqual(paletteEntries.get(0x40), Video.amigaConvertcolor(0x111))
+    assert.deepEqual(stub.hiResRoomLayerCalls.at(-1), [null, 0, 0, 1, video.layers.hiResMaskedLayer, video.layers.hiResTopLayer])
 })
 
 test('PC_decodeMap falls back to a blank front layer when the room png is missing', async () => {
@@ -166,6 +171,54 @@ test('PC_decodeMap falls back to a blank front layer when the room png is missin
 
     assert.equal(video.layers.frontLayer.every((value) => value === 0), true)
     assert.equal(video.layers.backLayer.every((value) => value === 0), true)
+})
+
+test('PC_decodeMap loads hi-res indexed room surfaces and keeps indexed palette semantics', async () => {
+    const room = 7
+    const level = 1
+    const scale = 4
+    const width = gamescreenW * scale
+    const height = gamescreenH * scale
+    const roomPalette = createPalette256()
+    const headerSlotColors = [createPaletteBank(1), createPaletteBank(2), createPaletteBank(3), createPaletteBank(4)]
+    const headerOffsets = [10, 20, 30, 40]
+    const pixels = new Uint8Array(width * height)
+    pixels.fill(0x03)
+    pixels[0] = 0x8F
+    pixels[1] = 0x83
+    pixels[2] = 0x21
+    const png = encodeIndexedPng(width, height, pixels, roomPalette)
+    const headerJson = new TextEncoder().encode(createPaletteHeaderJson(headerOffsets, headerSlotColors))
+    const { video, stub, paletteEntries } = createVideoFixture()
+    const fetch = installFetch({
+        [`levels/level2/level2.paletteheader.json`]: headerJson,
+        [`levels/level2/level2-room${room}.pixeldata.png`]: png,
+    })
+
+    try {
+        await video.pcDecodemap(level, room)
+    } finally {
+        fetch.restore()
+    }
+
+    assert.equal(video.layers.frontLayer.every((value) => value === 0), true)
+    assert.equal(video.layers.backLayer.every((value) => value === 0), true)
+    assert.equal(video.layers.hiResRoomScale, 4)
+    assert.equal(video.layers.hiResRoomWidth, width)
+    assert.equal(video.layers.hiResRoomHeight, height)
+    assert.equal(video.layers.hiResRoomPixels[0], 0x8F)
+    assert.equal(video.layers.hiResRoomPixels[1], 0x83)
+    assert.equal(video.layers.hiResRoomSource, `levels/level2/level2-room${room}.pixeldata.png`)
+    assert.deepEqual(video.palette.currentRoomPngPaletteColors[8][15], roomPalette[8 * 16 + 15])
+    assert.deepEqual(paletteEntries.get(0x80), roomPalette[8 * 16 + 0])
+    assert.deepEqual(stub.hiResRoomLayerCalls.at(-1), [
+        video.layers.hiResRoomPixels,
+        width,
+        height,
+        4,
+        video.layers.hiResMaskedLayer,
+        video.layers.hiResTopLayer,
+    ])
 })
 
 test('palette-header JSON is cached across room decodes for the same level', async () => {
@@ -208,6 +261,28 @@ test('markBlockAsDirty and updateScreen refresh only the touched screen blocks',
     assert.deepEqual(stub.updateScreenCalls, [0])
     assert.equal(video.screen.screenBlocks[0], 1)
     assert.equal(video.screen.screenBlocks[1], 1)
+})
+
+test('hi-res room overlays split masked gameplay draws from topmost overwrite draws', () => {
+    const { video } = createVideoFixture()
+
+    video.layers.hiResRoomPixels = new Uint8Array(gamescreenW * gamescreenH * 16)
+    video.layers.hiResRoomWidth = gamescreenW * 4
+    video.layers.hiResRoomHeight = gamescreenH * 4
+    video.layers.hiResRoomScale = 4
+
+    const sprite = Uint8Array.from([1, 2, 3, 4])
+    const topSprite = Uint8Array.from([5, 6, 7, 8])
+
+    video.drawSpriteSub3ToFrontLayer(sprite, 0, 2, 2, 2, 0x80)
+    video.drawSpriteSub1ToFrontLayer(topSprite, 0, 2, 2, 2, 0xC0)
+
+    assert.deepEqual(Array.from(video.layers.frontLayer.slice(0, 2)), [0xC5, 0xC6])
+    assert.deepEqual(Array.from(video.layers.frontLayer.slice(gamescreenW, gamescreenW + 2)), [0xC7, 0xC8])
+    assert.deepEqual(Array.from(video.layers.hiResMaskedLayer.slice(0, 2)), [0x81, 0x82])
+    assert.deepEqual(Array.from(video.layers.hiResMaskedLayer.slice(gamescreenW, gamescreenW + 2)), [0x83, 0x84])
+    assert.deepEqual(Array.from(video.layers.hiResTopLayer.slice(0, 2)), [0xC5, 0xC6])
+    assert.deepEqual(Array.from(video.layers.hiResTopLayer.slice(gamescreenW, gamescreenW + 2)), [0xC7, 0xC8])
 })
 
 test('PC_drawTile respects x/y flips and color-key transparency', () => {

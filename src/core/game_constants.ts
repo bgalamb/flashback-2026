@@ -45,7 +45,7 @@ const configDefaults = {
   savepath: "",
   levelnum: 7,
   fullscreen: false,
-  scaler: "",
+  scaler: "point@4",
   language: "EN",
   widescreen: "none",
   autosave: false

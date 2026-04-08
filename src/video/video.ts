@@ -29,6 +29,30 @@ class Video {
       this._stub = stub
     }
 
+    private hasHiResRoomLayer() {
+        return !!this.layers.hiResRoomPixels
+    }
+
+    private copyHiResPresentationLayersToBack() {
+        this.layers.hiResMaskedBackLayer.set(this.layers.hiResMaskedLayer)
+        this.layers.hiResTopBackLayer.set(this.layers.hiResTopLayer)
+    }
+
+    private copyHiResPresentationLayersToTemp() {
+        this.layers.hiResMaskedTempLayer.set(this.layers.hiResMaskedLayer)
+        this.layers.hiResTopTempLayer.set(this.layers.hiResTopLayer)
+    }
+
+    private restoreHiResPresentationLayersFromTemp() {
+        this.layers.hiResMaskedLayer.set(this.layers.hiResMaskedTempLayer)
+        this.layers.hiResTopLayer.set(this.layers.hiResTopTempLayer)
+    }
+
+    private restoreHiResPresentationLayersFromBack() {
+        this.layers.hiResMaskedLayer.set(this.layers.hiResMaskedBackLayer)
+        this.layers.hiResTopLayer.set(this.layers.hiResTopBackLayer)
+    }
+
     clearLevelPaletteState() {
         this.palette.unkPalSlot1 = 0
         this.palette.unkPalSlot2 = 0
@@ -54,18 +78,30 @@ class Video {
 
     copyFrontLayerToBack() {
         this.layers.backLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
+        if (this.hasHiResRoomLayer()) {
+            this.copyHiResPresentationLayersToBack()
+        }
     }
 
     copyFrontLayerToTemp() {
         this.layers.tempLayer.set(this.layers.frontLayer.subarray(0, this.layers.layerSize))
+        if (this.hasHiResRoomLayer()) {
+            this.copyHiResPresentationLayersToTemp()
+        }
     }
 
     restoreFrontLayerFromTemp() {
         this.layers.frontLayer.set(this.layers.tempLayer.subarray(0, this.layers.layerSize))
+        if (this.hasHiResRoomLayer()) {
+            this.restoreHiResPresentationLayersFromTemp()
+        }
     }
 
     restoreFrontLayerFromBack() {
         this.layers.frontLayer.set(this.layers.backLayer.subarray(0, this.layers.layerSize))
+        if (this.hasHiResRoomLayer()) {
+            this.restoreHiResPresentationLayersFromBack()
+        }
     }
 
     presentFrontLayer() {
@@ -89,12 +125,18 @@ class Video {
     drawStringLen(str: string, len: number, x: number, y: number, color: number) {
         const fnt = this._res.ui.fnt
         drawStringLenToFrontLayer(this.layers, this.text, fnt, str, len, x, y, color)
+        if (this.hasHiResRoomLayer()) {
+            this.withFrontLayer(this.layers.hiResTopLayer, () => drawStringLenToFrontLayer(this.layers, this.text, fnt, str, len, x, y, color))
+        }
         this.markBlockAsDirty(x, y, len * charW, charH, 1)
     }
 
     pcDrawchar(c: number, y: number, x: number) {
         const fnt = this._res.ui.fnt
         drawUiCharToFrontLayer(this.layers, this.text, fnt, c, y, x)
+        if (this.hasHiResRoomLayer()) {
+            this.withFrontLayer(this.layers.hiResTopLayer, () => drawUiCharToFrontLayer(this.layers, this.text, fnt, c, y, x))
+        }
     }
 
     static amigaConvertcolor(color: number, bgr: boolean = false) {
@@ -235,11 +277,22 @@ pitch = 16
             p.fill(color, index, index + w)
             index += this.layers.w
         }
+        if (this.hasHiResRoomLayer()) {
+            const top = this.layers.hiResTopLayer
+            index = y * this.layers.w + x
+            for (let j = 0; j < h; ++j) {
+                top.fill(color, index, index + w)
+                index += this.layers.w
+            }
+        }
     }
 
     drawString(str: string, x: number, y: number, col: number): string {
         const fnt =  this._res.ui.fnt
         const len = drawStringToFrontLayer(this.layers, this.text, fnt, str, x, y, col)
+        if (this.hasHiResRoomLayer()) {
+            this.withFrontLayer(this.layers.hiResTopLayer, () => drawStringToFrontLayer(this.layers, this.text, fnt, str, x, y, col))
+        }
         this.markBlockAsDirty(x, y, len * charW, charH, 1)
 
         return str
@@ -251,7 +304,27 @@ pitch = 16
         if (!(await tryLoadFrontLayerFromFile(this._res, this.layers, this.palette, level, room))) {
             console.warn(`PC_decodeMap level=${level} room=${room}: missing front layer pixeldata file, filling with zeros`)
             this.layers.frontLayer.fill(0)
+            this.layers.backLayer.fill(0)
+            this.layers.hiResRoomPixels = null
+            this.layers.hiResRoomSource = null
+            this.layers.hiResRoomWidth = 0
+            this.layers.hiResRoomHeight = 0
+            this.layers.hiResRoomScale = 1
+            this.layers.hiResMaskedLayer.fill(0)
+            this.layers.hiResMaskedBackLayer.fill(0)
+            this.layers.hiResMaskedTempLayer.fill(0)
+            this.layers.hiResTopLayer.fill(0)
+            this.layers.hiResTopBackLayer.fill(0)
+            this.layers.hiResTopTempLayer.fill(0)
         }
+        this._stub.setHiResRoomLayer(
+            this.layers.hiResRoomPixels,
+            this.layers.hiResRoomWidth,
+            this.layers.hiResRoomHeight,
+            this.layers.hiResRoomScale,
+            this.layers.hiResMaskedLayer,
+            this.layers.hiResTopLayer
+        )
         this.copyFrontLayerToBack()
         this.pcSetlevelpalettes(level)
         writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette)
@@ -343,6 +416,9 @@ pitch = 16
 
     drawSpriteSub1ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub1(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub1(src, this.layers.hiResTopLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
     
     drawSpriteSub2(src: Uint8Array, dst: Uint8Array, pitch: number, h: number, w: number, colMask: number) {
@@ -351,6 +427,9 @@ pitch = 16
 
     drawSpriteSub2ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub2(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub2(src, this.layers.hiResTopLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
     
     drawSpriteSub3(src: Uint8Array, dst: Uint8Array, pitch: number, h: number, w: number, colMask: number) {
@@ -359,6 +438,9 @@ pitch = 16
 
     drawSpriteSub3ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub3(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub3(src, this.layers.hiResMaskedLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
     
     drawSpriteSub4(src: Uint8Array, dst: Uint8Array, pitch: number, h: number, w: number, colMask: number) {
@@ -367,6 +449,9 @@ pitch = 16
 
     drawSpriteSub4ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub4(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub4(src, this.layers.hiResMaskedLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
     
     drawSpriteSub5(src: Uint8Array, dst: Uint8Array, pitch: number, h: number, w: number, colMask: number) {
@@ -375,6 +460,9 @@ pitch = 16
 
     drawSpriteSub5ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub5(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub5(src, this.layers.hiResMaskedLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
     
     drawSpriteSub6(src: Uint8Array, dst: Uint8Array, pitch: number, h: number, w: number, colMask: number) {
@@ -383,6 +471,9 @@ pitch = 16
 
     drawSpriteSub6ToFrontLayer(src: Uint8Array, dstOffset: number, pitch: number, h: number, w: number, colMask: number) {
         drawSpriteSub6(src, this.layers.frontLayer.subarray(dstOffset), pitch, h, w, colMask)
+        if (this.hasHiResRoomLayer()) {
+            drawSpriteSub6(src, this.layers.hiResMaskedLayer.subarray(dstOffset), pitch, h, w, colMask)
+        }
     }
 
     markBlockAsDirty(x: number, y: number, w: number, h: number, scale: number) {

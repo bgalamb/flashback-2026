@@ -14,6 +14,8 @@ class SystemStub {
 	_pi: PlayerInput
 	_canvas: HTMLCanvasElement
 	_context: CanvasRenderingContext2D
+	_frameCanvas: HTMLCanvasElement
+	_frameContext: CanvasRenderingContext2D
 	_imageData: ImageData
 	_scaler: Scaler
 	_scaleFactor: number
@@ -26,6 +28,8 @@ class SystemStub {
 	_overscanColor: number
 	_screenW: number
 	_screenH: number
+	_outputW: number
+	_outputH: number
 	_scalerType: ScalerType
 	_wideMargin: number
 	_screenshot: number
@@ -38,6 +42,12 @@ class SystemStub {
 	_unsupportedWarnings: Record<string, boolean>
 	_events: Event[] = new Array()
 	_game: Game | null
+	_hiResRoomPixels: Uint8Array | null
+	_hiResRoomWidth: number
+	_hiResRoomHeight: number
+	_hiResRoomScale: number
+	_hiResMaskedLayer: Uint8Array | null
+	_hiResTopLayer: Uint8Array | null
 	_rgbPalette: Uint8ClampedArray = new Uint8ClampedArray(256*4)
 	_darkPalette: Uint8ClampedArray = new Uint8ClampedArray(256
 		*4)
@@ -69,6 +79,12 @@ class SystemStub {
 		}
 		this._context = context
 		applyCanvasStyles(canvas, w, h)
+		this._frameCanvas = document.createElement('canvas')
+		const frameContext = this._frameCanvas.getContext('2d')
+		if (!frameContext) {
+			throw new Error('Unable to acquire offscreen 2D canvas context')
+		}
+		this._frameContext = frameContext
 	}
 
 	async initAudio() {
@@ -157,7 +173,15 @@ class SystemStub {
 		this._rgbPalette = new Uint8ClampedArray(256 * 4)
 		this._darkPalette = new Uint8ClampedArray(256 * 4)
 		this._screenW = this._screenH = 0
+		this._outputW = w
+		this._outputH = h
 		this._wideMargin = 0
+		this._hiResRoomPixels = null
+		this._hiResRoomWidth = 0
+		this._hiResRoomHeight = 0
+		this._hiResRoomScale = 1
+		this._hiResMaskedLayer = null
+		this._hiResTopLayer = null
 		this.setScreenSize(w, h)
 		this._screenshot = 1
 	}
@@ -190,7 +214,39 @@ class SystemStub {
 		}
 		this._screenW = w
 		this._screenH = h
+		this._frameCanvas.width = w
+		this._frameCanvas.height = h
 		this.prepareGraphics()
+	}
+
+	private refreshOutputSize() {
+		const scaledOutputW = this._screenW * this._scaleFactor
+		const scaledOutputH = this._screenH * this._scaleFactor
+		if (this._hiResRoomPixels) {
+			this._outputW = this._hiResRoomWidth
+			this._outputH = this._hiResRoomHeight
+		} else {
+			this._outputW = scaledOutputW
+			this._outputH = scaledOutputH
+		}
+		applyCanvasStyles(this._canvas, this._outputW, this._outputH)
+	}
+
+	setHiResRoomLayer(
+		pixels: Uint8Array | null,
+		width: number,
+		height: number,
+		scale: number,
+		maskedLayer: Uint8Array | null,
+		topLayer: Uint8Array | null
+	) {
+		this._hiResRoomPixels = pixels
+		this._hiResRoomWidth = width
+		this._hiResRoomHeight = height
+		this._hiResRoomScale = scale
+		this._hiResMaskedLayer = maskedLayer
+		this._hiResTopLayer = topLayer
+		this.refreshOutputSize()
 	}
 
 	setPaletteColor(color: number, r: number, g: number, b: number) {
@@ -226,6 +282,7 @@ class SystemStub {
 	prepareGraphics() {
 		this._texW = this._screenW
 		this._texH = this._screenH
+		this.refreshOutputSize()
 	}
 
 	startAudio(_callback: AudioCallback, _param: any) {
@@ -246,12 +303,22 @@ class SystemStub {
 	async updateScreen(shakeOffset: number) {
 		this._fadeOnUpdateScreen = await presentScreen(
 			this._context,
+			this._frameContext,
 			this._imageData,
 			this._screenW,
 			this._screenH,
-			this._scaleFactor,
+			this._outputW,
+			this._outputH,
+			this._scalerType === ScalerType.kScalerTypeLinear,
 			this._fadeOnUpdateScreen,
 			shakeOffset,
+			this._rgbPalette,
+			this._hiResRoomPixels,
+			this._hiResRoomWidth,
+			this._hiResRoomHeight,
+			this._hiResRoomScale,
+			this._hiResMaskedLayer,
+			this._hiResTopLayer,
 			(duration) => this.sleep(duration)
 		)
 	}

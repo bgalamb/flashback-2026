@@ -11,22 +11,19 @@ function getRootCanvasElement(): HTMLCanvasElement {
 }
 
 function applyCanvasStyles(canvas: HTMLCanvasElement, width: number, height: number) {
-    canvas.width = width
-    canvas.height = height
-    const style = document.createElement('style')
-    style.type = 'text/css'
-    style.textContent = `
-        canvas {
-            width: ${2 * width}px;
-            height: ${2 * height}px;
-            box-shadow: 10px 10px 68px 0px rgba(0,0,0,0.75);
-            border-radius: 4px;
-            aspect-ratio: attr(width) / attr(height);
-            margin: auto;
-            display: block;
-        }
-    `
-    document.head.append(style)
+    if (canvas.width !== width) {
+        canvas.width = width
+    }
+    if (canvas.height !== height) {
+        canvas.height = height
+    }
+    canvas.style.width = `${width}px`
+    canvas.style.height = `${height}px`
+    canvas.style.boxShadow = '10px 10px 68px 0px rgba(0,0,0,0.75)'
+    canvas.style.borderRadius = '4px'
+    canvas.style.margin = 'auto'
+    canvas.style.display = 'block'
+    canvas.style.imageRendering = 'pixelated'
 }
 
 function resolveScaler(name: string): { type: ScalerType, scaler: Scaler | null } | null {
@@ -45,7 +42,13 @@ function resolveScaler(name: string): { type: ScalerType, scaler: Scaler | null 
 }
 
 function getClippedScaleFactor(scaler: Scaler | null, factor: number) {
-    return scaler ? CLIP(factor, scaler.factorMin, scaler.factorMax) : 1
+    if (scaler) {
+        return CLIP(factor, scaler.factorMin, scaler.factorMax)
+    }
+    if (!Number.isFinite(factor)) {
+        return 1
+    }
+    return Math.max(1, Math.floor(factor))
 }
 
 function setPaletteColor(rgbPalette: Uint8ClampedArray, darkPalette: Uint8ClampedArray, color: number, r: number, g: number, b: number) {
@@ -149,26 +152,122 @@ function copyRgb24RectToScreenBuffer(
 
 async function presentScreen(
     context: CanvasRenderingContext2D,
+    frameContext: CanvasRenderingContext2D,
     imageData: ImageData,
     screenWidth: number,
     screenHeight: number,
-    scaleFactor: number,
+    outputWidth: number,
+    outputHeight: number,
+    imageSmoothingEnabled: boolean,
     fadeOnUpdateScreen: boolean,
     shakeOffset: number,
+    rgbPalette: Uint8ClampedArray,
+    hiResRoomPixels: Uint8Array | null,
+    hiResRoomWidth: number,
+    hiResRoomHeight: number,
+    hiResRoomScale: number,
+    hiResMaskedLayer: Uint8Array | null,
+    hiResTopLayer: Uint8Array | null,
     sleep: (duration: number) => Promise<void>
 ) {
-    context.clearRect(0, 0, screenWidth, screenHeight)
+    applyCanvasStyles(context.canvas as HTMLCanvasElement, outputWidth, outputHeight)
+    context.clearRect(0, 0, outputWidth, outputHeight)
+    context.imageSmoothingEnabled = imageSmoothingEnabled
+    frameContext.putImageData(imageData, 0, 0)
+    const scaledShakeOffset = Math.round(shakeOffset * outputHeight / screenHeight)
+    let hiResImageData: ImageData | null = null
+    let hiResData: Uint8ClampedArray | null = null
+
+    const composeHiResFrame = () => {
+        if (!hiResRoomPixels || !hiResMaskedLayer || !hiResTopLayer || hiResRoomScale <= 0) {
+            return false
+        }
+        if (!hiResImageData || hiResImageData.width !== hiResRoomWidth || hiResImageData.height !== hiResRoomHeight) {
+            hiResImageData = context.createImageData(hiResRoomWidth, hiResRoomHeight)
+            hiResData = hiResImageData.data
+        }
+        const dst = hiResData as Uint8ClampedArray
+        for (let i = 0; i < hiResRoomPixels.length; ++i) {
+            const colorOffset = hiResRoomPixels[i] * 4
+            const dstOffset = i * 4
+            dst[dstOffset] = rgbPalette[colorOffset]
+            dst[dstOffset + 1] = rgbPalette[colorOffset + 1]
+            dst[dstOffset + 2] = rgbPalette[colorOffset + 2]
+            dst[dstOffset + 3] = rgbPalette[colorOffset + 3]
+        }
+
+        for (let y = 0; y < screenHeight; ++y) {
+            const rowOffset = y * screenWidth
+            const dstY = y * hiResRoomScale
+            for (let x = 0; x < screenWidth; ++x) {
+                const pixel = hiResMaskedLayer[rowOffset + x]
+                if (pixel === 0) {
+                    continue
+                }
+                const colorOffset = pixel * 4
+                const dstX = x * hiResRoomScale
+                for (let oy = 0; oy < hiResRoomScale; ++oy) {
+                    const hiResRow = (dstY + oy) * hiResRoomWidth
+                    for (let ox = 0; ox < hiResRoomScale; ++ox) {
+                        const hiResIndex = hiResRow + dstX + ox
+                        if (hiResRoomPixels[hiResIndex] & 0x80) {
+                            continue
+                        }
+                        const dstOffset = hiResIndex * 4
+                        dst[dstOffset] = rgbPalette[colorOffset]
+                        dst[dstOffset + 1] = rgbPalette[colorOffset + 1]
+                        dst[dstOffset + 2] = rgbPalette[colorOffset + 2]
+                        dst[dstOffset + 3] = rgbPalette[colorOffset + 3]
+                    }
+                }
+            }
+        }
+
+        for (let y = 0; y < screenHeight; ++y) {
+            const rowOffset = y * screenWidth
+            const dstY = y * hiResRoomScale
+            for (let x = 0; x < screenWidth; ++x) {
+                const pixel = hiResTopLayer[rowOffset + x]
+                if (pixel === 0) {
+                    continue
+                }
+                const colorOffset = pixel * 4
+                const dstX = x * hiResRoomScale
+                for (let oy = 0; oy < hiResRoomScale; ++oy) {
+                    const hiResRow = (dstY + oy) * hiResRoomWidth
+                    for (let ox = 0; ox < hiResRoomScale; ++ox) {
+                        const dstOffset = (hiResRow + dstX + ox) * 4
+                        dst[dstOffset] = rgbPalette[colorOffset]
+                        dst[dstOffset + 1] = rgbPalette[colorOffset + 1]
+                        dst[dstOffset + 2] = rgbPalette[colorOffset + 2]
+                        dst[dstOffset + 3] = rgbPalette[colorOffset + 3]
+                    }
+                }
+            }
+        }
+
+        context.putImageData(hiResImageData, 0, scaledShakeOffset)
+        return true
+    }
+
+    const drawFrame = () => {
+        if (composeHiResFrame()) {
+            return
+        }
+        context.drawImage(frameContext.canvas, 0, 0, screenWidth, screenHeight, 0, scaledShakeOffset, outputWidth, outputHeight)
+    }
+
     if (fadeOnUpdateScreen) {
         for (let i = 1; i <= 16; ++i) {
             context.fillStyle = `rgba(0,0,0, ${(256 - i * 16) / 255})`
-            context.putImageData(imageData, 0, 0)
-            context.fillRect(0, 0, screenWidth, screenHeight)
+            drawFrame()
+            context.fillRect(0, 0, outputWidth, outputHeight)
             await sleep(15)
         }
         return false
     }
 
-    context.putImageData(imageData, 0, shakeOffset * scaleFactor)
+    drawFrame()
     return fadeOnUpdateScreen
 }
 

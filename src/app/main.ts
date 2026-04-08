@@ -22,7 +22,7 @@ const parseScaler = (name: string, scalerParameters: ScalerParameters) => {
     if (split.length > 1) {
         scalerParameters.factor = Number(split[1])
     }
-    scalerParameters.name = name
+    scalerParameters.name = split[0]
 }
 
 type MainDependencies = {
