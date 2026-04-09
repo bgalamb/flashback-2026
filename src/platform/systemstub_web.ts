@@ -3,7 +3,7 @@ import { Scaler, ScalerType } from '../core/scaler'
 import { assert } from "../core/assert"
 import type { Game } from '../game/game'
 import { createAudioContext, initializeAudioNodes, postWorkletMessage, resumeAudioContext } from './systemstub-audio'
-import { applyCanvasStyles, copyIndexedRectToScreenBuffer, copyRgb24RectToScreenBuffer, drawRectOutline, getClippedScaleFactor, getPaletteEntry as readPaletteEntry, getRootCanvasElement, presentScreen, resolveScaler, setPalette as writePalette, setPaletteColor as writePaletteColor } from './systemstub-canvas'
+import { applyCanvasStyles, copyIndexedRectToScreenBuffer, copyRgb24RectToScreenBuffer, drawRectOutline, getCanvasDisplaySize, getClippedScaleFactor, getPaletteEntry as readPaletteEntry, getRootCanvasElement, presentScreen, resolveScaler, setPalette as writePalette, setPaletteColor as writePaletteColor } from './systemstub-canvas'
 import { applyKeyDown, applyKeyUp, queueBrowserEvent, resetPlayerInput } from './systemstub-input'
 import { defaultScaleParameters, dfDblocks, dfFastmode, dfSetlife, dirDown, dirLeft, dirRight, dirUp } from './systemstub-types'
 import type { PlayerInput, ScalerParameters } from './systemstub-types'
@@ -30,6 +30,8 @@ class SystemStub {
 	_screenH: number
 	_outputW: number
 	_outputH: number
+	_displayW: number
+	_displayH: number
 	_scalerType: ScalerType
 	_wideMargin: number
 	_screenshot: number
@@ -148,10 +150,17 @@ class SystemStub {
 		document.addEventListener('keyup', this.onKbEvent)
 		document.addEventListener('keydown', this.onKbEvent)
 		document.addEventListener('click', this.resumeAudio)
+		if (typeof window !== 'undefined') {
+			window.addEventListener('resize', this.onWindowResize)
+		}
 	}
 
 	onKbEvent = (event: Event) => {
 		queueBrowserEvent(this._events, event)
+	}
+
+	onWindowResize = () => {
+		this.refreshDisplaySize()
 	}
 
 	async init(title: string, w: number, h: number, fullscreen: boolean, scalerParameters: ScalerParameters) {
@@ -175,6 +184,8 @@ class SystemStub {
 		this._screenW = this._screenH = 0
 		this._outputW = w
 		this._outputH = h
+		this._displayW = w
+		this._displayH = h
 		this._wideMargin = 0
 		this._hiResRoomPixels = null
 		this._hiResRoomWidth = 0
@@ -229,7 +240,16 @@ class SystemStub {
 			this._outputW = scaledOutputW
 			this._outputH = scaledOutputH
 		}
-		applyCanvasStyles(this._canvas, this._outputW, this._outputH)
+		this.refreshDisplaySize()
+	}
+
+	private refreshDisplaySize() {
+		const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : this._outputW
+		const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : this._outputH
+		const displaySize = getCanvasDisplaySize(this._outputW, this._outputH, viewportWidth, viewportHeight)
+		this._displayW = displaySize.width
+		this._displayH = displaySize.height
+		applyCanvasStyles(this._canvas, this._outputW, this._outputH, this._displayW, this._displayH)
 	}
 
 	setHiResRoomLayer(
@@ -309,6 +329,8 @@ class SystemStub {
 			this._screenH,
 			this._outputW,
 			this._outputH,
+			this._displayW,
+			this._displayH,
 			this._scalerType === ScalerType.kScalerTypeLinear,
 			this._fadeOnUpdateScreen,
 			shakeOffset,

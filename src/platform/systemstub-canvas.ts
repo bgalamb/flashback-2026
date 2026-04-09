@@ -10,15 +10,36 @@ function getRootCanvasElement(): HTMLCanvasElement {
     return canvas
 }
 
-function applyCanvasStyles(canvas: HTMLCanvasElement, width: number, height: number) {
-    if (canvas.width !== width) {
-        canvas.width = width
+type CanvasDimensions = {
+    width: number
+    height: number
+}
+
+function getCanvasDisplaySize(renderWidth: number, renderHeight: number, viewportWidth: number, viewportHeight: number): CanvasDimensions {
+    if (!Number.isFinite(renderWidth) || !Number.isFinite(renderHeight) || renderWidth <= 0 || renderHeight <= 0) {
+        return { width: 1, height: 1 }
     }
-    if (canvas.height !== height) {
-        canvas.height = height
+    if (!Number.isFinite(viewportWidth) || !Number.isFinite(viewportHeight) || viewportWidth <= 0 || viewportHeight <= 0) {
+        return { width: renderWidth, height: renderHeight }
     }
-    canvas.style.width = `${width}px`
-    canvas.style.height = `${height}px`
+    const maxDisplayWidth = Math.max(1, Math.floor(viewportWidth * 0.9))
+    const maxDisplayHeight = Math.max(1, Math.floor(viewportHeight * 0.72))
+    const scale = Math.min(1, maxDisplayWidth / renderWidth, maxDisplayHeight / renderHeight)
+    return {
+        width: Math.max(1, Math.floor(renderWidth * scale)),
+        height: Math.max(1, Math.floor(renderHeight * scale)),
+    }
+}
+
+function applyCanvasStyles(canvas: HTMLCanvasElement, renderWidth: number, renderHeight: number, displayWidth = renderWidth, displayHeight = renderHeight) {
+    if (canvas.width !== renderWidth) {
+        canvas.width = renderWidth
+    }
+    if (canvas.height !== renderHeight) {
+        canvas.height = renderHeight
+    }
+    canvas.style.width = `${displayWidth}px`
+    canvas.style.height = `${displayHeight}px`
     canvas.style.boxShadow = '10px 10px 68px 0px rgba(0,0,0,0.75)'
     canvas.style.borderRadius = '4px'
     canvas.style.margin = 'auto'
@@ -158,6 +179,8 @@ async function presentScreen(
     screenHeight: number,
     outputWidth: number,
     outputHeight: number,
+    displayWidth: number,
+    displayHeight: number,
     imageSmoothingEnabled: boolean,
     fadeOnUpdateScreen: boolean,
     shakeOffset: number,
@@ -170,7 +193,7 @@ async function presentScreen(
     hiResTopLayer: Uint8Array | null,
     sleep: (duration: number) => Promise<void>
 ) {
-    applyCanvasStyles(context.canvas as HTMLCanvasElement, outputWidth, outputHeight)
+    applyCanvasStyles(context.canvas as HTMLCanvasElement, outputWidth, outputHeight, displayWidth, displayHeight)
     context.clearRect(0, 0, outputWidth, outputHeight)
     context.imageSmoothingEnabled = imageSmoothingEnabled
     frameContext.putImageData(imageData, 0, 0)
@@ -310,6 +333,7 @@ export {
     copyIndexedRectToScreenBuffer,
     copyRgb24RectToScreenBuffer,
     drawRectOutline,
+    getCanvasDisplaySize,
     getClippedScaleFactor,
     getPaletteEntry,
     getRootCanvasElement,
