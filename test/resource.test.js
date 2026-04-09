@@ -214,3 +214,61 @@ test('resource loads monster sprite offsets into resolved sprite views', async (
         restoreFetch()
     }
 })
+
+test('resource loads sound effects from the exported manifest and pcm files', async () => {
+    const resource = createResource()
+    const manifest = Buffer.from(JSON.stringify({
+        source: 'global.fib',
+        numSfx: 3,
+        soundEffects: [
+            {
+                index: 0,
+                offset: 123,
+                encodedLength: 4,
+                decodedLength: 7,
+                freq: 6000,
+                peak: 127,
+                file: 'sound_effects/pcm_s8_files/output_0.pcm_u8',
+            },
+            {
+                index: 1,
+                offset: 456,
+                encodedLength: 0,
+                decodedLength: 0,
+                freq: 6000,
+                peak: 0,
+                file: null,
+            },
+            {
+                index: 2,
+                offset: 789,
+                encodedLength: 3,
+                decodedLength: 5,
+                freq: 6000,
+                peak: 42,
+                file: 'sound_effects/pcm_s8_files/output_2.pcm_u8',
+            },
+        ],
+    }))
+    const restoreFetch = installFetch({
+        'sound_effects/global.fib.json': manifest,
+        'sound_effects/pcm_s8_files/output_0.pcm_u8': Uint8Array.from([0x80, 0x81, 0x7F, 0x00, 0x01, 0xFE, 0x02]),
+        'sound_effects/pcm_s8_files/output_2.pcm_u8': Uint8Array.from([1, 2, 3, 4, 5]),
+    })
+
+    try {
+        await resource.loadSoundEffects('GLOBAL')
+
+        assert.equal(resource.audio.numSfx, 3)
+        assert.equal(resource.audio.sfxList[0].offset, 123)
+        assert.equal(resource.audio.sfxList[0].len, 7)
+        assert.equal(resource.audio.sfxList[0].freq, 6000)
+        assert.equal(resource.audio.sfxList[0].peak, 127)
+        assert.deepEqual(Array.from(resource.audio.sfxList[0].data), [0x80, 0x81, 0x7F, 0x00, 0x01, 0xFE, 0x02])
+        assert.equal(resource.audio.sfxList[1].data, null)
+        assert.equal(resource.audio.sfxList[1].len, 0)
+        assert.deepEqual(Array.from(resource.audio.sfxList[2].data), [1, 2, 3, 4, 5])
+    } finally {
+        restoreFetch()
+    }
+})

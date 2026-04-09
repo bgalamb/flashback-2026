@@ -1,5 +1,5 @@
 import { _voicesOffsetsTable } from '../core/staticres'
-import { loadMenuMap, loadMenuPalette, loadSoundEffects, loadVoiceSegment } from './media-loaders'
+import { loadMenuMap, loadMenuPalette, loadSoundEffectsManifest, loadVoiceSegment } from './media-loaders'
 import { ResourceAudioState } from './resource-state'
 import { FileSystem } from './fs'
 
@@ -8,8 +8,8 @@ async function loadVoiceSegmentData(fileSystem: FileSystem, num: number, segment
 }
 
 async function loadSoundEffectsData(fileSystem: FileSystem, audioState: ResourceAudioState, fileName: string) {
-    const entryName = `${fileName}.FIB`
-    const loaded = await loadSoundEffects(fileSystem, entryName)
+    const entryName = `sound_effects/${fileName.toLowerCase()}.fib.json`
+    const loaded = await loadSoundEffectsManifest(fileSystem, entryName)
     if (loaded) {
         audioState.numSfx = loaded.numSfx
         audioState.sfxList = loaded.sfxList

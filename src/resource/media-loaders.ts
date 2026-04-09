@@ -8,6 +8,22 @@ interface VoiceSegmentResult {
     bufSize: number
 }
 
+interface SoundEffectsManifestEntry {
+    index: number
+    offset: number
+    encodedLength: number
+    decodedLength: number
+    freq: number
+    peak: number
+    file: string | null
+}
+
+interface SoundEffectsManifest {
+    source: string
+    numSfx: number
+    soundEffects: SoundEffectsManifestEntry[]
+}
+
 const kMenuMapSize = 0x3800 * 4
 const kMenuPalSize = 768
 const kCodeToDelta: number[] = [ -34, -21, -13, -8, -5, -3, -2, -1, 0, 1, 2, 3, 5, 8, 13, 21 ]
@@ -131,6 +147,82 @@ async function loadSoundEffects(fs: FileSystem, entryName: string): Promise<{ nu
     }
 }
 
+async function readFileToBuffer(fs: FileSystem, entryName: string): Promise<Uint8Array | null> {
+    const f = new File()
+    if (!await f.open(entryName, 'rb', fs)) {
+        console.error(`Cannot open '${entryName}'`)
+        return null
+    }
+    const size = f.size()
+    const data = new Uint8Array(size)
+    if (size !== 0 && f.read(data.buffer, size) !== size) {
+        console.error(`Failed to read '${entryName}'`)
+        return null
+    }
+    if (f.ioErr()) {
+        console.error(`I/O error when reading '${entryName}'`)
+        return null
+    }
+    return data
+}
+
+async function loadSoundEffectsManifest(fs: FileSystem, entryName: string): Promise<{ numSfx: number, sfxList: SoundFx[] } | null> {
+    const manifestData = await readFileToBuffer(fs, entryName)
+    if (!manifestData) {
+        return null
+    }
+    const manifest = JSON.parse(new TextDecoder('utf-8').decode(manifestData)) as SoundEffectsManifest
+    const sfxList: SoundFx[] = new Array(manifest.numSfx).fill(null).map(() => ({
+        offset: 0,
+        freq: 0,
+        len: 0,
+        peak: 0,
+        data: null,
+    }))
+
+    for (const entry of manifest.soundEffects) {
+        const sfx = sfxList[entry.index]
+        sfx.offset = entry.offset
+        sfx.freq = entry.freq
+        sfx.len = entry.decodedLength
+        sfx.peak = entry.peak
+    }
+
+    const loadResults = await Promise.all(manifest.soundEffects.map(async (entry) => {
+        if (!entry.file || entry.decodedLength === 0) {
+            return {
+                entry,
+                data: null as Uint8Array | null,
+            }
+        }
+        return {
+            entry,
+            data: await readFileToBuffer(fs, entry.file),
+        }
+    }))
+
+    for (const { entry, data } of loadResults) {
+        const sfx = sfxList[entry.index]
+        if (!entry.file || entry.decodedLength === 0) {
+            sfx.data = null
+            continue
+        }
+        if (!data) {
+            return null
+        }
+        sfx.data = data
+        if (data.length !== entry.decodedLength) {
+            console.warn(`Unexpected decoded PCM length for '${entry.file}': expected ${entry.decodedLength}, got ${data.length}`)
+            sfx.len = data.length
+        }
+    }
+
+    return {
+        numSfx: manifest.numSfx,
+        sfxList,
+    }
+}
+
 async function loadMenuAsset(fs: FileSystem, entryName: string, dstPtr: Uint8Array, size: number) {
     const f = new File()
     if (!await f.open(entryName, 'rb', fs)) {
@@ -156,6 +248,7 @@ async function loadMenuPalette(fs: FileSystem, entryName: string, dstPtr: Uint8A
 export {
     loadMenuMap,
     loadMenuPalette,
+    loadSoundEffectsManifest,
     loadSoundEffects,
     loadVoiceSegment,
 }

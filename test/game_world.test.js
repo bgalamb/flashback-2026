@@ -552,6 +552,14 @@ test('room-boundary helpers classify PGEs crossing neighboring rooms', () => {
     assert.equal(gameIsRightRoomPge(null, { posX: 32 }), true)
 })
 
+test('room-boundary helpers ignore malformed PGEs instead of throwing', () => {
+    assert.equal(gameIsAboveRoomPge(null, null), false)
+    assert.equal(gameIsAboveRoomPge(null, { posY: 300 }), false)
+    assert.equal(gameIsBelowRoomPge(null, {}), false)
+    assert.equal(gameIsLeftRoomPge(null, { posX: 'oops' }), false)
+    assert.equal(gameIsRightRoomPge(null, { initPge: { objectType: 1 } }), false)
+})
+
 test('gamePrepareAnimsHelper adds visible sprites to the appropriate animation buffer', async () => {
     const game = createWorldGame()
     const conrad = game._livePgesByIndex[0]
@@ -700,4 +708,24 @@ test('animation preparation tolerates missing room buckets', async () => {
     await gamePrepareAnimationsInRooms(game, 4)
 
     assert.deepEqual(game._animBuffers.addStateCalls, [])
+})
+
+test('animation preparation skips malformed adjacent PGEs without throwing', async () => {
+    const game = createWorldGame()
+    const currentPge = { index: 10, animNumber: 0, flags: 0, roomLocation: 4, posX: 50, posY: 90, initPge: { objectType: 1, scriptNodeIndex: 1 } }
+    const validAbovePge = { index: 11, animNumber: 0, flags: 0, roomLocation: 7, posX: 50, posY: 177, initPge: { objectType: 1, scriptNodeIndex: 1 } }
+
+    game._livePgeStore.liveByRoom[4] = [currentPge]
+    game._livePgeStore.liveByRoom[7] = [null, undefined, { posY: 220 }, validAbovePge]
+    game._res.level.ctData[ctUpRoom + 4] = 7
+    game._res.level.ctData[ctDownRoom + 4] = uint8Max
+    game._res.level.ctData[ctLeftRoom + 4] = uint8Max
+    game._res.level.ctData[ctRightRoom + 4] = uint8Max
+
+    await gamePrepareAnimationsInRooms(game, 4)
+
+    assert.deepEqual(game._animBuffers.addStateCalls.map(([state, x, y, _data, pge]) => [state, x, y, pge.index]), [
+        [0, 57, 90, 10],
+        [0, 57, -39, 11],
+    ])
 })

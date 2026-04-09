@@ -292,21 +292,41 @@ export function gameLoadState(_game: Game, _f: any) {
     throw new Error('gameLoadState() is not implemented')
 }
 
+function getPgeObjectType(pge: LivePGE | null | undefined): number | null {
+    if (!pge || !pge.initPge || typeof pge.initPge.objectType !== 'number') {
+        return null
+    }
+    return pge.initPge.objectType
+}
+
+function getPgeAxisPosition(pge: LivePGE | null | undefined, axis: 'x' | 'y'): number | null {
+    const value = axis === 'x' ? pge?.posX : pge?.posY
+    return typeof value === 'number' ? value : null
+}
+
 export function gameIsAboveRoomPge(_game: Game, pge: LivePGE): boolean {
-    return (pge.initPge.objectType !== 10 && pge.posY > 176) ||
-        (pge.initPge.objectType === 10 && pge.posY > 216)
+    const objectType = getPgeObjectType(pge)
+    const posY = getPgeAxisPosition(pge, 'y')
+    if (objectType === null || posY === null) {
+        return false
+    }
+    return (objectType !== 10 && posY > 176) ||
+        (objectType === 10 && posY > 216)
 }
 
 export function gameIsBelowRoomPge(_game: Game, pge: LivePGE): boolean {
-    return pge.posY < 48
+    const posY = getPgeAxisPosition(pge, 'y')
+    return posY !== null && posY < 48
 }
 
 export function gameIsLeftRoomPge(_game: Game, pge: LivePGE): boolean {
-    return pge.posX > gamescreenH
+    const posX = getPgeAxisPosition(pge, 'x')
+    return posX !== null && posX > gamescreenH
 }
 
 export function gameIsRightRoomPge(_game: Game, pge: LivePGE): boolean {
-    return pge.posX <= 32
+    const posX = getPgeAxisPosition(pge, 'x')
+    return posX !== null && posX <= 32
 }
 
 function getPaletteColorMaskOverrideForPge(game: Game, pge: LivePGE) {
@@ -408,7 +428,7 @@ export async function gamePrepareAdjacentRoomAnims(
         const roomPges = getRoomPges(game, pgeRoom)
         gameDebugLog(game, 'world', `[anim-prep] adjacent sourceRoom=${currentRoom} targetRoom=${pgeRoom} offset=(${offsetX},${offsetY}) candidates=${roomPges.length}`)
         for (const pge of roomPges) {
-            if (shouldPrepare(game, pge)) {
+            if (pge && shouldPrepare(game, pge)) {
                 await gamePrepareAnimsHelper(game, pge, offsetX, offsetY, currentRoom)
             }
         }

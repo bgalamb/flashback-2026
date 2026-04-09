@@ -393,6 +393,55 @@ test('gameRun boots resources, shows the menu, and exits when quit is selected',
     assert.deepEqual(game.mixCalls.slice(0, 2), [['init'], ['stopMusic']])
 })
 
+test('gameRun prefers the manifest-based sound loader when loadSoundEffects is available', async () => {
+    const loads = []
+    const game = createBaseGame({
+        _menu: {
+            _selectedOption: Menu.menuOptionItemQuit,
+            _skill: 2,
+            _level: 7,
+            async handleTitleScreen() {},
+        },
+        _res: {
+            sprites: {
+                spr1: { loaded: true },
+            },
+            loadText() {
+                loads.push(['load_TEXT'])
+            },
+            async load(name, type) {
+                loads.push(['load', name, type])
+            },
+            async loadSpriteOffsets(name, spr) {
+                loads.push(['load_SPRITE_OFFSETS', name, spr.loaded])
+            },
+            initializeConradVisuals() {
+                loads.push(['initializeConradVisuals'])
+            },
+            async loadSoundEffects(name) {
+                loads.push(['load_SOUND_EFFECTS', name])
+            },
+            async loadFib(name) {
+                loads.push(['load_FIB', name])
+            },
+        },
+    })
+
+    await gameRun(game)
+
+    assert.equal(loads.some(([name]) => name === 'load_FIB'), false)
+    assert.deepEqual(loads.map(([name]) => name), [
+        'load_TEXT',
+        'load',
+        'load',
+        'load',
+        'load',
+        'load_SPRITE_OFFSETS',
+        'initializeConradVisuals',
+        'load_SOUND_EFFECTS',
+    ])
+})
+
 test('gameUpdateTiming sleeps the remaining frame budget unless fast mode is enabled', async () => {
     const game = createBaseGame()
     game._frameTimestamp = 10

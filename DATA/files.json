@@ -4,7 +4,6 @@
   "explose_.adl",
   "fb_txt.fnt",
   "Flashback1992.ubig",
-  "global.fib",
   "global.icn",
   "global.spc",
   "INSTRU_E.MAP",
@@ -2042,5 +2041,6 @@
   "videos/72-score-low.mp4",
   "videos/73-logos-low.mp4",
   "videos/74-intro2-low.mp4",
-  "videos/RECHARG0.mpeg"
+  "videos/RECHARG0.mpeg",
+  "sound_effects/global.fib.json"
 ]

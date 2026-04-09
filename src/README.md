@@ -132,9 +132,9 @@ That is the main switch-door pattern.
 
 ## Sound note: GLOBAL.FIB vs PGE-driven playback
 
-`GLOBAL.FIB` is the global sound-effect bank, not a standalone ambient scheduler.
+`GLOBAL.FIB` is the legacy global sound-effect bank, not a standalone ambient scheduler.
 
-The runtime loads `GLOBAL.FIB` once at startup and decodes it into `Resource.audio.sfxList`, the runtime sound-sample array:
+The runtime now loads the exported manifest at `DATA/sound_effects/global.fib.json` plus the decoded PCM files in `DATA/sound_effects/pcm_s8_files/` to populate `Resource.audio.sfxList`, the runtime sound-sample array:
 
 - [src/game_runtime.ts](/Users/balazsgalambos/git/flashback-web/src/game_runtime.ts#L59)
 - [src/resource/resource.ts](/Users/balazsgalambos/git/flashback-web/src/resource/resource.ts#L605)

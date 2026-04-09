@@ -189,7 +189,6 @@ export class MemoryBufferFile implements fileImpl {
     }
 
     readString() {
-        debugger
         return ""
     }
 
