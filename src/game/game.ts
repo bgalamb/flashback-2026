@@ -1,28 +1,20 @@
-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
-import type { PgeOpcodeHandler } from '../core/intern'
+import { LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
 import { Cutscene } from '../cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from '../cutscene-players/mp4-cutscene-player'
 import { Mixer } from '../audio/mixer'
 import { Resource, ObjectType, LocaleData } from '../resource/resource'
 import { Video } from '../video/video'
-import { dfFastmode, dfSetlife, dirDown, dirUp, SystemStub } from '../platform/systemstub_web'
+import { dfFastmode, dfSetlife, dirDown, dirUp, SystemStub } from '../platform/systemstub-web'
 import { FileSystem } from '../resource/fs'
 import { Menu } from './menu'
-import { gamescreenW, gamescreenH, charW } from '../core/game_constants'
+import { gamescreenW, gamescreenH, charW, globalGameOptionDefaults } from '../core/game_constants'
+import type { GameOptions } from '../core/game_constants'
+import { _pgeOpcodetable as defaultOpcodeHandlers } from './game-opcodes'
 
-import {
-    scoreTable,
-    _gameLevels,
-    _pgeModkeystable as modifierKeyMasksData,
-    _protectionCodeData,
-    _protectionPal,
-    _protectionWordData,
-} from '../core/staticres'
 import {
     monsterListsByLevel
 } from '../core/staticres-monsters'
 import { File } from '../resource/file'
-import { _pgeOpcodetable as opcodeHandlers } from './game_opcodes'
 import {
     uint8Max,
     kIngameSaveSlot,
@@ -36,7 +28,7 @@ import {
     ctLeftRoom,
     pgeNum,
 } from '../core/game_constants'
-import { gamePlaySound } from './game_audio'
+import { gamePlaySound } from './game-audio'
 import {
     gameDrawAnimBuffer,
     gameDrawCharacter,
@@ -45,21 +37,22 @@ import {
     gameDrawObjectFrame,
     gameDrawPge,
     gameDrawString
-} from './game_draw'
+} from './game-draw'
 import {
     gameLoadGameState,
     gameRun,
     gameSaveGameState,
-} from './game_runtime'
+} from './game-runtime'
 import {
     gameClearStateRewind,
+    gameGetRandomNumber,
     gameInpUpdate,
     gameLoadLevelData,
     gameLoadLevelMap,
     gameLoadMonsterSprites,
     gameLoadState,
     gameResetGameState
-} from './game_world'
+} from './game-world'
 import {
     gameAddPgeToInventory,
     gameFindInventoryItemBeforePge,
@@ -70,16 +63,18 @@ import {
     gameResetPgeGroupState,
     gameSetCurrentInventoryPge,
     gameUpdatePgeInventory
-} from './game_pge'
+} from './game-pge'
 import {
     gameGetCurrentInventoryItemIndex,
     gameGetInventoryItemIndices,
     gameGetNextInventoryItemIndex
-} from './game_inventory'
-import type { GameServicesShape } from './game_services'
+} from './game-inventory'
+import type { GameServicesShape } from './game-services'
 
-type colCallback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
-type colCallback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
+type colCallback1 = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
+type colCallback2 = (pge: LivePGE, verticalOffset: number, distanceStep: number, groupId: number, game: Game) => number
+type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
+type PgeZOrderComparator = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
 
 interface GameWorldState {
     currentLevel: number
@@ -155,24 +150,13 @@ interface GameRenderDataState {
 }
 
 class Game {
-    static _gameLevels: Level[] = _gameLevels
-    static _scoreTable: Uint16Array = scoreTable
-    _opcodeHandlers: PgeOpcodeHandler[] = opcodeHandlers
-    static _modifierKeyMasks: Uint8Array = modifierKeyMasksData
-    static _protectionCodeData: Uint8Array = _protectionCodeData
-    static _protectionWordData: Uint8Array = _protectionWordData
-    static _protectionPal: Uint8Array = _protectionPal
+
+    _opcodeHandlers: PgeOpcodeHandler[] = defaultOpcodeHandlers
 
     renderPromise: Promise<unknown>
     renderDone: { (): void; (value: unknown): void }
 
-    _cut: Cutscene
     _menu: Menu
-    _mix: Mixer
-    _res: Resource
-    _vid: Video
-    _stub: SystemStub
-    _fs: FileSystem
     _rewindBuffer: File[]
     _rewindPtr: number
     _rewindLen: number
@@ -303,21 +287,19 @@ class Game {
     }
     renders: number
     debugStartFrame: number
+    options: GameOptions = { ...globalGameOptionDefaults }
 
-    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean) {
+    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean, options?: Partial<GameOptions>) {
+        if (options) {
+            Object.assign(this.options, options)
+        }
         this.services.res = new Resource(fs) // there is only one resource class for the whole game
-        this.services.vid = new Video(this.services.res, stub)
-        this.services.cut = new Cutscene(this.services.res, stub, this.services.vid)
+        this.services.vid = new Video(this.services.res, stub, this.options)
+        this.services.cut = new Cutscene(this.services.res, stub, this.services.vid, this.options)
         this._menu = new Menu(this.services.res, stub, this.services.vid)
         this.services.mix = new Mixer(fs, stub)
         this.services.stub = stub
         this.services.fs = fs
-        this._res = this.services.res
-        this._vid = this.services.vid
-        this._cut = this.services.cut
-        this._mix = this.services.mix
-        this._stub = this.services.stub
-        this._fs = this.services.fs
         this.runtimeData.livePgeStore = createLivePgeRegistry(this.runtimeData.livePgesByIndex)
         this.session.stateSlot = 1
         this.ui.skillLevel = this._menu._skill = Skill.kSkillNormal
@@ -471,7 +453,11 @@ class Game {
         return gameClearStateRewind(this)
     }
 
+    getRandomNumber() {
+        return gameGetRandomNumber(this)
+    }
+
 }
 
 export { Game, ctUpRoom, ctDownRoom, ctRightRoom, ctLeftRoom, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }
-export type { colCallback1, colCallback2 }
+export type { colCallback1, colCallback2, PgeOpcodeHandler, PgeZOrderComparator }

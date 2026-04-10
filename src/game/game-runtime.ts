@@ -2,13 +2,13 @@ import type { LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { Menu } from './menu'
 import { ObjectType, LocaleData } from '../resource/resource'
-import { dirDown, dirUp } from '../platform/systemstub_web'
+import { dirDown, dirUp } from '../platform/systemstub-web'
 import { charW, gamescreenW, uint8Max } from '../core/game_constants'
 import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
-import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
-import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
-import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
-import { getGameServices } from './game_services'
+import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game-draw'
+import { gameRebuildActiveRoomCollisionSlotLookup } from './game-collision'
+import { gameHandleConfigPanel, gameHandleInventory } from './game-inventory'
+import { getGameServices } from './game-services'
 import {
     gameApplyTitleScreenSelection,
     gameBeginFrameLoop,
@@ -21,12 +21,12 @@ import {
     gameQueueDeathCutscene,
     gameSetSaveTimestamp,
     gameTickDeathCutscene
-} from './game_lifecycle'
-import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
-import { gameDebugLog, gameDebugWarn } from './game_debug'
-import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game_world'
-import { getRuntimeRegistryState } from './game_runtime_data'
+} from './game-lifecycle'
+import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game-pge'
+import { gameDebugLog, gameDebugWarn } from './game-debug'
+import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
+import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game-world'
+import { getRuntimeRegistryState } from './game-runtime-data'
 import {
     gameDidDie,
     gameDidFinishAllLevels,
@@ -37,7 +37,7 @@ import {
     gamePlayCutscene,
     gameShowFinalScore,
     gameUpdateTiming,
-} from './game_session_flow'
+} from './game-session-flow'
 
 export {
     gameDidDie,
@@ -50,39 +50,22 @@ export {
 }
 
 function gameLoadTextResources(game: Game) {
-    const { res } = getGameServices(game)
-    const legacyResource = res as typeof res & {
-        loadText?: () => void
-    }
-    if (typeof res.loadText === 'function') {
-        res.loadText()
-        return
-    }
-    legacyResource.loadText()
+    getGameServices(game).res.loadText()
 }
 
 async function gameLoadConradSpriteResources(game: Game) {
     const { res } = getGameServices(game)
-    const legacyResource = res as typeof res & {
-        loadSpriteOffsets?: (name: string, spr: unknown) => Promise<void>
-    }
-    if (typeof res.loadSpriteOffsets === 'function') {
-        await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
-        return
-    }
-    await legacyResource.loadSpriteOffsets('PERSO', res.sprites.spr1)
+    await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
 }
 
 async function gameLoadSoundResources(game: Game) {
     const { res } = getGameServices(game)
-    const legacyResource = res as typeof res & {
-        loadFib?: (name: string) => Promise<void>
-    }
     if (typeof res.loadSoundEffects === 'function') {
         await res.loadSoundEffects('GLOBAL')
-        return
+    } else {
+        // Legacy fallback for resource implementations that predate loadSoundEffects
+        await (res as unknown as { loadFib(name: string): Promise<void> }).loadFib('GLOBAL')
     }
-    await legacyResource.loadFib('GLOBAL')
 }
 
 async function gameBootResources(game: Game) {
@@ -140,17 +123,17 @@ function gameStartRenderLoop(game: Game) {
 }
 
 function gameResetPostSessionInput(game: Game) {
-    game._stub._pi.dirMask = 0
-    game._stub._pi.enter = false
-    game._stub._pi.space = false
-    game._stub._pi.shift = false
+    game.services.stub._pi.dirMask = 0
+    game.services.stub._pi.enter = false
+    game.services.stub._pi.space = false
+    game.services.stub._pi.shift = false
 }
 
 async function gameProcessActiveFrame(game: Game) {
     const world = getGameWorldState(game)
     const session = getGameSessionState(game)
     const runtime = getRuntimeRegistryState(game)
-    game._vid.restoreFrontLayerFromBack()
+    game.services.vid.restoreFrontLayerFromBack()
     await gameUpdatePgeDirectionalInputState(game)
     gameRebuildPgeCollisionStateForCurrentRoom(game, world.currentRoom)
     gameRebuildActiveRoomCollisionSlotLookup(game, world.currentRoom)
@@ -192,7 +175,7 @@ async function gameResolvePendingMapLoad(game: Game) {
             'runtime',
             `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber}`
         )
-        game._cut.setId(6)
+        game.services.cut.setId(6)
         gameQueueDeathCutscene(game, 1)
         return
     }
@@ -200,7 +183,7 @@ async function gameResolvePendingMapLoad(game: Game) {
     gameDebugLog(game, 'runtime', `[map-load] committing level=${world.currentLevel} room=${room}`)
     gameCommitLoadedRoom(game, room)
     await gameLoadLevelMap(game, room)
-    game._vid.fullRefresh()
+    game.services.vid.fullRefresh()
     gameDebugLog(game, 'runtime', `[map-load] completed room=${room} overlayCounter=${getGameUiState(game).currentRoomOverlayCounter}`)
 }
 
@@ -216,29 +199,29 @@ async function gameRenderCurrentFrame(game: Game) {
     if (world.blinkingConradCounter !== 0) {
         --world.blinkingConradCounter
     }
-    await game._vid.updateScreen()
+    await game.services.vid.updateScreen()
     await gameUpdateTiming(game)
     await gameDrawStoryTexts(game)
 }
 
 async function gameHandleFrameMenus(game: Game) {
-    if (game._stub._pi.backspace) {
-        game._stub._pi.backspace = false
+    if (game.services.stub._pi.backspace) {
+        game.services.stub._pi.backspace = false
         await gameHandleInventory(game)
     }
-    if (game._stub._pi.escape) {
+    if (game.services.stub._pi.escape) {
         if (await gameHandleConfigPanel(game)) {
             gameEndLoop(game)
             return true
         }
-        game._stub._pi.escape = false
+        game.services.stub._pi.escape = false
     }
     return false
 }
 
 export async function gameRunLoop(game: Game) {
     await gameMainLoop(game)
-    if (!game._stub._pi.quit && !getGameSessionState(game).endLoop) {
+    if (!game.services.stub._pi.quit && !getGameSessionState(game).endLoop) {
         requestAnimationFrame(() => gameRunLoop(game))
     } else {
         // @ts-ignore
@@ -250,21 +233,21 @@ export async function gameRun(game: Game) {
     await gameBootResources(game)
 
     const presentMenu = true
-    while (!game._stub._pi.quit) {
+    while (!game.services.stub._pi.quit) {
         gameDebugLog(game, 'runtime', `[session] title-loop level=${game.world.currentLevel} skill=${game.ui.skillLevel} autoSave=${game.session.autoSave}`)
         if (presentMenu) {
             if (!await gamePresentTitleScreen(game)) {
                 break
             }
         }
-        if (game._stub._pi.quit) {
+        if (game.services.stub._pi.quit) {
             break
         }
         gamePreparePlaythroughSession(game)
         gameDebugLog(game, 'runtime', `[session] starting playthrough level=${game.world.currentLevel} skill=${game.ui.skillLevel} slot=${game.session.stateSlot}`)
         await game.loadLevelData()
         await gameStartRenderLoop(game)
-        gameDebugLog(game, 'runtime', `[session] playthrough-ended quit=${game._stub._pi.quit} endLoop=${game.session.endLoop} renders=${game.renders}`)
+        gameDebugLog(game, 'runtime', `[session] playthrough-ended quit=${game.services.stub._pi.quit} endLoop=${game.session.endLoop} renders=${game.renders}`)
         gameResetPostSessionInput(game)
     }
 }

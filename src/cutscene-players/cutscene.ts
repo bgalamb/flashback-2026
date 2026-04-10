@@ -1,8 +1,9 @@
 import { Resource } from '../resource/resource'
-import { SystemStub } from '../platform/systemstub_web'
+import { SystemStub } from '../platform/systemstub-web'
 import { Video } from '../video/video'
 import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../core/staticres'
-import { uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
+import { uint16Max, uint8Max, globalGameOptionDefaults } from '../core/game_constants'
+import type { GameOptions } from '../core/game_constants'
 import { Mp4CutscenePlayer } from './mp4-cutscene-player'
 
 class Cutscene {
@@ -12,14 +13,16 @@ class Cutscene {
     private _res: Resource
     private _stub: SystemStub
     private _vid: Video
+    private _options: GameOptions
     private _id: number = uint16Max
     private _interrupted: boolean = false
     private _deathCutsceneId: number = uint16Max
 
-    constructor(res: Resource, stub: SystemStub, vid: Video) {
+    constructor(res: Resource, stub: SystemStub, vid: Video, options?: GameOptions) {
         this._res = res
         this._stub = stub
         this._vid = vid
+        this._options = options ?? { ...globalGameOptionDefaults }
     }
 
     setId(cutId: number) {
@@ -84,27 +87,27 @@ class Cutscene {
     private resolveCutNameOverride(id: number, cutName: number) {
         switch (id) {
             case 3:
-                if (globalGameOptions.playCarteCutscene) {
+                if (this._options.playCarteCutscene) {
                     return 2
                 }
                 return cutName
             case 8:
                 return cutName
             case 19:
-                if (globalGameOptions.playSerrureCutscene) {
+                if (this._options.playSerrureCutscene) {
                     return 31
                 }
                 return cutName
             case 22:
             case 23:
             case 24:
-                if (globalGameOptions.playAscCutscene) {
+                if (this._options.playAscCutscene) {
                     return 12
                 }
                 return cutName
             case 30:
             case 31:
-                if (globalGameOptions.playMetroCutscene) {
+                if (this._options.playMetroCutscene) {
                     return 14
                 }
                 return cutName

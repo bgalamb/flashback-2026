@@ -19,14 +19,14 @@ const {
     gameGetRoomCollisionGridData,
     gameRegisterPgeCollisionSegments,
     gameRebuildActiveRoomCollisionSlotLookup,
-} = require('../src/game/game_collision.ts')
+} = require('../src/game/game-collision.ts')
 const {
     colDetecthit,
     colDetecthitcallback1,
     colDetecthitcallback4,
     colDetecthitcallbackhelper,
     colDetecthitcallback6,
-} = require('../src/core/collision.ts')
+} = require('../src/game/collision.ts')
 
 function createCollisionGame() {
     const ctData = new Int8Array(ctHeaderSize + ctGridStride * 0x40)
@@ -87,6 +87,10 @@ function createCollisionGame() {
         set livePgeStore(value) { game._livePgeStore = value },
         get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
         set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
+    }
+    game.services = {
+        get res() { return game._res },
+        set res(value) { game._res = value },
     }
     return game
 }

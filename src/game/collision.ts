@@ -1,9 +1,9 @@
-import {ctDownRoom, ctLeftRoom, ctRightRoom, Game} from '../game/game'
-import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from './intern'
-import type { colCallback1, colCallback2 } from '../game/game'
-import { uint16Max } from './game_constants'
-import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from '../game/game_collision'
-import { assert } from "./assert"
+import type { Game } from './game'
+import type { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from '../core/intern'
+import type { colCallback1, colCallback2 } from './game'
+import { ctDownRoom, ctLeftRoom, ctRightRoom, uint16Max } from '../core/game_constants'
+import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game-collision'
+import { assert } from '../core/assert'
 
 
 // Conrad standing-position reference for the runtime collision grid math:
@@ -79,12 +79,12 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+				pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX += 16
 			}
 			if (gridPosX >= 16) {
-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
+				pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX -= 16
 			}
@@ -111,9 +111,8 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 
 const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) => {
 	const initPge:InitPGE = pge.initPge
-    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
-	// assert(init_pge->script_node_index < _res.level.numObjectNodes);
-	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
+    assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
+	const scriptNode: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
 	const maxEntryIndex = Math.min(scriptNode.lastObjNumber, scriptNode.objects.length - 1)
 	if (pge.firstScriptEntryIndex < 0 || pge.firstScriptEntryIndex > maxEntryIndex) {
 		console.warn(
@@ -163,7 +162,6 @@ const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) =>
                 return uint16Max
             }
 		}
-		// ++scriptEntry;
 		++i;
         scriptEntry = scriptNode.objects[i]
 		if (!scriptEntry) {
@@ -340,14 +338,14 @@ const colDetectgunhit = (pge: LivePGE, arg2: number, arg4: number, callback1: co
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+				pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) {
                     return 0
                 }
 				gridPosX += 0x10;
 			}
 			if (gridPosX >= 0x10) {
-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom];
+				pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom];
 				if (pgeRoom < 0) {
                     return 0
                 }

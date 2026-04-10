@@ -1,7 +1,7 @@
 import { FileSystem } from "../resource/fs"
 import { addcS16, s8ToS16 } from "../core/intern"
 import { SfxPlayer } from "./sfx_player"
-import { SystemStub } from "../platform/systemstub_web"
+import { SystemStub } from "../platform/systemstub-web"
 
 class MixerChunk {
     data: Uint8Array

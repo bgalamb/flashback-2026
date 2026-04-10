@@ -1,7 +1,7 @@
 import type { Color } from '../core/intern'
 import { _gameLevels } from '../core/staticres'
 import type { Resource } from '../resource/resource'
-import type { SystemStub } from '../platform/systemstub_web'
+import type { SystemStub } from '../platform/systemstub-web'
 import { File } from '../resource/file'
 import { decodeIndexedPng, paletteBankToColors } from '../core/indexed-png'
 import type { PaletteHeaderColors, VideoLayerState, VideoPaletteState } from './video-state'

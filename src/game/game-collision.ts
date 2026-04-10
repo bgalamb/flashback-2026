@@ -1,11 +1,11 @@
 import type { CollisionSlot, LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
-import { gamescreenW } from '../core/game_constants'
+import { gamescreenW, pgeFlagAutoActivate } from '../core/game_constants'
 import { uint16Max } from '../core/game_constants'
 import { ctGridHeight, ctGridStride, ctGridWidth, ctHeaderSize } from '../core/game_constants'
-import { gameDebugLog, gameDebugTrace } from './game_debug'
-import { getRuntimeRegistryState } from './game_runtime_data'
+import { gameDebugLog, gameDebugTrace } from './game-debug'
+import { getRuntimeRegistryState } from './game-runtime-data'
 
 export function gameFindOverlappingPgeByObjectType(game: Game, pge: LivePGE, arg2: number) {
     if (pge.collisionSlot !== uint16Max) {
@@ -63,8 +63,8 @@ export function gameRebuildActiveRoomCollisionSlotLookup(game: Game, currentRoom
     game.collision.activeRoomCollisionSlotWindow.left.fill(null)
     game.collision.activeRoomCollisionSlotWindow.current.fill(null)
     game.collision.activeRoomCollisionSlotWindow.right.fill(null)
-    game.collision.activeCollisionLeftRoom = game._res.level.ctData[ctLeftRoom + currentRoom]
-    game.collision.activeCollisionRightRoom = game._res.level.ctData[ctRightRoom + currentRoom]
+    game.collision.activeCollisionLeftRoom = game.services.res.level.ctData[ctLeftRoom + currentRoom]
+    game.collision.activeCollisionRightRoom = game.services.res.level.ctData[ctRightRoom + currentRoom]
 
     game.collision.dynamicPgeCollisionSlotsByPosition.forEach((slotBucket, collisionGridPositionIndex) => {
         const localIndex = collisionGridPositionIndex & 0x3F
@@ -99,7 +99,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
     let roomCtData: Int8Array
     let nextRoom = 0
     if (pgeGridX < 0) {
-        roomCtData = game._res.level.ctData.subarray(ctLeftRoom)
+        roomCtData = game.services.res.level.ctData.subarray(ctLeftRoom)
         nextRoom = roomCtData[pge.roomLocation]
         if (nextRoom < 0) {
             return 1
@@ -108,7 +108,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         roomCtData = roomCtData.subarray(pgeGridX + ctGridWidth + pgeGridY * ctGridWidth + nextRoom * ctGridStride)
         return roomCtData[ctDownRoom]
     } else if (pgeGridX >= ctGridWidth) {
-        roomCtData = game._res.level.ctData.subarray(ctRightRoom)
+        roomCtData = game.services.res.level.ctData.subarray(ctRightRoom)
         nextRoom = roomCtData[pge.roomLocation]
         if (nextRoom < 0) {
             return 1
@@ -116,7 +116,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         roomCtData = roomCtData.subarray(pgeGridX - ctGridWidth + pgeGridY * ctGridWidth + nextRoom * ctGridStride)
         return roomCtData[0x80]
     } else if (pgeGridY < 1) {
-        roomCtData = game._res.level.ctData.subarray(ctUpRoom)
+        roomCtData = game.services.res.level.ctData.subarray(ctUpRoom)
         nextRoom = roomCtData[pge.roomLocation]
         if (nextRoom < 0) {
             return 1
@@ -124,7 +124,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         roomCtData = roomCtData.subarray(pgeGridX + (pgeGridY + ctGridHeight - 1) * ctGridWidth + nextRoom * ctGridStride)
         return roomCtData[0x100]
     } else if (pgeGridY >= ctGridHeight) {
-        roomCtData = game._res.level.ctData.subarray(ctDownRoom)
+        roomCtData = game.services.res.level.ctData.subarray(ctDownRoom)
         nextRoom = roomCtData[pge.roomLocation]
         if (nextRoom < 0) {
             return 1
@@ -133,7 +133,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
         roomCtData = roomCtData.subarray(pgeGridX + (pgeGridY - (ctGridHeight - 1)) * ctGridWidth + nextRoom * ctGridStride)
         return roomCtData[0xC0]
     } else {
-        roomCtData = game._res.level.ctData.subarray(ctHeaderSize)
+        roomCtData = game.services.res.level.ctData.subarray(ctHeaderSize)
         roomCtData = roomCtData.subarray(pgeGridX + pgeGridY * ctGridWidth + pge.roomLocation * ctGridStride)
         return roomCtData[0]
     }
@@ -153,19 +153,19 @@ export function gameGetCollisionLanePositionIndexByXY(game: Game, pge: LivePGE, 
     // collision_point_within_room is only used to exit
     // this is used to check in which room's which coordinate is now the collision
     if (x < 0) {
-        collisionPointWithinRoom = game._res.level.ctData[ctLeftRoom + collisionPointWithinRoom]
+        collisionPointWithinRoom = game.services.res.level.ctData[ctLeftRoom + collisionPointWithinRoom]
         if (collisionPointWithinRoom < 0) return uint16Max
         x += gamescreenW
     } else if (x >= gamescreenW) {
-        collisionPointWithinRoom = game._res.level.ctData[ctRightRoom + collisionPointWithinRoom]
+        collisionPointWithinRoom = game.services.res.level.ctData[ctRightRoom + collisionPointWithinRoom]
         if (collisionPointWithinRoom < 0) return uint16Max
         x -= gamescreenW
     } else if (y < 0) {
-        collisionPointWithinRoom = game._res.level.ctData[ctUpRoom + collisionPointWithinRoom]
+        collisionPointWithinRoom = game.services.res.level.ctData[ctUpRoom + collisionPointWithinRoom]
         if (collisionPointWithinRoom < 0) return uint16Max
         y += 216
     } else if (y >= 216) {
-        collisionPointWithinRoom = game._res.level.ctData[ctDownRoom + collisionPointWithinRoom]
+        collisionPointWithinRoom = game.services.res.level.ctData[ctDownRoom + collisionPointWithinRoom]
         if (collisionPointWithinRoom < 0) return uint16Max
         y -= 216
     }
@@ -232,14 +232,14 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
             previousPgeCollisionSegmentSlot.index = pos
         }
         let tempPge = pge
-        if (tempPge.flags & 0x80) {
+        if (tempPge.flags & pgeFlagAutoActivate) {
             runtime.livePgeStore.activeFrameByIndex[tempPge.index] = tempPge
             tempPge.flags |= 4
         }
         if (existingSlotBucket) {
             for (const slot of existingSlotBucket) {
                 tempPge = slot.pge
-                if (tempPge.flags & 0x80) {
+                if (tempPge.flags & pgeFlagAutoActivate) {
                     runtime.livePgeStore.activeFrameByIndex[tempPge.index] = tempPge
                     tempPge.flags |= 4
                 }

@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const gamePge = require('../src/game/game_pge.ts')
+const gamePge = require('../src/game/game-pge.ts')
 const { Mixer } = require('../src/audio/mixer.ts')
 const {
     ctUpRoom,
@@ -41,7 +41,7 @@ const {
     gamePrepareCurrentRoomAnims,
     gamePrepareAdjacentRoomAnims,
     gamePrepareAnimationsInRooms,
-} = require('../src/game/game_world.ts')
+} = require('../src/game/game-world.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
 const attachWorldGroupedGameState = (game) => attachGroupedGameState(game, {

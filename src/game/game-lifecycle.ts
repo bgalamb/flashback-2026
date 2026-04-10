@@ -1,7 +1,7 @@
 import { uint16Max } from '../core/game_constants'
 import type { Game } from './game'
-import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { gameClearStateRewind } from './game_world'
+import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
+import { gameClearStateRewind } from './game-world'
 
 const minStateSlot = 1
 const maxStateSlot = 99
@@ -26,12 +26,12 @@ export function gameBeginPlaythrough(game: Game) {
 export function gameBeginFrameLoop(game: Game) {
     const session = getGameSessionState(game)
     session.endLoop = false
-    session.frameTimestamp = game._stub.getTimeStamp()
+    session.frameTimestamp = game.services.stub.getTimeStamp()
     session.saveTimestamp = session.frameTimestamp
 }
 
 export function gameCompleteFrameTiming(game: Game) {
-    getGameSessionState(game).frameTimestamp = game._stub.getTimeStamp()
+    getGameSessionState(game).frameTimestamp = game.services.stub.getTimeStamp()
 }
 
 export function gameEndLoop(game: Game) {
@@ -77,7 +77,7 @@ export function gameResetLevelLifecycle(game: Game, startRoom: number) {
     const ui = getGameUiState(game)
     const pge = getGamePgeState(game)
     world.currentRoom = startRoom
-    game._cut.setDeathCutSceneId(uint16Max)
+    game.services.cut.setDeathCutSceneId(uint16Max)
     pge.opcodeTempVar2 = uint16Max
     world.deathCutsceneCounter = 0
     world.credits = 0
@@ -97,7 +97,7 @@ export function gameQueueDeathCutscene(game: Game, counter: number, deathCutscen
     }
     world.deathCutsceneCounter = counter
     if (typeof deathCutsceneId === 'number') {
-        game._cut.setDeathCutSceneId(deathCutsceneId)
+        game.services.cut.setDeathCutSceneId(deathCutsceneId)
     }
     return true
 }
@@ -125,7 +125,7 @@ export function gameClearValidSaveState(game: Game) {
 }
 
 export function gameSetSaveTimestamp(game: Game) {
-    getGameSessionState(game).saveTimestamp = game._stub.getTimeStamp()
+    getGameSessionState(game).saveTimestamp = game.services.stub.getTimeStamp()
 }
 
 export function gameSetStateSlot(game: Game, slot: number) {

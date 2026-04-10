@@ -16,8 +16,8 @@ const {
     uint16Max,
 } = require('../src/core/game_constants.ts')
 const { ctLeftRoom, ctRightRoom } = require('../src/game/game.ts')
-const gameCollision = require('../src/game/game_collision.ts')
-const gamePge = require('../src/game/game_pge.ts')
+const gameCollision = require('../src/game/game-collision.ts')
+const gamePge = require('../src/game/game-pge.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
 const attachPgeGroupedGameState = (game) => attachGroupedGameState(game, {

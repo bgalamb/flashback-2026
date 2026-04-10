@@ -1,20 +1,23 @@
-import { ScalerParameters, defaultScaleParameters, SystemStub } from '../platform/systemstub_web'
+import { ScalerParameters, defaultScaleParameters, SystemStub } from '../platform/systemstub-web'
 import { FileSystem } from '../resource/fs'
 import { Game } from '../game/game'
-import { defaultConfig, globalGameOptions } from '../core/game_constants'
+import { defaultConfig, globalGameOptionDefaults } from '../core/game_constants'
+import type { GameOptions } from '../core/game_constants'
 
 const gCaption = "REminiscence"
 
 //By default the structure has everything false, so here we change some values
-const initOptions = async () => {
-    globalGameOptions.useWhiteTshirt = false
-    globalGameOptions.playAscCutscene = true
-    globalGameOptions.playCaillouCutscene = true
-    globalGameOptions.playMetroCutscene = false
-    globalGameOptions.playSerrureCutscene = false
-    globalGameOptions.playCarteCutscene = false
-    globalGameOptions.playGamesavedSound = false
-
+const initOptions = async (): Promise<GameOptions> => {
+    return {
+        ...globalGameOptionDefaults,
+        useWhiteTshirt: false,
+        playAscCutscene: true,
+        playCaillouCutscene: true,
+        playMetroCutscene: false,
+        playSerrureCutscene: false,
+        playCarteCutscene: false,
+        playGamesavedSound: false,
+    }
 }
 
 const parseScaler = (name: string, scalerParameters: ScalerParameters) => {
@@ -84,11 +87,11 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
     //the framework (currently browser) where the game is embedded
     const stub = new dependencies.SystemStub()
 
-    await initOptions()
+    const options = await initOptions()
     const fs = new dependencies.FileSystem()
     await fs.setRootDirectory(dataPath)
 
-    const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave) as DebuggableGame
+    const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave, options) as DebuggableGame
     if (typeof document !== 'undefined') {
         const debugConfig = getDebugConfigFromDocument(document)
         game.debugFlags = debugConfig.debugFlags
@@ -97,7 +100,7 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
         }
     }
     stub._game = game
-    await stub.init(gCaption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
+    await stub.init(gCaption, game.services.vid.layers.w, game.services.vid.layers.h, fullscreen, scalerParameters)
     await game.run()
 }
 

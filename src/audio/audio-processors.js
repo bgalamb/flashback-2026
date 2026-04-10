@@ -1,4 +1,6 @@
 // @ts-nocheck
+// This file must remain .js (not .ts): AudioWorklet processors run in a
+// separate global scope and must be loaded as plain JavaScript modules.
 class MixerChunk {
     contructor() {
         this.data = null;

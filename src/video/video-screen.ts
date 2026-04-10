@@ -1,4 +1,4 @@
-import type { SystemStub } from '../platform/systemstub_web'
+import type { SystemStub } from '../platform/systemstub-web'
 import { screenblockH, screenblockW } from '../core/game_constants'
 import type { VideoLayerState, VideoScreenState } from './video-state'
 

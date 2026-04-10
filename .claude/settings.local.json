@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /Users/balazsgalambos/git3/flashback-2026/src/game/*.ts)",
+      "Bash(find /Users/balazsgalambos/git3/flashback-2026/src -name \"*.ts\" -exec wc -l {} +)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(sed -i '' -e 's/game\\\\._res\\\\b/game.services.res/g' -e 's/game\\\\._vid\\\\b/game.services.vid/g' -e 's/game\\\\._cut\\\\b/game.services.cut/g' -e 's/game\\\\._mix\\\\b/game.services.mix/g' -e 's/game\\\\._stub\\\\b/game.services.stub/g' -e 's/game\\\\._fs\\\\b/game.services.fs/g' \"$f\")",
+      "Bash(done)",
+      "Bash(perl -i -pe ':*)",
+      "Bash(__NEW_LINE_f7cbea2b4db2b9ed__ echo:*)",
+      "Bash(perl -i -pe 's/^import \\\\{ _pgeOpcodetable as opcodeHandlers \\\\} from .\\\\/game_opcodes.;\\\\n?//' src/game/game_pge.ts)",
+      "Bash(perl -i -pe 's/\\\\bopcodeHandlers\\\\[/game._opcodeHandlers[/g' src/game/game_pge.ts)",
+      "Bash(grep -rn \"globalGameOptions\\\\|Game\\\\._scoreTable\\\\|Game\\\\._gameLevels\\\\|Game\\\\._modifierKeyMasks\\\\|Game\\\\._protectionCodeData\\\\|GameClass\\\\._scoreTable\" src/ --include=*.ts)",
+      "Bash(perl:*)",
+      "Bash(ls /Users/balazsgalambos/git3/flashback-2026/src/game/*.ts)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(git mv:*)"
+    ]
+  }
+}

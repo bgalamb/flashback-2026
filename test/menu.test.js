@@ -5,7 +5,7 @@ const assert = require('node:assert/strict')
 
 const { Menu } = require('../src/game/menu.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
-const { dirDown } = require('../src/platform/systemstub_web.ts')
+const { dirDown } = require('../src/platform/systemstub-web.ts')
 const { gamescreenW, gamescreenH } = require('../src/video/video.ts')
 
 function createMenuFixture(overrides = {}) {

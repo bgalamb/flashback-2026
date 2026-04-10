@@ -1,14 +1,14 @@
 import type { InventoryItem, LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { LocaleData } from '../resource/resource'
-import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub_web'
+import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub-web'
 import { charW, gamescreenW } from '../core/game_constants'
 import { uint16Max, uint8Max } from '../core/game_constants'
-import { gameDebugLog } from './game_debug'
-import { gameChangeStateSlot } from './game_lifecycle'
-import { getRuntimeRegistryState } from './game_runtime_data'
-import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { gameInpUpdate } from './game_world'
+import { gameDebugLog } from './game-debug'
+import { gameChangeStateSlot } from './game-lifecycle'
+import { getRuntimeRegistryState } from './game-runtime-data'
+import { getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
+import { gameInpUpdate } from './game-world'
 
 function getOrCreateInventoryItemsForOwner(game: Game, ownerPge: LivePGE) {
     const runtime = getRuntimeRegistryState(game)
@@ -52,8 +52,8 @@ export function gameFindInventoryItemByObjectId(game: Game, ownerPge: LivePGE, o
 
 export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
     const runtime = getRuntimeRegistryState(game)
-    if (pge.unkF !== uint8Max) {
-        const _bx: LivePGE = runtime.livePgesByIndex[pge.unkF]
+    if (pge.inventoryOwnerPgeIndex !== uint8Max) {
+        const _bx: LivePGE = runtime.livePgesByIndex[pge.inventoryOwnerPgeIndex]
         const _di: LivePGE = gameFindInventoryItemBeforePge(game, _bx, pge)
         if (_di === _bx) {
             if (gameGetCurrentInventoryItemIndex(game, _di) === pge.index) {
@@ -68,13 +68,23 @@ export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
 }
 
 export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: LivePGE) {
-    if (pge2.unkF !== uint8Max) {
+    if (pge2.inventoryOwnerPgeIndex !== uint8Max) {
         gameReorderPgeInventoryLinks(game, pge2)
     }
 
     const _ax: LivePGE = gameFindInventoryItemBeforePge(game, pge1, null)
     gameAddPgeToInventoryChain(game, _ax, pge2, pge1)
 }
+
+// Character codes in FB_TXT.FNT used to draw the config panel box
+const panelCharTopLeft = 0x81
+const panelCharTopRight = 0x82
+const panelCharBottomLeft = 0x83
+const panelCharBottomRight = 0x84
+const panelCharTopEdge = 0x85
+const panelCharLeftEdge = 0x86
+const panelCharRightEdge = 0x87
+const panelCharBottomEdge = 0x88
 
 export async function gameHandleConfigPanel(game: Game) {
     const session = getGameSessionState(game)
@@ -83,31 +93,24 @@ export async function gameHandleConfigPanel(game: Game) {
     const w = 17
     const h = 12
 
-    game._vid.setTextColors(0xEE, uint8Max, 0xE2)
+    game.services.vid.setTextColors(0xEE, uint8Max, 0xE2)
 
     // the panel background is drawn using special characters from FB_TXT.FNT
-    // top-left rounded corner
-    game._vid.pcDrawchar(0x81, y, x)
-    // top-right rounded corner
-    game._vid.pcDrawchar(0x82, y, x + w)
-    // bottom-left rounded corner
-    game._vid.pcDrawchar(0x83, y + h, x)
-    // bottom-right rounded corner
-    game._vid.pcDrawchar(0x84, y + h, x + w)
-    // horizontal lines
+    game.services.vid.pcDrawchar(panelCharTopLeft, y, x)
+    game.services.vid.pcDrawchar(panelCharTopRight, y, x + w)
+    game.services.vid.pcDrawchar(panelCharBottomLeft, y + h, x)
+    game.services.vid.pcDrawchar(panelCharBottomRight, y + h, x + w)
     for (let i = 1; i < w; ++i) {
-        game._vid.pcDrawchar(0x85, y, x + i)
-        game._vid.pcDrawchar(0x88, y + h, x + i)
+        game.services.vid.pcDrawchar(panelCharTopEdge, y, x + i)
+        game.services.vid.pcDrawchar(panelCharBottomEdge, y + h, x + i)
     }
     for (let j = 1; j < h; ++j) {
-        game._vid.setTextTransparentColor(uint8Max)
-        // left vertical line
-        game._vid.pcDrawchar(0x86, y + j, x)
-        // right vertical line
-        game._vid.pcDrawchar(0x87, y + j, x + w)
-        game._vid.setTextTransparentColor(0xE2)
+        game.services.vid.setTextTransparentColor(uint8Max)
+        game.services.vid.pcDrawchar(panelCharLeftEdge, y + j, x)
+        game.services.vid.pcDrawchar(panelCharRightEdge, y + j, x + w)
+        game.services.vid.setTextTransparentColor(0xE2)
         for (let i = 1; i < w; ++i) {
-            game._vid.pcDrawchar(0x20, y + j, x + i)
+            game.services.vid.pcDrawchar(0x20, y + j, x + i)
         }
     }
 
@@ -116,41 +119,41 @@ export async function gameHandleConfigPanel(game: Game) {
     game._menu._charVar1 = 0xE2
     game._menu._charVar2 = 0xEE
 
-    game._vid.fullRefresh()
+    game.services.vid.fullRefresh()
     const menuItemAbort = 1
     const menuItemLoad = 2
     const menuItemSave = 3
     const colors = [ 2, 3, 3, 3 ]
     let current = 0
     gameDebugLog(game, 'session', `[config-panel] opened stateSlot=${session.stateSlot}`)
-    while (!game._stub._pi.quit) {
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
-        game._vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
-        const buf = game._res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
+    while (!game.services.stub._pi.quit) {
+        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
+        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
+        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
+        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
+        game.services.vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
+        const buf = game.services.res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
         game._menu.drawString(buf, y + 10, 9, 1)
 
-        game._vid.updateScreen()
-        await game._stub.sleep(80)
+        game.services.vid.updateScreen()
+        await game.services.stub.sleep(80)
         await game.inpUpdate()
 
         let prev = current
-        if (game._stub._pi.dirMask & dirUp) {
-            game._stub._pi.dirMask &= ~dirUp
+        if (game.services.stub._pi.dirMask & dirUp) {
+            game.services.stub._pi.dirMask &= ~dirUp
             current = (current + 3) % 4
         }
-        if (game._stub._pi.dirMask & dirDown) {
-            game._stub._pi.dirMask &= ~dirDown
+        if (game.services.stub._pi.dirMask & dirDown) {
+            game.services.stub._pi.dirMask &= ~dirDown
             current = (current + 1) % 4
         }
-        if (game._stub._pi.dirMask & dirLeft) {
-            game._stub._pi.dirMask &= ~dirLeft
+        if (game.services.stub._pi.dirMask & dirLeft) {
+            game.services.stub._pi.dirMask &= ~dirLeft
             gameChangeStateSlot(game, -1)
         }
-        if (game._stub._pi.dirMask & dirRight) {
-            game._stub._pi.dirMask &= ~dirRight
+        if (game.services.stub._pi.dirMask & dirRight) {
+            game.services.stub._pi.dirMask &= ~dirRight
             gameChangeStateSlot(game, 1)
         }
         if (prev !== current) {
@@ -159,26 +162,26 @@ export async function gameHandleConfigPanel(game: Game) {
             colors[current] = tmp
             gameDebugLog(game, 'session', `[config-panel] selection=${current} stateSlot=${session.stateSlot}`)
         }
-        if (game._stub._pi.enter) {
-            game._stub._pi.enter = false
+        if (game.services.stub._pi.enter) {
+            game.services.stub._pi.enter = false
             switch (current) {
                 case menuItemLoad:
-                    game._stub._pi.load = true
+                    game.services.stub._pi.load = true
                     break
                 case menuItemSave:
-                    game._stub._pi.save = true
+                    game.services.stub._pi.save = true
                     break
             }
-            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game._stub._pi.load} save=${game._stub._pi.save} stateSlot=${session.stateSlot}`)
+            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game.services.stub._pi.load} save=${game.services.stub._pi.save} stateSlot=${session.stateSlot}`)
             break
         }
-        if (game._stub._pi.escape) {
-            game._stub._pi.escape = false
+        if (game.services.stub._pi.escape) {
+            game.services.stub._pi.escape = false
             gameDebugLog(game, 'session', '[config-panel] closed via escape')
             break
         }
     }
-    game._vid.fullRefresh()
+    game.services.vid.fullRefresh()
     return (current === menuItemAbort)
 }
 
@@ -201,8 +204,8 @@ export async function gameHandleInventory(game: Game) {
         let numItems = 0
         for (const invPge of inventoryItemIndices) {
             items[numItems] = {
-                iconNum: game._res.level.pgeAllInitialStateFromFile[invPge].iconNum,
-                initPge: game._res.level.pgeAllInitialStateFromFile[invPge],
+                iconNum: game.services.res.level.pgeAllInitialStateFromFile[invPge].iconNum,
+                initPge: game.services.res.level.pgeAllInitialStateFromFile[invPge],
                 livePge: runtime.livePgesByIndex[invPge]
             }
             ++numItems
@@ -212,7 +215,7 @@ export async function gameHandleInventory(game: Game) {
         const numLines = (((numItems - 1) / 4) >> 0) + 1
         let currentLine = 0
         let displayScore = false
-        while (!game._stub._pi.backspace && !game._stub._pi.quit) {
+        while (!game.services.stub._pi.backspace && !game.services.stub._pi.quit) {
             const iconSprW = 16
             const iconSprH = 16
 
@@ -237,11 +240,11 @@ export async function gameHandleInventory(game: Game) {
                         selectedPge = items[itemIt].livePge
                         gameDebugLog(game, 'session', `[inventory] highlight itemIndex=${currentItem} line=${currentLine} pge=${selectedPge.index} icon=${items[itemIt].iconNum} scoreView=${displayScore}`)
                         const txtNum = items[itemIt].initPge.textNum
-                        const str = game._res.getTextString(world.currentLevel, txtNum)
+                        const str = game.services.res.getTextString(world.currentLevel, txtNum)
                         game.drawString(str, gamescreenW, 189, 0xED, true)
                         if (items[itemIt].initPge.initFlags & 4) {
                             const buf = selectedPge.life.toString()
-                            game._vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
+                            game.services.vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
                         }
                     }
                     iconXPos += 32
@@ -254,33 +257,33 @@ export async function gameHandleInventory(game: Game) {
                 }
             } else {
                 let buf = "SCORE " + ui.score.toString().padStart(8, "0")
-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
-                buf = game._res.getMenuString(LocaleData.Id.li06Level) + ":" + game._res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
+                game.services.vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
+                buf = game.services.res.getMenuString(LocaleData.Id.li06Level) + ":" + game.services.res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
+                game.services.vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
             }
 
-            await game._vid.updateScreen()
-            await game._stub.sleep(80)
+            await game.services.vid.updateScreen()
+            await game.services.stub.sleep(80)
             await game.inpUpdate()
 
-            if (game._stub._pi.dirMask & dirUp) {
-                game._stub._pi.dirMask &= ~dirUp
+            if (game.services.stub._pi.dirMask & dirUp) {
+                game.services.stub._pi.dirMask &= ~dirUp
                 if (currentLine < numLines - 1) {
                     ++currentLine
                     currentItem = currentLine * 4
                     gameDebugLog(game, 'session', `[inventory] move up line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
-            if (game._stub._pi.dirMask & dirDown) {
-                game._stub._pi.dirMask &= ~dirDown
+            if (game.services.stub._pi.dirMask & dirDown) {
+                game.services.stub._pi.dirMask &= ~dirDown
                 if (currentLine > 0) {
                     --currentLine
                     currentItem = currentLine * 4
                     gameDebugLog(game, 'session', `[inventory] move down line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
-            if (game._stub._pi.dirMask & dirLeft) {
-                game._stub._pi.dirMask &= ~dirLeft
+            if (game.services.stub._pi.dirMask & dirLeft) {
+                game.services.stub._pi.dirMask &= ~dirLeft
                 if (currentItem > 0) {
                     const itemNum = currentItem % 4
                     if (itemNum > 0) {
@@ -289,8 +292,8 @@ export async function gameHandleInventory(game: Game) {
                     }
                 }
             }
-            if (game._stub._pi.dirMask & dirRight) {
-                game._stub._pi.dirMask &= ~dirRight
+            if (game.services.stub._pi.dirMask & dirRight) {
+                game.services.stub._pi.dirMask &= ~dirRight
                 if (currentItem < numItems - 1) {
                     const itemNum = currentItem % 4
                     if (itemNum < 3) {
@@ -299,14 +302,14 @@ export async function gameHandleInventory(game: Game) {
                     }
                 }
             }
-            if (game._stub._pi.enter) {
-                game._stub._pi.enter = false
+            if (game.services.stub._pi.enter) {
+                game.services.stub._pi.enter = false
                 displayScore = !displayScore
                 gameDebugLog(game, 'session', `[inventory] toggled scoreView=${displayScore}`)
             }
         }
-        game._vid.fullRefresh()
-        game._stub._pi.backspace = false
+        game.services.vid.fullRefresh()
+        game.services.stub._pi.backspace = false
         if (selectedPge) {
             const inventoryGame = game as Game & { setCurrentInventoryPge?: (pge: LivePGE) => void }
             if (typeof inventoryGame.setCurrentInventoryPge === 'function') {
@@ -341,7 +344,7 @@ export function gameRemovePgeFromInventoryChain(game: Game, pge1: LivePGE, pge2:
     if (itemPosition >= 0) {
         inventoryItemIndices.splice(itemPosition, 1)
     }
-    pge2.unkF = uint8Max
+    pge2.inventoryOwnerPgeIndex = uint8Max
 }
 
 export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
@@ -350,7 +353,7 @@ export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: Live
     if (existingItemPosition >= 0) {
         inventoryItemIndices.splice(existingItemPosition, 1)
     }
-    pge2.unkF = pge3.index
+    pge2.inventoryOwnerPgeIndex = pge3.index
 
     if (pge1 === pge3) {
         inventoryItemIndices.unshift(pge2.index)

@@ -2,19 +2,20 @@ import type { InitPGE, LivePGE, PgeScriptNode } from '../core/intern'
 import { CreatePGE, readBeUint16, readBeUint32, readLeUint32 } from '../core/intern'
 import type { Game } from './game'
 import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
+import { File } from '../resource/file'
 import { Mixer } from '../audio/mixer'
 import { ObjectType } from '../resource/resource'
 import { ctGridStride, ctHeaderSize, gamescreenH, gamescreenW } from '../core/game_constants'
-import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/game_constants'
+import { pgeFlagFlipX, pgeFlagForeground, pgeFlagSpecialAnim, uint16Max, uint8Max, xorRandSeedPolynomial } from '../core/game_constants'
 import { _gameLevels } from '../core/staticres'
 import { monsterListsByLevel } from '../core/staticres-monsters'
 import { assert } from "../core/assert"
-import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game_debug'
-import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game_pge'
-import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game_lifecycle'
-import { getGameServices } from './game_services'
-import { getGameCollisionState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
-import { getRenderDataState, getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
+import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game-debug'
+import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game-pge'
+import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game-lifecycle'
+import { getGameServices } from './game-services'
+import { getGameCollisionState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
+import { getRenderDataState, getRoomPges, getRuntimeRegistryState } from './game-runtime-data'
 
 const monsterPaletteSlot = 5
 
@@ -95,7 +96,7 @@ export function gameGetRandomNumber(game: Game) {
     const session = getGameSessionState(game)
     let n = session.randSeed * 2
     if ((session.randSeed << 32 >> 32) >= 0) {
-        n ^= 0x1D872B41
+        n ^= xorRandSeedPolynomial
     }
     session.randSeed = n
     return n & uint16Max
@@ -219,8 +220,8 @@ export function gameCreatePgeLiveTable1(game: Game) {
     runtime.livePgeStore.liveByRoom.forEach((roomList) => {
         roomList.length = 0
     })
-    for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
-        if (game._res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
+    for (let i = 0; i < game.services.res.level.pgeTotalNumInFile; ++i) {
+        if (game.services.res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
             gameDebugTrace(game, 'world', `i=${i} => skill!`)
             const pge = runtime.livePgesByIndex[i]
             runtime.livePgeStore.liveByRoom[pge.roomLocation].push(pge)
@@ -288,7 +289,7 @@ export function gameClearStateRewind(game: Game) {
     game._rewindLen = 0
 }
 
-export function gameLoadState(_game: Game, _f: any) {
+export function gameLoadState(_game: Game, _f: File) {
     throw new Error('gameLoadState() is not implemented')
 }
 
@@ -357,7 +358,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
 
         assert(!(pge.animNumber >= 1287), `Assertion failed: ${pge.animNumber} < 1287`)
         const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
-        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res.sprites.resolvedSpriteSet
+        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game.services.res.sprites.resolvedSpriteSet
         const paletteColorMaskOverride = getPaletteColorMaskOverrideForPge(game, pge)
         dataPtr = resolvedSpriteSet.spritesByIndex[pge.animNumber]
         if (dataPtr === null) {
@@ -387,19 +388,19 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
         xpos += 8
         if (pge === runtime.livePgesByIndex[0]) {
             render.animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
-        } else if (pge.flags & 0x10) {
+        } else if (pge.flags & pgeFlagForeground) {
             render.animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         } else {
             render.animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
         }
     } else {
-        assert(!(pge.animNumber >= game._res.sprites.numSpc), `Assertion failed: ${pge.animNumber} < ${game._res.sprites.numSpc}`)
-        const dataPtr = game._res.sprites.spc.subarray(readBeUint16(game._res.sprites.spc, pge.animNumber * 2))
+        assert(!(pge.animNumber >= game.services.res.sprites.numSpc), `Assertion failed: ${pge.animNumber} < ${game.services.res.sprites.numSpc}`)
+        const dataPtr = game.services.res.sprites.spc.subarray(readBeUint16(game.services.res.sprites.spc, pge.animNumber * 2))
         const xpos = dx + pge.posX + 8
         const ypos = dy + pge.posY + 2
         if (pge.initPge.objectType === 11) {
             render.animBuffers.addState(3, xpos, ypos, dataPtr, pge)
-        } else if (pge.flags & 0x10) {
+        } else if (pge.flags & pgeFlagForeground) {
             render.animBuffers.addState(2, xpos, ypos, dataPtr, pge)
         } else {
             render.animBuffers.addState(0, xpos, ypos, dataPtr, pge)
@@ -423,7 +424,7 @@ export async function gamePrepareAdjacentRoomAnims(
     shouldPrepare: (game: Game, pge: LivePGE) => boolean,
     currentRoom: number
 ) {
-    const pgeRoom = game._res.level.ctData[roomOffset + currentRoom]
+    const pgeRoom = game.services.res.level.ctData[roomOffset + currentRoom]
     if (pgeRoom >= 0 && pgeRoom < 0x40) {
         const roomPges = getRoomPges(game, pgeRoom)
         gameDebugLog(game, 'world', `[anim-prep] adjacent sourceRoom=${currentRoom} targetRoom=${pgeRoom} offset=(${offsetX},${offsetY}) candidates=${roomPges.length}`)
