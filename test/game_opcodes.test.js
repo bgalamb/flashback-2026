@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { _pgeOpcodetable } = require('../src/game/game_opcodes.ts')
+const { _pgeOpcodetable } = require('../src/game/game-opcodes.ts')
 const {
     ctHeaderSize,
     ctGridStride,
@@ -12,7 +12,7 @@ const {
     uint8Max,
     pgeFlagActive,
 } = require('../src/core/game_constants.ts')
-const { globalGameOptions, kIngameSaveSlot } = require('../src/core/game_constants.ts')
+const { kIngameSaveSlot, globalGameOptionDefaults } = require('../src/core/game_constants.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
 function createAnimData(animNumber = 9, special = 0) {
@@ -125,6 +125,13 @@ function createOpcodeGame(overrides = {}) {
     game._livePgesByIndex[0] = currentPge
     game._livePgeStore.activeFrameByIndex[0] = currentPge
     game._livePgeStore.liveByRoom[currentPge.roomLocation].push(currentPge)
+    game.services = {
+        get res() { return game._res },
+        get cut() { return game._cut },
+        get stub() { return game._stub },
+        get vid() { return game._vid },
+    }
+    game.options = { ...globalGameOptionDefaults }
 
     Object.assign(game, overrides)
     return attachOpcodeGroupedGameState(game)
@@ -160,23 +167,18 @@ test('addToCredits updates credits, mirrors the inventory counter life, and hide
 })
 
 test('saveState persists into the ingame slot and plays the save sound when enabled', () => {
-    const previous = globalGameOptions.playGamesavedSound
-    globalGameOptions.playGamesavedSound = true
     const game = createOpcodeGame()
+    game.options.playGamesavedSound = true
 
-    try {
-        const result = runOpcode(0x69, { pge: game._livePgesByIndex[0], a: 0, b: 0 }, game)
+    const result = runOpcode(0x69, { pge: game._livePgesByIndex[0], a: 0, b: 0 }, game)
 
-        assert.equal(result, uint16Max)
-        assert.equal(game._saveStateCompleted, true)
-        assert.equal(game._validSaveState, true)
-        assert.deepEqual(game.calls, [
-            ['saveGameState', kIngameSaveSlot],
-            ['playSound', 68, 0],
-        ])
-    } finally {
-        globalGameOptions.playGamesavedSound = previous
-    }
+    assert.equal(result, uint16Max)
+    assert.equal(game._saveStateCompleted, true)
+    assert.equal(game._validSaveState, true)
+    assert.deepEqual(game.calls, [
+        ['saveGameState', kIngameSaveSlot],
+        ['playSound', 68, 0],
+    ])
 })
 
 test('setPgeDefaultAnim moves the PGE to its scripted room and reloads the map for room 1', () => {

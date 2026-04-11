@@ -1,9 +1,10 @@
 import { Color, readBeUint16, readLeUint16 } from "../core/intern"
 import { Resource } from "../resource/resource"
 import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
-import { SystemStub } from "../platform/systemstub_web"
-import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
-import { writeLayerImages, writeLayerPixelData } from "../tools/debugger/front-layer-image"
+import { SystemStub } from "../platform/systemstub-web"
+import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptionDefaults } from '../core/game_constants'
+import type { GameOptions } from '../core/game_constants'
+import { writeLayerImages, writeLayerPixelData } from "./video-layer-debug"
 import { assert } from "../core/assert"
 import { applyLevelPalettes, readRoomPaletteOffsets, tryLoadFrontLayerFromFile } from "./video-palette"
 import { createVideoLayerState, createVideoPaletteState, createVideoScreenState, createVideoTextState } from "./video-state"
@@ -19,14 +20,16 @@ class Video {
 
     _res: Resource
     _stub: SystemStub
+    _options: GameOptions
     readonly layers = createVideoLayerState()
     readonly palette = createVideoPaletteState()
     readonly text = createVideoTextState((dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => drawStringChar(dst, pitch, x, y, src, color, chr))
     readonly screen = createVideoScreenState()
 
-    constructor(res: Resource, stub: SystemStub) {
+    constructor(res: Resource, stub: SystemStub, options?: GameOptions) {
       this._res = res
       this._stub = stub
+      this._options = options ?? { ...globalGameOptionDefaults }
     }
 
     private hasHiResRoomLayer() {
@@ -327,8 +330,8 @@ pitch = 16
         )
         this.copyFrontLayerToBack()
         this.pcSetlevelpalettes(level)
-        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette)
-        writeLayerPixelData(level, room, this.layers.frontLayer)
+        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette, this._options.dumpFrontLayerImage)
+        writeLayerPixelData(level, room, this.layers.frontLayer, this._options.dumpFrontLayerPixelData)
     }
 
     pcSetlevelpalettes(level: number) {
@@ -361,7 +364,7 @@ pitch = 16
             this._stub.setPaletteEntry(palSlot * 16 + i, c)
         }
 
-        if (palSlot === 4 && globalGameOptions.useWhiteTshirt) {
+        if (palSlot === 4 && this._options.useWhiteTshirt) {
             const color12: Color = Video.amigaConvertcolor(0x888)
             const conradDarkShirtVisual = this._res.sprites.loadedConradVisualsByVariantId.get(2)
             const color13: Color = Video.amigaConvertcolor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)

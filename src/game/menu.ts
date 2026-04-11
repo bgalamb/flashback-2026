@@ -1,6 +1,6 @@
 import {  Skill } from "../core/intern"
 import { LocaleData, Resource } from "../resource/resource"
-import { dirDown, dirUp, SystemStub } from "../platform/systemstub_web"
+import { dirDown, dirUp, SystemStub } from "../platform/systemstub-web"
 import {gamescreenH, gamescreenW, Video} from "../video/video"
 import { charW, charH, uint8Max } from '../core/game_constants'
 import { _gameLevels } from '../core/staticres'

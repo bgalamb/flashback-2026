@@ -6,7 +6,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
-const { GlobalFibAudioExporter } = require('../src/tools/debugger/global-fib-audio-exporter.ts')
+const { GlobalFibAudioExporter } = require('../src/debugger/global-fib-audio-exporter.ts')
 
 function createGlobalFibFixture() {
     const count = 3

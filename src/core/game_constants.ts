@@ -28,6 +28,10 @@ const pgeFlagMirrored = 0x01
 const pgeFlagFlipX = 0x02
 const pgeFlagActive = 0x04
 const pgeFlagSpecialAnim = 0x08
+const pgeFlagForeground = 0x10   // PGE renders to foreground anim buffer (layer 2)
+const pgeFlagAutoActivate = 0x80 // PGE auto-activates when it enters a collision slot
+
+const xorRandSeedPolynomial = 0x1D872B41 // LFSR polynomial used by gameGetRandomNumber
 
 const initPgeFlagHasCollision = 0x01
 const initPgeFlagUnknownBit1 = 0x02
@@ -66,8 +70,9 @@ const globalGameOptionDefaults = {
   playGamesavedSound: false
 }
 
+type GameOptions = typeof globalGameOptionDefaults
+
 const defaultConfig = { ...configDefaults }
-const globalGameOptions = { ...globalGameOptionDefaults }
 
 export {
   uint8Max,
@@ -98,6 +103,9 @@ export {
   pgeFlagFlipX,
   pgeFlagActive,
   pgeFlagSpecialAnim,
+  pgeFlagForeground,
+  pgeFlagAutoActivate,
+  xorRandSeedPolynomial,
   initPgeFlagHasCollision,
   initPgeFlagUnknownBit1,
   initPgeFlagInCurrentRoomList,
@@ -109,5 +117,5 @@ export {
   configDefaults,
   globalGameOptionDefaults,
   defaultConfig,
-  globalGameOptions,
 }
+export type { GameOptions }

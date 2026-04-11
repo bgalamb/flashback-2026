@@ -12,7 +12,7 @@ const {
     gameCommitLoadedRoom,
     gameResetLevelLifecycle,
     gameMarkSaveStateCompleted,
-} = require('../src/game/game_lifecycle.ts')
+} = require('../src/game/game-lifecycle.ts')
 
 test('lifecycle helpers update grouped state on real Game-shaped objects instead of legacy flat fields', () => {
     const world = {
@@ -72,6 +72,13 @@ test('lifecycle helpers update grouped state on real Game-shaped objects instead
                 this.deathCutsceneId = id
             },
         },
+        _stub: {
+            getTimeStamp() { return 0 },
+        },
+    }
+    game.services = {
+        get cut() { return game._cut },
+        get stub() { return game._stub },
     }
 
     gameRequestMapReload(game, 8)

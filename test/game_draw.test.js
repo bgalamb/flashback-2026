@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const gameDraw = require('../src/game/game_draw.ts')
+const gameDraw = require('../src/game/game-draw.ts')
 const { pgeFlagSpecialAnim, uint8Max } = require('../src/core/game_constants.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
@@ -204,6 +204,7 @@ test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy 
             },
         },
     }
+    game.services = { get vid() { return game._vid } }
 
     gameDraw.gameDrawCurrentRoomOverlay(game)
 

@@ -3,8 +3,8 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { gameHandleInventory } = require('../src/game/game_inventory.ts')
-const { gameDrawStoryTexts } = require('../src/game/game_draw.ts')
+const { gameHandleInventory } = require('../src/game/game-inventory.ts')
+const { gameDrawStoryTexts } = require('../src/game/game-draw.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
 const { uint16Max, uint8Max } = require('../src/core/game_constants.ts')
 
@@ -37,6 +37,12 @@ function attachInventoryGroupedGameState(game) {
     game.services = {
         get res() { return game._res },
         set res(value) { game._res = value },
+        get vid() { return game._vid },
+        set vid(value) { game._vid = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+        get mix() { return game._mix },
+        set mix(value) { game._mix = value },
     }
     game.runtimeData = {
         get livePgesByIndex() { return game._livePgesByIndex },
@@ -61,6 +67,12 @@ function attachStoryGroupedGameState(game) {
     game.services = {
         get res() { return game._res },
         set res(value) { game._res = value },
+        get vid() { return game._vid },
+        set vid(value) { game._vid = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+        get mix() { return game._mix },
+        set mix(value) { game._mix = value },
     }
     return game
 }

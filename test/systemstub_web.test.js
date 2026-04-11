@@ -7,7 +7,7 @@ const {
     SystemStub,
     dirRight,
     dirLeft,
-} = require('../src/platform/systemstub_web.ts')
+} = require('../src/platform/systemstub-web.ts')
 
 const createPlayerInput = () => ({
     dirMask: 0,

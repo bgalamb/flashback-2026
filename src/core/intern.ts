@@ -1,4 +1,3 @@
-import { Game } from "../game/game"
 import { uint16Max, uint8Max } from './game_constants'
 import { assert } from "./assert"
 
@@ -86,7 +85,7 @@ const CreatePGE = () => ({
     life: 0,
     counterValue: 0,
     collisionSlot: uint16Max,
-    unkF: 0,
+    inventoryOwnerPgeIndex: 0,
     animNumber: 0,
     flags: 0,
     index: 0,
@@ -103,7 +102,7 @@ const createLivePGE = () => ({
     life: 0,
     counterValue: 0,
     collisionSlot: uint16Max,
-    unkF: 0,
+    inventoryOwnerPgeIndex: 0,
     animNumber: 0,
     flags: 0,
     index: 0,
@@ -120,7 +119,7 @@ interface LivePGE {
     life: number
     counterValue: number
     collisionSlot: number
-    unkF: number
+    inventoryOwnerPgeIndex: number  // index of the owning PGE in the inventory chain, or uint8Max if unowned
     animNumber: number
     flags: number
     index: number
@@ -220,8 +219,6 @@ interface AnimBufferState {
     paletteColorMaskOverride: number
 }
 
-type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
-type PgeZOrderComparator = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 
 class AnimBuffers {
     _states: Array<AnimBufferState[]> = [null, null, null, null]
@@ -369,4 +366,3 @@ class Buffer {
 }
 
 export { createPgeScriptEntry, CreatePGE, CreateInitPGE, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, PendingPgeSignal, ResolvedSpriteSet, LoadedMonsterVisual, LoadedConradVisual, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, LivePgeRegistry, BankSlot, InventoryItem, SoundFx, readBeUint16, readBeUint32, readLeUint16, readLeUint32, CLIP, Buffer, addcS16, s8ToS16 }
-export type { PgeOpcodeHandler, PgeZOrderComparator }

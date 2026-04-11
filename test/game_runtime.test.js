@@ -3,16 +3,16 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const gamePge = require('../src/game/game_pge.ts')
-const gameDraw = require('../src/game/game_draw.ts')
-const gameCollision = require('../src/game/game_collision.ts')
-const gameInventory = require('../src/game/game_inventory.ts')
-const gameWorld = require('../src/game/game_world.ts')
+const gamePge = require('../src/game/game-pge.ts')
+const gameDraw = require('../src/game/game-draw.ts')
+const gameCollision = require('../src/game/game-collision.ts')
+const gameInventory = require('../src/game/game-inventory.ts')
+const gameWorld = require('../src/game/game-world.ts')
 const {
     dfFastmode,
     dfSetlife,
     dirDown,
-} = require('../src/platform/systemstub_web.ts')
+} = require('../src/platform/systemstub-web.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
 const { Menu } = require('../src/game/menu.ts')
 const { kAutoSaveSlot } = require('../src/game/game.ts')
@@ -28,7 +28,7 @@ const {
     gameLoadStateRewind,
     gameProcessActivePgesForFrame,
     gameMainLoop,
-} = require('../src/game/game_runtime.ts')
+} = require('../src/game/game-runtime.ts')
 
 function createPlayerInput() {
     return {
