@@ -56,6 +56,7 @@ function createMenuFixture(overrides = {}) {
         fullRefreshCalls: 0,
         fadeOutCalls: 0,
         updateScreenCalls: 0,
+        clearHiResRoomLayerCalls: 0,
         pcDrawchar(...args) {
             this.drawCalls.push(args)
         },
@@ -89,6 +90,9 @@ function createMenuFixture(overrides = {}) {
         async updateScreen() {
             this.updateScreenCalls += 1
         },
+        clearHiResRoomLayer() {
+            this.clearHiResRoomLayerCalls += 1
+        },
     }
 
     Object.assign(res, overrides.res)
@@ -119,6 +123,7 @@ test('loadPicture copies the packed menu image into the front and back layers an
 
     await menu.loadPicture('menu1')
 
+    assert.equal(vid.clearHiResRoomLayerCalls, 1)
     assert.deepEqual(Array.from(vid.layers.frontLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])
     assert.deepEqual(Array.from(vid.layers.frontLayer.slice(gamescreenW, gamescreenW + 4)), [21, 22, 23, 24])
     assert.deepEqual(Array.from(vid.layers.backLayer.slice(0, 8)), [1, 2, 3, 4, 11, 12, 13, 14])

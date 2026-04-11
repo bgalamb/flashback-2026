@@ -111,6 +111,21 @@ class Video {
         this._stub.copyRect(0, 0, this.layers.w, this.layers.h, this.layers.frontLayer, this.layers.w)
     }
 
+    clearHiResRoomLayer() {
+        this.layers.hiResRoomPixels = null
+        this.layers.hiResRoomSource = null
+        this.layers.hiResRoomWidth = 0
+        this.layers.hiResRoomHeight = 0
+        this.layers.hiResRoomScale = 1
+        this.layers.hiResMaskedLayer.fill(0)
+        this.layers.hiResMaskedBackLayer.fill(0)
+        this.layers.hiResMaskedTempLayer.fill(0)
+        this.layers.hiResTopLayer.fill(0)
+        this.layers.hiResTopBackLayer.fill(0)
+        this.layers.hiResTopTempLayer.fill(0)
+        this._stub.setHiResRoomLayer(null, 0, 0, 1, null, null)
+    }
+
     setShakeOffset(offset: number) {
         this.screen.shakeOffset = offset
     }
@@ -308,17 +323,7 @@ pitch = 16
             console.warn(`PC_decodeMap level=${level} room=${room}: missing front layer pixeldata file, filling with zeros`)
             this.layers.frontLayer.fill(0)
             this.layers.backLayer.fill(0)
-            this.layers.hiResRoomPixels = null
-            this.layers.hiResRoomSource = null
-            this.layers.hiResRoomWidth = 0
-            this.layers.hiResRoomHeight = 0
-            this.layers.hiResRoomScale = 1
-            this.layers.hiResMaskedLayer.fill(0)
-            this.layers.hiResMaskedBackLayer.fill(0)
-            this.layers.hiResMaskedTempLayer.fill(0)
-            this.layers.hiResTopLayer.fill(0)
-            this.layers.hiResTopBackLayer.fill(0)
-            this.layers.hiResTopTempLayer.fill(0)
+            this.clearHiResRoomLayer()
         }
         this._stub.setHiResRoomLayer(
             this.layers.hiResRoomPixels,

@@ -327,6 +327,7 @@ class Menu {
     async loadPicture(prefix: string) {
         const kPictureW = gamescreenW
         const kPictureH = gamescreenH
+        this._vid.clearHiResRoomLayer()
         await this._res.loadMenuMap(prefix, this._res.scratchBuffer)
         for (let i = 0; i < 4; ++i) {
             for (let y = 0; y < kPictureH; ++y) {
