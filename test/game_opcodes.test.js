@@ -195,6 +195,35 @@ test('setPgeDefaultAnim moves the PGE to its scripted room and reloads the map f
     assert.equal(pge.animNumber, 9)
 })
 
+test('setCollisionState0 and setCollisionState1 patch the room collision grid', () => {
+    const game = createOpcodeGame()
+    const collisionCells = new Int8Array(ctHeaderSize + ctGridStride * ctRoomSize).fill(0)
+    const patchOffset = ctHeaderSize
+    const restoreSlot = {
+        patchedGridDataView: collisionCells.subarray(patchOffset, patchOffset + 1),
+        patchedCellCount: 0,
+        originalGridCellValues: new Uint8Array(8),
+        nextPatchedRegionRestoreSlot: null,
+    }
+    const pge = game._livePgesByIndex[0]
+    pge.posX = -8
+    pge.posY = 0
+    pge.roomLocation = 0
+    pge.initPge.numberOfCollisionSegments = 1
+    game._res.level.ctData = collisionCells
+    game.collision = {
+        activeRoomCollisionGridPatchRestoreSlots: restoreSlot,
+        roomCollisionGridPatchRestoreSlotPool: [restoreSlot],
+        nextFreeRoomCollisionGridPatchRestoreSlot: null,
+    }
+    game.pge.currentPgeFacingIsMirrored = false
+
+    assert.equal(runOpcode(0x36, { pge, a: 0, b: 0 }, game), 1)
+    assert.equal(collisionCells[patchOffset], 1)
+    assert.equal(runOpcode(0x37, { pge, a: 0, b: 0 }, game), 1)
+    assert.equal(collisionCells[patchOffset], 0)
+})
+
 test('changeRoom copies source placement, updates room lists, and syncs matching script state', () => {
     const game = createOpcodeGame()
     const destination = {

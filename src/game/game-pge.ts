@@ -298,10 +298,6 @@ export function gameQueuePgeGroupSignal(game: Game, senderPgeIndex: number, targ
     const runtime = getRuntimeRegistryState(game)
     let pge: LivePGE = runtime.livePgesByIndex[targetPgeIndex]
     if (!(pge.flags & pgeFlagActive)) {
-        if (!(pge.initPge.flags & initPgeFlagHasCollision)) {
-            gameDebugLog(game, 'pge', `[group-signal] skip sender=${senderPgeIndex} target=${targetPgeIndex} signal=${signalId} reason=no-collision`)
-            return
-        }
         pge.flags |= pgeFlagActive
         runtime.livePgeStore.activeFrameByIndex[targetPgeIndex] = pge
         gameDebugLog(game, 'pge', `[group-signal] activated target=${targetPgeIndex} room=${pge.roomLocation} signal=${signalId}`)

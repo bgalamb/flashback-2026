@@ -5,6 +5,12 @@ import { ctDownRoom, ctLeftRoom, ctRightRoom, uint16Max } from '../core/game_con
 import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game-collision'
 import { assert } from '../core/assert'
 
+const opcodeIsInGroup = 0x22
+const opcodeIsInGroupSlice = 0x6B
+const opcodeSetCollisionState1 = 0x36
+const opcodeSetCollisionState0 = 0x37
+const opcodeSetCollisionState2 = 0x68
+
 
 // Conrad standing-position reference for the runtime collision grid math:
 //
@@ -110,6 +116,34 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 }
 
 const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) => {
+	const resolveExplicitCollisionState = (scriptEntry: PgeScriptEntry) => {
+		switch (scriptEntry.opcode3) {
+		case opcodeSetCollisionState0:
+			return uint16Max
+		case opcodeSetCollisionState1:
+		case opcodeSetCollisionState2:
+			return 0
+		default:
+			return null
+		}
+	}
+
+	const matchesGroupSignal = (opcode: number, opcodeArg: number) => {
+		if (opcode === opcodeIsInGroupSlice) {
+			if (opcodeArg === 0) {
+				return groupId === 1 || groupId === 2
+			}
+			if (opcodeArg === 1) {
+				return groupId === 3 || groupId === 4
+			}
+			return false
+		}
+		if (opcode === opcodeIsInGroup) {
+			return opcodeArg === groupId
+		}
+		return null
+	}
+
 	const initPge:InitPGE = pge.initPge
     assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
 	const scriptNode: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
@@ -129,38 +163,19 @@ const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) =>
 	}
 	let i = pge.firstScriptEntryIndex
 	while (pge.scriptStateType === scriptEntry.type && scriptNode.lastObjNumber > i) {
-		if (scriptEntry.opcode2 === 0x6B) { // pge_op_isInGroupSlice
-			if (scriptEntry.opcodeArg2 === 0) {
-				if (groupId === 1 || groupId === 2) {
-                    return uint16Max
-                }
-			}
-			if (scriptEntry.opcodeArg2 === 1) {
-				if (groupId === 3 || groupId === 4) {
-                    return uint16Max
-                }
-			}
-		} else if (scriptEntry.opcode2 === 0x22) { // pge_op_isInGroup
-			if (scriptEntry.opcodeArg2 === groupId) {
-                return uint16Max
-            }
+		const opcode2Match = matchesGroupSignal(scriptEntry.opcode2, scriptEntry.opcodeArg2)
+		if (opcode2Match === true) {
+			return resolveExplicitCollisionState(scriptEntry) ?? uint16Max
 		}
-
-		if (scriptEntry.opcode1 === 0x6B) { // pge_op_isInGroupSlice
-			if (scriptEntry.opcodeArg1 === 0) {
-				if (groupId === 1 || groupId === 2) {
-                    return uint16Max
-                }
+		const opcode1Match = matchesGroupSignal(scriptEntry.opcode1, scriptEntry.opcodeArg1)
+		if (opcode1Match === true) {
+			return resolveExplicitCollisionState(scriptEntry) ?? uint16Max
+		}
+		if (opcode1Match === null && opcode2Match === null) {
+			const explicitCollisionState = resolveExplicitCollisionState(scriptEntry)
+			if (explicitCollisionState !== null) {
+				return explicitCollisionState
 			}
-			if (scriptEntry.opcodeArg1 === 1) {
-				if (groupId === 3 || groupId === 4) {
-                    return uint16Max
-                }
-			}
-		} else if (scriptEntry.opcode1 === 0x22) { // pge_op_isInGroup
-			if (scriptEntry.opcodeArg1 === groupId) {
-                return uint16Max
-            }
 		}
 		++i;
         scriptEntry = scriptNode.objects[i]

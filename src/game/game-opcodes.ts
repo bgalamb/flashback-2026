@@ -138,6 +138,8 @@ import {
     pgeOpIsingroupslice,
     pgeOpIsinpmod,
     pgeOpIsnotfacingconrad,
+    pgeOpSetcollisionstate0,
+    pgeOpSetcollisionstate1,
     pgeOpSetcollisionstate2,
 } from './game-opcodes-special'
 import { instrumentOpcodeTable } from './game-opcodes-debug'
@@ -198,8 +200,8 @@ const basePgeOpcodetable = [
     pgeOpRemoveitemfrominventory,
     pgeOUnk0x34,
     pgeOpIsinpmod,
-    null,
-    null,
+    pgeOpSetcollisionstate1,
+    pgeOpSetcollisionstate0,
     pgeOpIsingroup1,
     pgeOpIsingroup2,
     pgeOpIsingroup3,

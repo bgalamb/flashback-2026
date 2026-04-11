@@ -330,6 +330,8 @@ export const pgeOpIsingroup1 = (args: PgeOpcodeArgs, game: Game) => pgeIsingroup
 export const pgeOpIsingroup2 = (args: PgeOpcodeArgs, game: Game) => pgeIsingroup(args.pge, args.a, 2, game)
 export const pgeOpIsingroup3 = (args: PgeOpcodeArgs, game: Game) => pgeIsingroup(args.pge, args.a, 3, game)
 export const pgeOpIsingroup4 = (args: PgeOpcodeArgs, game: Game) => pgeIsingroup(args.pge, args.a, 4, game)
+export const pgeOpSetcollisionstate1 = (args: PgeOpcodeArgs, game: Game) => pgeUpdatecollisionstate(args.pge, args.a, 1, game)
+export const pgeOpSetcollisionstate0 = (args: PgeOpcodeArgs, game: Game) => pgeUpdatecollisionstate(args.pge, args.a, 0, game)
 
 export const pgeOUnk0x45 = (args: PgeOpcodeArgs, game: Game) => pgeZorder(args.pge, args.a, pgeZorderbynumber, 0, game)
 export const pgeOUnk0x46 = (args: PgeOpcodeArgs, game: Game) => {

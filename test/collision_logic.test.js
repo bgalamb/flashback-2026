@@ -207,6 +207,46 @@ test('collision helper recognizes group membership from script opcodes', () => {
     assert.equal(colDetecthitcallbackhelper(pge, 2, game), 0)
 })
 
+test('collision helper honors an explicit open collision state in the active door state', () => {
+    const game = createCollisionGame()
+    const pge = {
+        index: 1,
+        roomLocation: 3,
+        scriptStateType: 290,
+        firstScriptEntryIndex: 0,
+        initPge: { objectType: 6, scriptNodeIndex: 1 },
+    }
+    game._res.level.objectNodesMap[1] = {
+        lastObjNumber: 1,
+        objects: [
+            { type: 290, opcode1: 0, opcodeArg1: 0, opcode2: 0x43, opcodeArg2: 0, opcode3: 0x37, opcodeArg3: 1 },
+            { type: 291, opcode1: 0, opcodeArg1: 0, opcode2: 0, opcodeArg2: 0, opcode3: 0, opcodeArg3: 0 },
+        ],
+    }
+
+    assert.equal(colDetecthitcallbackhelper(pge, 1, game), uint16Max)
+})
+
+test('collision helper honors an explicit closed collision state in the active door state', () => {
+    const game = createCollisionGame()
+    const pge = {
+        index: 1,
+        roomLocation: 3,
+        scriptStateType: 289,
+        firstScriptEntryIndex: 0,
+        initPge: { objectType: 6, scriptNodeIndex: 1 },
+    }
+    game._res.level.objectNodesMap[1] = {
+        lastObjNumber: 1,
+        objects: [
+            { type: 289, opcode1: 0x43, opcodeArg1: 0, opcode2: 0, opcodeArg2: 0, opcode3: 0x36, opcodeArg3: 1 },
+            { type: 290, opcode1: 0, opcodeArg1: 0, opcode2: 0, opcodeArg2: 0, opcode3: 0, opcodeArg3: 0 },
+        ],
+    }
+
+    assert.equal(colDetecthitcallbackhelper(pge, 1, game), 0)
+})
+
 test('col_detectHit walks collision buckets and queues signals on eligible targets', () => {
     const game = createCollisionGame()
     const source = {

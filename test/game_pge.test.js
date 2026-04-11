@@ -150,6 +150,25 @@ test('gameQueuePgeGroupSignal activates collision-capable inactive targets and r
     assert.deepEqual(game._pendingSignalsByTargetPgeIndex.get(2), [{ senderPgeIndex: 0, signalId: 4 }])
 })
 
+test('gameQueuePgeGroupSignal activates hidden non-colliding targets and records pending signals', () => {
+    const game = createPgeGame()
+    const sender = { roomLocation: 42 }
+    const target = {
+        index: 5,
+        flags: 0,
+        roomLocation: 42,
+        initPge: { flags: 0 },
+    }
+    game._livePgesByIndex[1] = sender
+    game._livePgesByIndex[5] = target
+
+    gamePge.gameQueuePgeGroupSignal(game, 1, 5, 3)
+
+    assert.equal((target.flags & pgeFlagActive) !== 0, true)
+    assert.equal(game._livePgeStore.activeFrameByIndex[5], target)
+    assert.deepEqual(game._pendingSignalsByTargetPgeIndex.get(5), [{ senderPgeIndex: 1, signalId: 3 }])
+})
+
 test('gameApplyNextPgeAnimationFrameFromGroups fast-forwards to the end of the matching animation', () => {
     const game = createPgeGame()
     const pge = {
