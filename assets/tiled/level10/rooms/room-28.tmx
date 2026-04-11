@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="16" height="7" tilewidth="64" tileheight="144" infinite="0" backgroundcolor="#200708" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" source="../tilesets/level10.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="16" height="7">
+  <data encoding="csv">
+2147483671,23,0,0,0,0,0,0,0,0,0,0,0,0,0,23,
+0,0,0,51,13,13,13,20,0,0,0,0,0,51,45,2147483695,
+0,0,0,44,8,0,25,15,0,0,0,0,0,18,0,17,
+29,10,0,20,0,0,0,0,2147483668,10,45,13,19,0,0,0,
+6,6,6,16,0,0,0,0,18,0,7,0,17,0,0,0,
+0,0,26,0,0,0,0,0,0,0,0,51,9,0,31,0,
+0,0,0,38,0,0,0,0,0,0,0,43,7,7,6,6
+</data>
+ </layer>
+</map>
