@@ -29,4 +29,4 @@ The following README files already exist in this repository and are linked here 
 - [Level generator scripts](./src/level-generator/!README.md)
 - [Debugger helper scripts](./src/debugger-helpers/README.md)
 - [Level format and room notes](./DATA/levels/README.md)
-- [Legacy level data notes](./DATA/legacy/legacy-level-data/README.md)
+- [Legacy level data notes](src/legacy/legacy-level-data/README.md)
