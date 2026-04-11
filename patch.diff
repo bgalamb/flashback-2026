@@ -1,0 +1,3455 @@
+From 50cb150203a8743e040d238281bb56834f66940b Mon Sep 17 00:00:00 2001
+From: Balazs Galambos <balazs.galambos@coinbase.com>
+Date: Fri, 10 Apr 2026 22:25:19 +0200
+Subject: [PATCH] all refactored
+
+---
+ .claude/settings.local.json                   |  21 +++
+ .../sprites_reversed/glue-sprites.zip         | Bin
+ .../sprites_reversed/junky-sprites.zip        | Bin
+ .../sprites_reversed/perso-sprites.zip        | Bin
+ .../level10-room17.tiled-project              |   0
+ .../level10-room17.tiled-session              |   0
+ src/app/main.ts                               |  31 ++--
+ src/audio/audio-processors.js                 |   2 +
+ src/audio/mixer.ts                            |   2 +-
+ src/core/game_constants.ts                    |  12 +-
+ src/core/intern.ts                            |  10 +-
+ src/cutscene-players/cutscene.ts              |  17 +-
+ src/cutscene-players/mp4-cutscene-player.ts   |   2 +-
+ src/{tools => }/debugger/README.md            |   0
+ .../debugger/check-room-png-assets.ts         |   0
+ .../debugger/check-switch-door-platforms.ts   |   0
+ .../debugger/ct-adjacency-table-exporter.ts   |   0
+ .../debugger/ct-grid-table-exporter.ts        |   0
+ .../debugger/export-all-amiga-level-images.ts |   0
+ .../export-all-cutscene-cmdpol-videos.ts      |   0
+ .../export-all-level-layer-artifacts.ts       |   0
+ .../export-all-level-palette-headers.ts       |   0
+ .../debugger/export-all-room-indexed-png.ts   |   0
+ .../debugger/export-amiga-level-image.ts      |   0
+ .../debugger/export-ct-adjacency-level.ts     |   0
+ .../debugger/export-ct-adjacency-table.ts     |   0
+ src/{tools => }/debugger/export-ct-all.ts     |   0
+ .../debugger/export-ct-grid-all.ts            |   0
+ .../debugger/export-ct-grid-level-room.ts     |   0
+ .../debugger/export-cutscene-video.ts         |   0
+ .../debugger/export-global-fib-audio.ts       |   0
+ .../export-holocube-video-with-text.ts        |   0
+ .../debugger/export-level-grid-merged-png.ts  |   0
+ .../debugger/export-mbk-bnq-map-table.ts      |   0
+ .../debugger/export-mbk-entry-image.ts        |   0
+ src/{tools => }/debugger/export-obj-json.ts   |   0
+ src/{tools => }/debugger/export-pge-json.ts   |   0
+ .../debugger/export-room-indexed-png.ts       |   0
+ .../debugger/export-room-layer-artifacts.ts   |   0
+ .../debugger/export-sprite-image.ts           |   0
+ src/{tools => }/debugger/export-tbn-json.ts   |   0
+ .../debugger/global-fib-audio-exporter.ts     |   0
+ .../debugger/legacy-room-png-exporter.ts      |   0
+ src/{tools => }/debugger/obj-file-exporter.ts |   0
+ src/{tools => }/debugger/obj-legacy-parser.ts |   0
+ src/{tools => }/debugger/pge-file-exporter.ts |   0
+ src/{tools => }/debugger/pge-legacy-parser.ts |   0
+ .../debugger/sprite-image-exporter.ts         |   0
+ .../debugger/sprite-image-visualizer.ts       |   0
+ src/{tools => }/debugger/tbn-file-exporter.ts |   0
+ src/{core => game}/collision.ts               |  26 ++-
+ src/game/{game_audio.ts => game-audio.ts}     |  16 +-
+ .../{game_collision.ts => game-collision.ts}  |  32 ++--
+ src/game/{game_debug.ts => game-debug.ts}     |   0
+ src/game/{game_draw.ts => game-draw.ts}       |  88 +++++-----
+ .../{game_inventory.ts => game-inventory.ts}  | 159 +++++++++---------
+ .../{game_lifecycle.ts => game-lifecycle.ts}  |  14 +-
+ src/game/{game_opcodes.ts => game-opcodes.ts} | 118 ++++++-------
+ src/game/{game_pge.ts => game-pge.ts}         | 102 +++++------
+ ..._transition.ts => game-room-transition.ts} |  20 +--
+ ...e_runtime_data.ts => game-runtime-data.ts} |   0
+ src/game/{game_runtime.ts => game-runtime.ts} |  83 ++++-----
+ .../{game_services.ts => game-services.ts}    |   2 +-
+ ...e_session_flow.ts => game-session-flow.ts} | 110 ++++++------
+ src/game/{game_state.ts => game-state.ts}     |   0
+ src/game/{game_world.ts => game-world.ts}     |  35 ++--
+ src/game/game.ts                              |  76 ++++-----
+ src/game/menu.ts                              |   2 +-
+ src/{tools => }/level-generator/!README.md    |   0
+ .../level-generator/ChatGPTPromtpForLevel.txt |   0
+ .../level-generator/ct-array-rebuilder.ts     |   0
+ .../level-generator/generation-config.ts      |   0
+ .../level-generator/merge-room-layer-png.ts   |   0
+ .../rebuild-adjacency-json-from-txt.ts        |   0
+ .../level-generator/rebuild-ct-from-txt.ts    |   0
+ .../remap_room_layer_from_indexed_png.ts      |   0
+ .../render_room_layers_from_grid.ts           |   0
+ .../{systemstub_web.ts => systemstub-web.ts}  |   0
+ .../video-layer-debug.ts}                     |  12 +-
+ src/video/video-palette.ts                    |   2 +-
+ src/video/video-screen.ts                     |   2 +-
+ src/video/video.ts                            |  17 +-
+ test/collision_logic.test.js                  |   8 +-
+ test/game_draw.test.js                        |   3 +-
+ test/game_lifecycle.test.js                   |   9 +-
+ test/game_opcodes.test.js                     |  36 ++--
+ test/game_pge.test.js                         |   4 +-
+ test/game_runtime.test.js                     |  14 +-
+ test/game_world.test.js                       |   4 +-
+ test/global_fib_audio_exporter.test.js        |   2 +-
+ test/index.test.js                            |   6 +-
+ test/inventory_and_story_text.test.js         |  16 +-
+ test/menu.test.js                             |   2 +-
+ test/systemstub_web.test.js                   |   2 +-
+ 94 files changed, 577 insertions(+), 542 deletions(-)
+ create mode 100644 .claude/settings.local.json
+ rename {src => assets}/sprites_reversed/glue-sprites.zip (100%)
+ rename {src => assets}/sprites_reversed/junky-sprites.zip (100%)
+ rename {src => assets}/sprites_reversed/perso-sprites.zip (100%)
+ rename {src => level-editor}/tiled-project/level10-room17.tiled-project (100%)
+ rename {src => level-editor}/tiled-project/level10-room17.tiled-session (100%)
+ rename src/{tools => }/debugger/README.md (100%)
+ rename src/{tools => }/debugger/check-room-png-assets.ts (100%)
+ rename src/{tools => }/debugger/check-switch-door-platforms.ts (100%)
+ rename src/{tools => }/debugger/ct-adjacency-table-exporter.ts (100%)
+ rename src/{tools => }/debugger/ct-grid-table-exporter.ts (100%)
+ rename src/{tools => }/debugger/export-all-amiga-level-images.ts (100%)
+ rename src/{tools => }/debugger/export-all-cutscene-cmdpol-videos.ts (100%)
+ rename src/{tools => }/debugger/export-all-level-layer-artifacts.ts (100%)
+ rename src/{tools => }/debugger/export-all-level-palette-headers.ts (100%)
+ rename src/{tools => }/debugger/export-all-room-indexed-png.ts (100%)
+ rename src/{tools => }/debugger/export-amiga-level-image.ts (100%)
+ rename src/{tools => }/debugger/export-ct-adjacency-level.ts (100%)
+ rename src/{tools => }/debugger/export-ct-adjacency-table.ts (100%)
+ rename src/{tools => }/debugger/export-ct-all.ts (100%)
+ rename src/{tools => }/debugger/export-ct-grid-all.ts (100%)
+ rename src/{tools => }/debugger/export-ct-grid-level-room.ts (100%)
+ rename src/{tools => }/debugger/export-cutscene-video.ts (100%)
+ rename src/{tools => }/debugger/export-global-fib-audio.ts (100%)
+ rename src/{tools => }/debugger/export-holocube-video-with-text.ts (100%)
+ rename src/{tools => }/debugger/export-level-grid-merged-png.ts (100%)
+ rename src/{tools => }/debugger/export-mbk-bnq-map-table.ts (100%)
+ rename src/{tools => }/debugger/export-mbk-entry-image.ts (100%)
+ rename src/{tools => }/debugger/export-obj-json.ts (100%)
+ rename src/{tools => }/debugger/export-pge-json.ts (100%)
+ rename src/{tools => }/debugger/export-room-indexed-png.ts (100%)
+ rename src/{tools => }/debugger/export-room-layer-artifacts.ts (100%)
+ rename src/{tools => }/debugger/export-sprite-image.ts (100%)
+ rename src/{tools => }/debugger/export-tbn-json.ts (100%)
+ rename src/{tools => }/debugger/global-fib-audio-exporter.ts (100%)
+ rename src/{tools => }/debugger/legacy-room-png-exporter.ts (100%)
+ rename src/{tools => }/debugger/obj-file-exporter.ts (100%)
+ rename src/{tools => }/debugger/obj-legacy-parser.ts (100%)
+ rename src/{tools => }/debugger/pge-file-exporter.ts (100%)
+ rename src/{tools => }/debugger/pge-legacy-parser.ts (100%)
+ rename src/{tools => }/debugger/sprite-image-exporter.ts (100%)
+ rename src/{tools => }/debugger/sprite-image-visualizer.ts (100%)
+ rename src/{tools => }/debugger/tbn-file-exporter.ts (100%)
+ rename src/{core => game}/collision.ts (92%)
+ rename src/game/{game_audio.ts => game-audio.ts} (63%)
+ rename src/game/{game_collision.ts => game-collision.ts} (89%)
+ rename src/game/{game_debug.ts => game-debug.ts} (100%)
+ rename src/game/{game_draw.ts => game-draw.ts} (78%)
+ rename src/game/{game_inventory.ts => game-inventory.ts} (70%)
+ rename src/game/{game_lifecycle.ts => game-lifecycle.ts} (90%)
+ rename src/game/{game_opcodes.ts => game-opcodes.ts} (94%)
+ rename src/game/{game_pge.ts => game-pge.ts} (87%)
+ rename src/game/{game_room_transition.ts => game-room-transition.ts} (84%)
+ rename src/game/{game_runtime_data.ts => game-runtime-data.ts} (100%)
+ rename src/game/{game_runtime.ts => game-runtime.ts} (85%)
+ rename src/game/{game_services.ts => game-services.ts} (89%)
+ rename src/game/{game_session_flow.ts => game-session-flow.ts} (66%)
+ rename src/game/{game_state.ts => game-state.ts} (100%)
+ rename src/game/{game_world.ts => game-world.ts} (93%)
+ rename src/{tools => }/level-generator/!README.md (100%)
+ rename src/{tools => }/level-generator/ChatGPTPromtpForLevel.txt (100%)
+ rename src/{tools => }/level-generator/ct-array-rebuilder.ts (100%)
+ rename src/{tools => }/level-generator/generation-config.ts (100%)
+ rename src/{tools => }/level-generator/merge-room-layer-png.ts (100%)
+ rename src/{tools => }/level-generator/rebuild-adjacency-json-from-txt.ts (100%)
+ rename src/{tools => }/level-generator/rebuild-ct-from-txt.ts (100%)
+ rename src/{tools => }/level-generator/remap_room_layer_from_indexed_png.ts (100%)
+ rename src/{tools => }/level-generator/render_room_layers_from_grid.ts (100%)
+ rename src/platform/{systemstub_web.ts => systemstub-web.ts} (100%)
+ rename src/{tools/debugger/front-layer-image.ts => video/video-layer-debug.ts} (93%)
+
+diff --git a/.claude/settings.local.json b/.claude/settings.local.json
+new file mode 100644
+index 0000000..eaf4992
+--- /dev/null
++++ b/.claude/settings.local.json
+@@ -0,0 +1,21 @@
++{
++  "permissions": {
++    "allow": [
++      "Bash(wc -l /Users/balazsgalambos/git3/flashback-2026/src/game/*.ts)",
++      "Bash(find /Users/balazsgalambos/git3/flashback-2026/src -name \"*.ts\" -exec wc -l {} +)",
++      "Bash(for f:*)",
++      "Bash(do)",
++      "Bash(sed -i '' -e 's/game\\\\._res\\\\b/game.services.res/g' -e 's/game\\\\._vid\\\\b/game.services.vid/g' -e 's/game\\\\._cut\\\\b/game.services.cut/g' -e 's/game\\\\._mix\\\\b/game.services.mix/g' -e 's/game\\\\._stub\\\\b/game.services.stub/g' -e 's/game\\\\._fs\\\\b/game.services.fs/g' \"$f\")",
++      "Bash(done)",
++      "Bash(perl -i -pe ':*)",
++      "Bash(__NEW_LINE_f7cbea2b4db2b9ed__ echo:*)",
++      "Bash(perl -i -pe 's/^import \\\\{ _pgeOpcodetable as opcodeHandlers \\\\} from .\\\\/game_opcodes.;\\\\n?//' src/game/game_pge.ts)",
++      "Bash(perl -i -pe 's/\\\\bopcodeHandlers\\\\[/game._opcodeHandlers[/g' src/game/game_pge.ts)",
++      "Bash(grep -rn \"globalGameOptions\\\\|Game\\\\._scoreTable\\\\|Game\\\\._gameLevels\\\\|Game\\\\._modifierKeyMasks\\\\|Game\\\\._protectionCodeData\\\\|GameClass\\\\._scoreTable\" src/ --include=*.ts)",
++      "Bash(perl:*)",
++      "Bash(ls /Users/balazsgalambos/git3/flashback-2026/src/game/*.ts)",
++      "Bash(xargs -I {} basename {})",
++      "Bash(git mv:*)"
++    ]
++  }
++}
+diff --git a/src/sprites_reversed/glue-sprites.zip b/assets/sprites_reversed/glue-sprites.zip
+similarity index 100%
+rename from src/sprites_reversed/glue-sprites.zip
+rename to assets/sprites_reversed/glue-sprites.zip
+diff --git a/src/sprites_reversed/junky-sprites.zip b/assets/sprites_reversed/junky-sprites.zip
+similarity index 100%
+rename from src/sprites_reversed/junky-sprites.zip
+rename to assets/sprites_reversed/junky-sprites.zip
+diff --git a/src/sprites_reversed/perso-sprites.zip b/assets/sprites_reversed/perso-sprites.zip
+similarity index 100%
+rename from src/sprites_reversed/perso-sprites.zip
+rename to assets/sprites_reversed/perso-sprites.zip
+diff --git a/src/tiled-project/level10-room17.tiled-project b/level-editor/tiled-project/level10-room17.tiled-project
+similarity index 100%
+rename from src/tiled-project/level10-room17.tiled-project
+rename to level-editor/tiled-project/level10-room17.tiled-project
+diff --git a/src/tiled-project/level10-room17.tiled-session b/level-editor/tiled-project/level10-room17.tiled-session
+similarity index 100%
+rename from src/tiled-project/level10-room17.tiled-session
+rename to level-editor/tiled-project/level10-room17.tiled-session
+diff --git a/src/app/main.ts b/src/app/main.ts
+index ea39989..587ccb1 100644
+--- a/src/app/main.ts
++++ b/src/app/main.ts
+@@ -1,20 +1,23 @@
+-import { ScalerParameters, defaultScaleParameters, SystemStub } from '../platform/systemstub_web'
++import { ScalerParameters, defaultScaleParameters, SystemStub } from '../platform/systemstub-web'
+ import { FileSystem } from '../resource/fs'
+ import { Game } from '../game/game'
+-import { defaultConfig, globalGameOptions } from '../core/game_constants'
++import { defaultConfig, globalGameOptionDefaults } from '../core/game_constants'
++import type { GameOptions } from '../core/game_constants'
+ 
+ const gCaption = "REminiscence"
+ 
+ //By default the structure has everything false, so here we change some values
+-const initOptions = async () => {
+-    globalGameOptions.useWhiteTshirt = false
+-    globalGameOptions.playAscCutscene = true
+-    globalGameOptions.playCaillouCutscene = true
+-    globalGameOptions.playMetroCutscene = false
+-    globalGameOptions.playSerrureCutscene = false
+-    globalGameOptions.playCarteCutscene = false
+-    globalGameOptions.playGamesavedSound = false
+-
++const initOptions = async (): Promise<GameOptions> => {
++    return {
++        ...globalGameOptionDefaults,
++        useWhiteTshirt: false,
++        playAscCutscene: true,
++        playCaillouCutscene: true,
++        playMetroCutscene: false,
++        playSerrureCutscene: false,
++        playCarteCutscene: false,
++        playGamesavedSound: false,
++    }
+ }
+ 
+ const parseScaler = (name: string, scalerParameters: ScalerParameters) => {
+@@ -84,11 +87,11 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
+     //the framework (currently browser) where the game is embedded
+     const stub = new dependencies.SystemStub()
+ 
+-    await initOptions()
++    const options = await initOptions()
+     const fs = new dependencies.FileSystem()
+     await fs.setRootDirectory(dataPath)
+ 
+-    const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave) as DebuggableGame
++    const game = new dependencies.Game(stub, fs, savePath, levelNum, autoSave, options) as DebuggableGame
+     if (typeof document !== 'undefined') {
+         const debugConfig = getDebugConfigFromDocument(document)
+         game.debugFlags = debugConfig.debugFlags
+@@ -97,7 +100,7 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
+         }
+     }
+     stub._game = game
+-    await stub.init(gCaption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
++    await stub.init(gCaption, game.services.vid.layers.w, game.services.vid.layers.h, fullscreen, scalerParameters)
+     await game.run()
+ }
+ 
+diff --git a/src/audio/audio-processors.js b/src/audio/audio-processors.js
+index da54e40..7e59a2e 100644
+--- a/src/audio/audio-processors.js
++++ b/src/audio/audio-processors.js
+@@ -1,4 +1,6 @@
+ // @ts-nocheck
++// This file must remain .js (not .ts): AudioWorklet processors run in a
++// separate global scope and must be loaded as plain JavaScript modules.
+ class MixerChunk {
+     contructor() {
+         this.data = null;
+diff --git a/src/audio/mixer.ts b/src/audio/mixer.ts
+index cbb580c..106e969 100644
+--- a/src/audio/mixer.ts
++++ b/src/audio/mixer.ts
+@@ -1,7 +1,7 @@
+ import { FileSystem } from "../resource/fs"
+ import { addcS16, s8ToS16 } from "../core/intern"
+ import { SfxPlayer } from "./sfx_player"
+-import { SystemStub } from "../platform/systemstub_web"
++import { SystemStub } from "../platform/systemstub-web"
+ 
+ class MixerChunk {
+     data: Uint8Array
+diff --git a/src/core/game_constants.ts b/src/core/game_constants.ts
+index 0b64de0..6d6d342 100644
+--- a/src/core/game_constants.ts
++++ b/src/core/game_constants.ts
+@@ -28,6 +28,10 @@ const pgeFlagMirrored = 0x01
+ const pgeFlagFlipX = 0x02
+ const pgeFlagActive = 0x04
+ const pgeFlagSpecialAnim = 0x08
++const pgeFlagForeground = 0x10   // PGE renders to foreground anim buffer (layer 2)
++const pgeFlagAutoActivate = 0x80 // PGE auto-activates when it enters a collision slot
++
++const xorRandSeedPolynomial = 0x1D872B41 // LFSR polynomial used by gameGetRandomNumber
+ 
+ const initPgeFlagHasCollision = 0x01
+ const initPgeFlagUnknownBit1 = 0x02
+@@ -66,8 +70,9 @@ const globalGameOptionDefaults = {
+   playGamesavedSound: false
+ }
+ 
++type GameOptions = typeof globalGameOptionDefaults
++
+ const defaultConfig = { ...configDefaults }
+-const globalGameOptions = { ...globalGameOptionDefaults }
+ 
+ export {
+   uint8Max,
+@@ -98,6 +103,9 @@ export {
+   pgeFlagFlipX,
+   pgeFlagActive,
+   pgeFlagSpecialAnim,
++  pgeFlagForeground,
++  pgeFlagAutoActivate,
++  xorRandSeedPolynomial,
+   initPgeFlagHasCollision,
+   initPgeFlagUnknownBit1,
+   initPgeFlagInCurrentRoomList,
+@@ -109,5 +117,5 @@ export {
+   configDefaults,
+   globalGameOptionDefaults,
+   defaultConfig,
+-  globalGameOptions,
+ }
++export type { GameOptions }
+diff --git a/src/core/intern.ts b/src/core/intern.ts
+index 951f42b..7d12a0c 100644
+--- a/src/core/intern.ts
++++ b/src/core/intern.ts
+@@ -1,4 +1,3 @@
+-import { Game } from "../game/game"
+ import { uint16Max, uint8Max } from './game_constants'
+ import { assert } from "./assert"
+ 
+@@ -86,7 +85,7 @@ const CreatePGE = () => ({
+     life: 0,
+     counterValue: 0,
+     collisionSlot: uint16Max,
+-    unkF: 0,
++    inventoryOwnerPgeIndex: 0,
+     animNumber: 0,
+     flags: 0,
+     index: 0,
+@@ -103,7 +102,7 @@ const createLivePGE = () => ({
+     life: 0,
+     counterValue: 0,
+     collisionSlot: uint16Max,
+-    unkF: 0,
++    inventoryOwnerPgeIndex: 0,
+     animNumber: 0,
+     flags: 0,
+     index: 0,
+@@ -120,7 +119,7 @@ interface LivePGE {
+     life: number
+     counterValue: number
+     collisionSlot: number
+-    unkF: number
++    inventoryOwnerPgeIndex: number  // index of the owning PGE in the inventory chain, or uint8Max if unowned
+     animNumber: number
+     flags: number
+     index: number
+@@ -220,8 +219,6 @@ interface AnimBufferState {
+     paletteColorMaskOverride: number
+ }
+ 
+-type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
+-type PgeZOrderComparator = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
+ 
+ class AnimBuffers {
+     _states: Array<AnimBufferState[]> = [null, null, null, null]
+@@ -369,4 +366,3 @@ class Buffer {
+ }
+ 
+ export { createPgeScriptEntry, CreatePGE, CreateInitPGE, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, Skill, Color, Point, Demo, Level, InitPGE, LivePGE, PendingPgeSignal, ResolvedSpriteSet, LoadedMonsterVisual, LoadedConradVisual, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, AnimBufferState, AnimBuffers, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, LivePgeRegistry, BankSlot, InventoryItem, SoundFx, readBeUint16, readBeUint32, readLeUint16, readLeUint32, CLIP, Buffer, addcS16, s8ToS16 }
+-export type { PgeOpcodeHandler, PgeZOrderComparator }
+diff --git a/src/cutscene-players/cutscene.ts b/src/cutscene-players/cutscene.ts
+index 38fe005..14b830a 100644
+--- a/src/cutscene-players/cutscene.ts
++++ b/src/cutscene-players/cutscene.ts
+@@ -1,8 +1,9 @@
+ import { Resource } from '../resource/resource'
+-import { SystemStub } from '../platform/systemstub_web'
++import { SystemStub } from '../platform/systemstub-web'
+ import { Video } from '../video/video'
+ import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../core/staticres'
+-import { uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
++import { uint16Max, uint8Max, globalGameOptionDefaults } from '../core/game_constants'
++import type { GameOptions } from '../core/game_constants'
+ import { Mp4CutscenePlayer } from './mp4-cutscene-player'
+ 
+ class Cutscene {
+@@ -12,14 +13,16 @@ class Cutscene {
+     private _res: Resource
+     private _stub: SystemStub
+     private _vid: Video
++    private _options: GameOptions
+     private _id: number = uint16Max
+     private _interrupted: boolean = false
+     private _deathCutsceneId: number = uint16Max
+ 
+-    constructor(res: Resource, stub: SystemStub, vid: Video) {
++    constructor(res: Resource, stub: SystemStub, vid: Video, options?: GameOptions) {
+         this._res = res
+         this._stub = stub
+         this._vid = vid
++        this._options = options ?? { ...globalGameOptionDefaults }
+     }
+ 
+     setId(cutId: number) {
+@@ -84,27 +87,27 @@ class Cutscene {
+     private resolveCutNameOverride(id: number, cutName: number) {
+         switch (id) {
+             case 3:
+-                if (globalGameOptions.playCarteCutscene) {
++                if (this._options.playCarteCutscene) {
+                     return 2
+                 }
+                 return cutName
+             case 8:
+                 return cutName
+             case 19:
+-                if (globalGameOptions.playSerrureCutscene) {
++                if (this._options.playSerrureCutscene) {
+                     return 31
+                 }
+                 return cutName
+             case 22:
+             case 23:
+             case 24:
+-                if (globalGameOptions.playAscCutscene) {
++                if (this._options.playAscCutscene) {
+                     return 12
+                 }
+                 return cutName
+             case 30:
+             case 31:
+-                if (globalGameOptions.playMetroCutscene) {
++                if (this._options.playMetroCutscene) {
+                     return 14
+                 }
+                 return cutName
+diff --git a/src/cutscene-players/mp4-cutscene-player.ts b/src/cutscene-players/mp4-cutscene-player.ts
+index 68fbe89..1e621a4 100644
+--- a/src/cutscene-players/mp4-cutscene-player.ts
++++ b/src/cutscene-players/mp4-cutscene-player.ts
+@@ -1,5 +1,5 @@
+ import { FileSystem } from '../resource/fs'
+-import { SystemStub } from '../platform/systemstub_web'
++import { SystemStub } from '../platform/systemstub-web'
+ 
+ class Mp4CutscenePlayer {
+     private _stub: SystemStub
+diff --git a/src/tools/debugger/README.md b/src/debugger/README.md
+similarity index 100%
+rename from src/tools/debugger/README.md
+rename to src/debugger/README.md
+diff --git a/src/tools/debugger/check-room-png-assets.ts b/src/debugger/check-room-png-assets.ts
+similarity index 100%
+rename from src/tools/debugger/check-room-png-assets.ts
+rename to src/debugger/check-room-png-assets.ts
+diff --git a/src/tools/debugger/check-switch-door-platforms.ts b/src/debugger/check-switch-door-platforms.ts
+similarity index 100%
+rename from src/tools/debugger/check-switch-door-platforms.ts
+rename to src/debugger/check-switch-door-platforms.ts
+diff --git a/src/tools/debugger/ct-adjacency-table-exporter.ts b/src/debugger/ct-adjacency-table-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/ct-adjacency-table-exporter.ts
+rename to src/debugger/ct-adjacency-table-exporter.ts
+diff --git a/src/tools/debugger/ct-grid-table-exporter.ts b/src/debugger/ct-grid-table-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/ct-grid-table-exporter.ts
+rename to src/debugger/ct-grid-table-exporter.ts
+diff --git a/src/tools/debugger/export-all-amiga-level-images.ts b/src/debugger/export-all-amiga-level-images.ts
+similarity index 100%
+rename from src/tools/debugger/export-all-amiga-level-images.ts
+rename to src/debugger/export-all-amiga-level-images.ts
+diff --git a/src/tools/debugger/export-all-cutscene-cmdpol-videos.ts b/src/debugger/export-all-cutscene-cmdpol-videos.ts
+similarity index 100%
+rename from src/tools/debugger/export-all-cutscene-cmdpol-videos.ts
+rename to src/debugger/export-all-cutscene-cmdpol-videos.ts
+diff --git a/src/tools/debugger/export-all-level-layer-artifacts.ts b/src/debugger/export-all-level-layer-artifacts.ts
+similarity index 100%
+rename from src/tools/debugger/export-all-level-layer-artifacts.ts
+rename to src/debugger/export-all-level-layer-artifacts.ts
+diff --git a/src/tools/debugger/export-all-level-palette-headers.ts b/src/debugger/export-all-level-palette-headers.ts
+similarity index 100%
+rename from src/tools/debugger/export-all-level-palette-headers.ts
+rename to src/debugger/export-all-level-palette-headers.ts
+diff --git a/src/tools/debugger/export-all-room-indexed-png.ts b/src/debugger/export-all-room-indexed-png.ts
+similarity index 100%
+rename from src/tools/debugger/export-all-room-indexed-png.ts
+rename to src/debugger/export-all-room-indexed-png.ts
+diff --git a/src/tools/debugger/export-amiga-level-image.ts b/src/debugger/export-amiga-level-image.ts
+similarity index 100%
+rename from src/tools/debugger/export-amiga-level-image.ts
+rename to src/debugger/export-amiga-level-image.ts
+diff --git a/src/tools/debugger/export-ct-adjacency-level.ts b/src/debugger/export-ct-adjacency-level.ts
+similarity index 100%
+rename from src/tools/debugger/export-ct-adjacency-level.ts
+rename to src/debugger/export-ct-adjacency-level.ts
+diff --git a/src/tools/debugger/export-ct-adjacency-table.ts b/src/debugger/export-ct-adjacency-table.ts
+similarity index 100%
+rename from src/tools/debugger/export-ct-adjacency-table.ts
+rename to src/debugger/export-ct-adjacency-table.ts
+diff --git a/src/tools/debugger/export-ct-all.ts b/src/debugger/export-ct-all.ts
+similarity index 100%
+rename from src/tools/debugger/export-ct-all.ts
+rename to src/debugger/export-ct-all.ts
+diff --git a/src/tools/debugger/export-ct-grid-all.ts b/src/debugger/export-ct-grid-all.ts
+similarity index 100%
+rename from src/tools/debugger/export-ct-grid-all.ts
+rename to src/debugger/export-ct-grid-all.ts
+diff --git a/src/tools/debugger/export-ct-grid-level-room.ts b/src/debugger/export-ct-grid-level-room.ts
+similarity index 100%
+rename from src/tools/debugger/export-ct-grid-level-room.ts
+rename to src/debugger/export-ct-grid-level-room.ts
+diff --git a/src/tools/debugger/export-cutscene-video.ts b/src/debugger/export-cutscene-video.ts
+similarity index 100%
+rename from src/tools/debugger/export-cutscene-video.ts
+rename to src/debugger/export-cutscene-video.ts
+diff --git a/src/tools/debugger/export-global-fib-audio.ts b/src/debugger/export-global-fib-audio.ts
+similarity index 100%
+rename from src/tools/debugger/export-global-fib-audio.ts
+rename to src/debugger/export-global-fib-audio.ts
+diff --git a/src/tools/debugger/export-holocube-video-with-text.ts b/src/debugger/export-holocube-video-with-text.ts
+similarity index 100%
+rename from src/tools/debugger/export-holocube-video-with-text.ts
+rename to src/debugger/export-holocube-video-with-text.ts
+diff --git a/src/tools/debugger/export-level-grid-merged-png.ts b/src/debugger/export-level-grid-merged-png.ts
+similarity index 100%
+rename from src/tools/debugger/export-level-grid-merged-png.ts
+rename to src/debugger/export-level-grid-merged-png.ts
+diff --git a/src/tools/debugger/export-mbk-bnq-map-table.ts b/src/debugger/export-mbk-bnq-map-table.ts
+similarity index 100%
+rename from src/tools/debugger/export-mbk-bnq-map-table.ts
+rename to src/debugger/export-mbk-bnq-map-table.ts
+diff --git a/src/tools/debugger/export-mbk-entry-image.ts b/src/debugger/export-mbk-entry-image.ts
+similarity index 100%
+rename from src/tools/debugger/export-mbk-entry-image.ts
+rename to src/debugger/export-mbk-entry-image.ts
+diff --git a/src/tools/debugger/export-obj-json.ts b/src/debugger/export-obj-json.ts
+similarity index 100%
+rename from src/tools/debugger/export-obj-json.ts
+rename to src/debugger/export-obj-json.ts
+diff --git a/src/tools/debugger/export-pge-json.ts b/src/debugger/export-pge-json.ts
+similarity index 100%
+rename from src/tools/debugger/export-pge-json.ts
+rename to src/debugger/export-pge-json.ts
+diff --git a/src/tools/debugger/export-room-indexed-png.ts b/src/debugger/export-room-indexed-png.ts
+similarity index 100%
+rename from src/tools/debugger/export-room-indexed-png.ts
+rename to src/debugger/export-room-indexed-png.ts
+diff --git a/src/tools/debugger/export-room-layer-artifacts.ts b/src/debugger/export-room-layer-artifacts.ts
+similarity index 100%
+rename from src/tools/debugger/export-room-layer-artifacts.ts
+rename to src/debugger/export-room-layer-artifacts.ts
+diff --git a/src/tools/debugger/export-sprite-image.ts b/src/debugger/export-sprite-image.ts
+similarity index 100%
+rename from src/tools/debugger/export-sprite-image.ts
+rename to src/debugger/export-sprite-image.ts
+diff --git a/src/tools/debugger/export-tbn-json.ts b/src/debugger/export-tbn-json.ts
+similarity index 100%
+rename from src/tools/debugger/export-tbn-json.ts
+rename to src/debugger/export-tbn-json.ts
+diff --git a/src/tools/debugger/global-fib-audio-exporter.ts b/src/debugger/global-fib-audio-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/global-fib-audio-exporter.ts
+rename to src/debugger/global-fib-audio-exporter.ts
+diff --git a/src/tools/debugger/legacy-room-png-exporter.ts b/src/debugger/legacy-room-png-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/legacy-room-png-exporter.ts
+rename to src/debugger/legacy-room-png-exporter.ts
+diff --git a/src/tools/debugger/obj-file-exporter.ts b/src/debugger/obj-file-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/obj-file-exporter.ts
+rename to src/debugger/obj-file-exporter.ts
+diff --git a/src/tools/debugger/obj-legacy-parser.ts b/src/debugger/obj-legacy-parser.ts
+similarity index 100%
+rename from src/tools/debugger/obj-legacy-parser.ts
+rename to src/debugger/obj-legacy-parser.ts
+diff --git a/src/tools/debugger/pge-file-exporter.ts b/src/debugger/pge-file-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/pge-file-exporter.ts
+rename to src/debugger/pge-file-exporter.ts
+diff --git a/src/tools/debugger/pge-legacy-parser.ts b/src/debugger/pge-legacy-parser.ts
+similarity index 100%
+rename from src/tools/debugger/pge-legacy-parser.ts
+rename to src/debugger/pge-legacy-parser.ts
+diff --git a/src/tools/debugger/sprite-image-exporter.ts b/src/debugger/sprite-image-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/sprite-image-exporter.ts
+rename to src/debugger/sprite-image-exporter.ts
+diff --git a/src/tools/debugger/sprite-image-visualizer.ts b/src/debugger/sprite-image-visualizer.ts
+similarity index 100%
+rename from src/tools/debugger/sprite-image-visualizer.ts
+rename to src/debugger/sprite-image-visualizer.ts
+diff --git a/src/tools/debugger/tbn-file-exporter.ts b/src/debugger/tbn-file-exporter.ts
+similarity index 100%
+rename from src/tools/debugger/tbn-file-exporter.ts
+rename to src/debugger/tbn-file-exporter.ts
+diff --git a/src/core/collision.ts b/src/game/collision.ts
+similarity index 92%
+rename from src/core/collision.ts
+rename to src/game/collision.ts
+index 2789951..4b5679f 100644
+--- a/src/core/collision.ts
++++ b/src/game/collision.ts
+@@ -1,9 +1,9 @@
+-import {ctDownRoom, ctLeftRoom, ctRightRoom, Game} from '../game/game'
+-import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from './intern'
+-import type { colCallback1, colCallback2 } from '../game/game'
+-import { uint16Max } from './game_constants'
+-import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from '../game/game_collision'
+-import { assert } from "./assert"
++import type { Game } from './game'
++import type { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from '../core/intern'
++import type { colCallback1, colCallback2 } from './game'
++import { ctDownRoom, ctLeftRoom, ctRightRoom, uint16Max } from '../core/game_constants'
++import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game-collision'
++import { assert } from '../core/assert'
+ 
+ 
+ // Conrad standing-position reference for the runtime collision grid math:
+@@ -79,12 +79,12 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
+ 		}
+ 		while (distanceStep <= detectionRange) {
+ 			if (gridPosX < 0) {
+-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
++				pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
+ 				if (pgeRoom < 0) break
+ 				gridPosX += 16
+ 			}
+ 			if (gridPosX >= 16) {
+-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
++				pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom]
+ 				if (pgeRoom < 0) break
+ 				gridPosX -= 16
+ 			}
+@@ -111,9 +111,8 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
+ 
+ const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) => {
+ 	const initPge:InitPGE = pge.initPge
+-    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
+-	// assert(init_pge->script_node_index < _res.level.numObjectNodes);
+-	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
++    assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
++	const scriptNode: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
+ 	const maxEntryIndex = Math.min(scriptNode.lastObjNumber, scriptNode.objects.length - 1)
+ 	if (pge.firstScriptEntryIndex < 0 || pge.firstScriptEntryIndex > maxEntryIndex) {
+ 		console.warn(
+@@ -163,7 +162,6 @@ const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) =>
+                 return uint16Max
+             }
+ 		}
+-		// ++scriptEntry;
+ 		++i;
+         scriptEntry = scriptNode.objects[i]
+ 		if (!scriptEntry) {
+@@ -340,14 +338,14 @@ const colDetectgunhit = (pge: LivePGE, arg2: number, arg4: number, callback1: co
+ 		}
+ 		while (distanceStep <= detectionRange) {
+ 			if (gridPosX < 0) {
+-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
++				pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
+ 				if (pgeRoom < 0) {
+                     return 0
+                 }
+ 				gridPosX += 0x10;
+ 			}
+ 			if (gridPosX >= 0x10) {
+-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom];
++				pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom];
+ 				if (pgeRoom < 0) {
+                     return 0
+                 }
+diff --git a/src/game/game_audio.ts b/src/game/game-audio.ts
+similarity index 63%
+rename from src/game/game_audio.ts
+rename to src/game/game-audio.ts
+index bed814f..3b110eb 100644
+--- a/src/game/game_audio.ts
++++ b/src/game/game-audio.ts
+@@ -5,17 +5,17 @@ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_cons
+ import { pgeFlagActive, uint8Max } from '../core/game_constants'
+ 
+ export function gamePlaySound(game: Game, num: number, softVol: number) {
+-    if (num < game._res.audio.numSfx) {
+-        const sfx: SoundFx = game._res.audio.sfxList[num]
++    if (num < game.services.res.audio.numSfx) {
++        const sfx: SoundFx = game.services.res.audio.sfxList[num]
+         if (sfx.data) {
+             const volume = maxVolume >> (2 * softVol)
+-            game._mix.play(sfx.data, sfx.len, sfx.freq, volume)
++            game.services.mix.play(sfx.data, sfx.len, sfx.freq, volume)
+         }
+     } else if (num === 66) {
+         // open/close inventory (DOS)
+     } else if (num >= 68 && num <= 75) {
+         // in-game music
+-        game._mix.playMusic(num)
++        game.services.mix.playMusic(num)
+     } else if (num === 77) {
+         // triggered when Conrad reaches a platform
+     } else {
+@@ -29,10 +29,10 @@ export function gamePlayPgeAnimationSoundEffect(game: Game, pge: LivePGE, arg2:
+         if (game.world.currentRoom === pge.roomLocation) {
+             game.playSound(sfxId, 0)
+         } else {
+-            if (game._res.level.ctData[ctDownRoom + game.world.currentRoom] === pge.roomLocation ||
+-                game._res.level.ctData[ctUpRoom + game.world.currentRoom] === pge.roomLocation ||
+-                game._res.level.ctData[ctRightRoom + game.world.currentRoom] === pge.roomLocation ||
+-                game._res.level.ctData[ctLeftRoom + game.world.currentRoom] === pge.roomLocation) {
++            if (game.services.res.level.ctData[ctDownRoom + game.world.currentRoom] === pge.roomLocation ||
++                game.services.res.level.ctData[ctUpRoom + game.world.currentRoom] === pge.roomLocation ||
++                game.services.res.level.ctData[ctRightRoom + game.world.currentRoom] === pge.roomLocation ||
++                game.services.res.level.ctData[ctLeftRoom + game.world.currentRoom] === pge.roomLocation) {
+                 game.playSound(sfxId, 1)
+             }
+         }
+diff --git a/src/game/game_collision.ts b/src/game/game-collision.ts
+similarity index 89%
+rename from src/game/game_collision.ts
+rename to src/game/game-collision.ts
+index 3a864dd..f70274e 100644
+--- a/src/game/game_collision.ts
++++ b/src/game/game-collision.ts
+@@ -1,11 +1,11 @@
+ import type { CollisionSlot, LivePGE } from '../core/intern'
+ import type { Game } from './game'
+ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
+-import { gamescreenW } from '../core/game_constants'
++import { gamescreenW, pgeFlagAutoActivate } from '../core/game_constants'
+ import { uint16Max } from '../core/game_constants'
+ import { ctGridHeight, ctGridStride, ctGridWidth, ctHeaderSize } from '../core/game_constants'
+-import { gameDebugLog, gameDebugTrace } from './game_debug'
+-import { getRuntimeRegistryState } from './game_runtime_data'
++import { gameDebugLog, gameDebugTrace } from './game-debug'
++import { getRuntimeRegistryState } from './game-runtime-data'
+ 
+ export function gameFindOverlappingPgeByObjectType(game: Game, pge: LivePGE, arg2: number) {
+     if (pge.collisionSlot !== uint16Max) {
+@@ -63,8 +63,8 @@ export function gameRebuildActiveRoomCollisionSlotLookup(game: Game, currentRoom
+     game.collision.activeRoomCollisionSlotWindow.left.fill(null)
+     game.collision.activeRoomCollisionSlotWindow.current.fill(null)
+     game.collision.activeRoomCollisionSlotWindow.right.fill(null)
+-    game.collision.activeCollisionLeftRoom = game._res.level.ctData[ctLeftRoom + currentRoom]
+-    game.collision.activeCollisionRightRoom = game._res.level.ctData[ctRightRoom + currentRoom]
++    game.collision.activeCollisionLeftRoom = game.services.res.level.ctData[ctLeftRoom + currentRoom]
++    game.collision.activeCollisionRightRoom = game.services.res.level.ctData[ctRightRoom + currentRoom]
+ 
+     game.collision.dynamicPgeCollisionSlotsByPosition.forEach((slotBucket, collisionGridPositionIndex) => {
+         const localIndex = collisionGridPositionIndex & 0x3F
+@@ -99,7 +99,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
+     let roomCtData: Int8Array
+     let nextRoom = 0
+     if (pgeGridX < 0) {
+-        roomCtData = game._res.level.ctData.subarray(ctLeftRoom)
++        roomCtData = game.services.res.level.ctData.subarray(ctLeftRoom)
+         nextRoom = roomCtData[pge.roomLocation]
+         if (nextRoom < 0) {
+             return 1
+@@ -108,7 +108,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
+         roomCtData = roomCtData.subarray(pgeGridX + ctGridWidth + pgeGridY * ctGridWidth + nextRoom * ctGridStride)
+         return roomCtData[ctDownRoom]
+     } else if (pgeGridX >= ctGridWidth) {
+-        roomCtData = game._res.level.ctData.subarray(ctRightRoom)
++        roomCtData = game.services.res.level.ctData.subarray(ctRightRoom)
+         nextRoom = roomCtData[pge.roomLocation]
+         if (nextRoom < 0) {
+             return 1
+@@ -116,7 +116,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
+         roomCtData = roomCtData.subarray(pgeGridX - ctGridWidth + pgeGridY * ctGridWidth + nextRoom * ctGridStride)
+         return roomCtData[0x80]
+     } else if (pgeGridY < 1) {
+-        roomCtData = game._res.level.ctData.subarray(ctUpRoom)
++        roomCtData = game.services.res.level.ctData.subarray(ctUpRoom)
+         nextRoom = roomCtData[pge.roomLocation]
+         if (nextRoom < 0) {
+             return 1
+@@ -124,7 +124,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
+         roomCtData = roomCtData.subarray(pgeGridX + (pgeGridY + ctGridHeight - 1) * ctGridWidth + nextRoom * ctGridStride)
+         return roomCtData[0x100]
+     } else if (pgeGridY >= ctGridHeight) {
+-        roomCtData = game._res.level.ctData.subarray(ctDownRoom)
++        roomCtData = game.services.res.level.ctData.subarray(ctDownRoom)
+         nextRoom = roomCtData[pge.roomLocation]
+         if (nextRoom < 0) {
+             return 1
+@@ -133,7 +133,7 @@ export function gameGetRoomCollisionGridData(game: Game, pge: LivePGE, dy: numbe
+         roomCtData = roomCtData.subarray(pgeGridX + (pgeGridY - (ctGridHeight - 1)) * ctGridWidth + nextRoom * ctGridStride)
+         return roomCtData[0xC0]
+     } else {
+-        roomCtData = game._res.level.ctData.subarray(ctHeaderSize)
++        roomCtData = game.services.res.level.ctData.subarray(ctHeaderSize)
+         roomCtData = roomCtData.subarray(pgeGridX + pgeGridY * ctGridWidth + pge.roomLocation * ctGridStride)
+         return roomCtData[0]
+     }
+@@ -153,19 +153,19 @@ export function gameGetCollisionLanePositionIndexByXY(game: Game, pge: LivePGE,
+     // collision_point_within_room is only used to exit
+     // this is used to check in which room's which coordinate is now the collision
+     if (x < 0) {
+-        collisionPointWithinRoom = game._res.level.ctData[ctLeftRoom + collisionPointWithinRoom]
++        collisionPointWithinRoom = game.services.res.level.ctData[ctLeftRoom + collisionPointWithinRoom]
+         if (collisionPointWithinRoom < 0) return uint16Max
+         x += gamescreenW
+     } else if (x >= gamescreenW) {
+-        collisionPointWithinRoom = game._res.level.ctData[ctRightRoom + collisionPointWithinRoom]
++        collisionPointWithinRoom = game.services.res.level.ctData[ctRightRoom + collisionPointWithinRoom]
+         if (collisionPointWithinRoom < 0) return uint16Max
+         x -= gamescreenW
+     } else if (y < 0) {
+-        collisionPointWithinRoom = game._res.level.ctData[ctUpRoom + collisionPointWithinRoom]
++        collisionPointWithinRoom = game.services.res.level.ctData[ctUpRoom + collisionPointWithinRoom]
+         if (collisionPointWithinRoom < 0) return uint16Max
+         y += 216
+     } else if (y >= 216) {
+-        collisionPointWithinRoom = game._res.level.ctData[ctDownRoom + collisionPointWithinRoom]
++        collisionPointWithinRoom = game.services.res.level.ctData[ctDownRoom + collisionPointWithinRoom]
+         if (collisionPointWithinRoom < 0) return uint16Max
+         y -= 216
+     }
+@@ -232,14 +232,14 @@ export function gameRegisterPgeCollisionSegments(game: Game, pge: LivePGE) {
+             previousPgeCollisionSegmentSlot.index = pos
+         }
+         let tempPge = pge
+-        if (tempPge.flags & 0x80) {
++        if (tempPge.flags & pgeFlagAutoActivate) {
+             runtime.livePgeStore.activeFrameByIndex[tempPge.index] = tempPge
+             tempPge.flags |= 4
+         }
+         if (existingSlotBucket) {
+             for (const slot of existingSlotBucket) {
+                 tempPge = slot.pge
+-                if (tempPge.flags & 0x80) {
++                if (tempPge.flags & pgeFlagAutoActivate) {
+                     runtime.livePgeStore.activeFrameByIndex[tempPge.index] = tempPge
+                     tempPge.flags |= 4
+                 }
+diff --git a/src/game/game_debug.ts b/src/game/game-debug.ts
+similarity index 100%
+rename from src/game/game_debug.ts
+rename to src/game/game-debug.ts
+diff --git a/src/game/game_draw.ts b/src/game/game-draw.ts
+similarity index 78%
+rename from src/game/game_draw.ts
+rename to src/game/game-draw.ts
+index 10e6370..68a12a4 100644
+--- a/src/game/game_draw.ts
++++ b/src/game/game-draw.ts
+@@ -3,15 +3,15 @@ import type { Game } from './game'
+ import { maxVolume } from '../audio/mixer'
+ import { charW, gamescreenH, gamescreenW } from '../core/game_constants'
+ import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/game_constants'
+-import { gameFindFirstMatchingCollidingObject } from './game_collision'
++import { gameFindFirstMatchingCollidingObject } from './game-collision'
+ import { assert } from "../core/assert"
+-import { gameDebugLog, gameDebugWarn } from './game_debug'
+-import { gameClearSaveStateCompleted, gameTickRoomOverlay } from './game_lifecycle'
+-import { gameGetCurrentInventoryItemIndex } from './game_inventory'
+-import { getGameServices } from './game_services'
+-import { getGameUiState, getGameWorldState } from './game_state'
+-import { gameInpUpdate } from './game_world'
+-import { getRenderDataState, getRuntimeRegistryState } from './game_runtime_data'
++import { gameDebugLog, gameDebugWarn } from './game-debug'
++import { gameClearSaveStateCompleted, gameTickRoomOverlay } from './game-lifecycle'
++import { gameGetCurrentInventoryItemIndex } from './game-inventory'
++import { getGameServices } from './game-services'
++import { getGameUiState, getGameWorldState } from './game-state'
++import { gameInpUpdate } from './game-world'
++import { getRenderDataState, getRuntimeRegistryState } from './game-runtime-data'
+ 
+ const pgeNum = 256
+ 
+@@ -39,17 +39,17 @@ async function gameLoadVoiceSegment(game: Game, textId: number, segment: number)
+ export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, colMask: number) {
+     const buf = new Uint8Array(16 * 16)
+ 
+-    game._vid.pcDecodeicn(game._res.ui.icn, iconNum, buf)
++    game.services.vid.pcDecodeicn(game.services.res.ui.icn, iconNum, buf)
+ 
+-    game._vid.drawSpriteSub1ToFrontLayer(buf, x + y * game._vid.layers.w, 16, 16, 16, colMask << 4)
+-    game._vid.markBlockAsDirty(x, y, 16, 16, 1)
++    game.services.vid.drawSpriteSub1ToFrontLayer(buf, x + y * game.services.vid.layers.w, 16, 16, 16, colMask << 4)
++    game.services.vid.markBlockAsDirty(x, y, 16, 16, 1)
+ }
+ 
+ export function gameDrawCurrentInventoryItem(game: Game) {
+     const world = getGameWorldState(game)
+     const src = gameGetCurrentInventoryItemIndex(game, getRuntimeRegistryState(game).livePgesByIndex[0])
+     if (src !== uint8Max) {
+-        world.currentIcon = game._res.level.pgeAllInitialStateFromFile[src].iconNum
++        world.currentIcon = game.services.res.level.pgeAllInitialStateFromFile[src].iconNum
+         game.drawIcon(world.currentIcon, 232, 8, 0xC)
+     }
+ }
+@@ -60,7 +60,7 @@ export function gameDrawCurrentRoomOverlay(game: Game) {
+     if (ui.currentRoomOverlayCounter <= 0 || world.currentRoom < 0 || world.currentRoom >= 0x40) {
+         return
+     }
+-    game._vid.drawString(`ROOM ${world.currentRoom}`, 8, 8, 0xE6)
++    game.services.vid.drawString(`ROOM ${world.currentRoom}`, 8, 8, 0xE6)
+     gameTickRoomOverlay(game)
+ }
+ 
+@@ -80,7 +80,7 @@ export function gameDrawLevelTexts(game: Game) {
+             const iconNum = obj - 1
+             game.drawIcon(iconNum, 80, 8, 0xC)
+             const txtNum = pgeOut.initPge.textNum % pgeNum
+-            const str = game._res.getTextString(world.currentLevel, txtNum)
++            const str = game.services.res.getTextString(world.currentLevel, txtNum)
+             game.drawString(str, 176, 26, 0xE6, true)
+             if (iconNum === 2) {
+                 game.printSaveStateCompleted()
+@@ -99,11 +99,11 @@ export async function gameDrawStoryTexts(game: Game) {
+     if (world.textToDisplay !== uint16Max) {
+         gameDebugLog(game, 'storyText', `[story-text] start frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} inventoryIcon=${ui.currentInventoryIconNum}`)
+         let textColor = 0xE8
+-        let str = game._res.getGameString(world.textToDisplay)
++        let str = game.services.res.getGameString(world.textToDisplay)
+         let index = 0
+-        game._vid.copyFrontLayerToTemp()
++        game.services.vid.copyFrontLayerToTemp()
+         let textSpeechSegment = 0
+-        while (!game._stub._pi.quit) {
++        while (!game.services.stub._pi.quit) {
+             gameDebugLog(game, 'storyText', `[story-text] segment frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
+             const storyIconNum = Number.isInteger(ui.currentInventoryIconNum) ? ui.currentInventoryIconNum : uint8Max
+             if (storyIconNum === uint8Max) {
+@@ -125,7 +125,7 @@ export async function gameDrawStoryTexts(game: Game) {
+                 const len = getLineLength(remaining)
+                 const line = remaining.subarray(0, len)
+                 gameDebugLog(game, 'storyText', `[story-text] draw line len=${len} y=${yPos} firstByte=${str[index]} index=${index}`)
+-                game._vid.drawString(new TextDecoder().decode(line), ((176 - len * charW) / 2) >> 0, yPos, textColor)
++                game.services.vid.drawString(new TextDecoder().decode(line), ((176 - len * charW) / 2) >> 0, yPos, textColor)
+ 
+                 index += len
+                 const terminator = str[index]
+@@ -147,31 +147,31 @@ export async function gameDrawStoryTexts(game: Game) {
+             voiceSegmentLen = res.bufSize
+             gameDebugLog(game, 'storyText', `[story-text] voice frame=${game.renders} text=${world.textToDisplay} hasVoice=${!!voiceSegmentData} voiceLen=${voiceSegmentLen}`)
+             if (voiceSegmentData) {
+-                game._mix.play(voiceSegmentData, voiceSegmentLen, 32000, maxVolume)
++                game.services.mix.play(voiceSegmentData, voiceSegmentLen, 32000, maxVolume)
+             }
+-            await game._vid.updateScreen()
++            await game.services.vid.updateScreen()
+             if (!voiceSegmentData) {
+                 gameDebugLog(game, 'storyText', `[story-text] waiting for input without voice frame=${game.renders} text=${world.textToDisplay}`)
+             }
+-            while (!game._stub._pi.backspace && !game._stub._pi.quit) {
+-                if (voiceSegmentData && !game._mix.isPlaying(voiceSegmentData)) {
++            while (!game.services.stub._pi.backspace && !game.services.stub._pi.quit) {
++                if (voiceSegmentData && !game.services.mix.isPlaying(voiceSegmentData)) {
+                     gameDebugLog(game, 'storyText', `[story-text] voice finished frame=${game.renders} text=${world.textToDisplay}`)
+                     break
+                 }
+                 await game.inpUpdate()
+-                await game._stub.sleep(80)
++                await game.services.stub.sleep(80)
+             }
+             if (voiceSegmentData) {
+-                game._mix.stopAll()
++                game.services.mix.stopAll()
+             }
+-            game._stub._pi.backspace = false
++            game.services.stub._pi.backspace = false
+ 
+             if (str[index] === 0) {
+                 break
+             }
+             index++
+ 
+-            game._vid.restoreFrontLayerFromTemp()
++            game.services.vid.restoreFrontLayerFromTemp()
+         }
+         gameDebugLog(game, 'storyText', `[story-text] end frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}`)
+         world.textToDisplay = uint16Max
+@@ -187,7 +187,7 @@ export function gameDrawString(game: Game, p: Uint8Array, x: number, y: number,
+         x = ((x - len * charW) / 2) >> 0
+     }
+ 
+-    game._vid.drawStringLen(str, len, x, y, color)
++    game.services.vid.drawStringLen(str, len, x, y, color)
+ }
+ 
+ export async function gameDrawAnims(game: Game) {
+@@ -221,8 +221,8 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
+                 const ptr = state[index].dataPtr
+                 const val = new DataView(ptr.buffer, ptr.byteOffset - 2).getUint8(0)
+                 if (!(val & 0x80)) {
+-                    game._vid.pcDecodespm(state[index].dataPtr, game._res.scratchBuffer)
+-                    game.drawCharacter(game._res.scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
++                    game.services.vid.pcDecodespm(state[index].dataPtr, game.services.res.scratchBuffer)
++                    game.drawCharacter(game.services.res.scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
+                 } else {
+                     game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
+                 }
+@@ -242,10 +242,10 @@ export function gameDrawPge(game: Game, state: AnimBufferState) {
+ 
+ export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
+     assert(!(dataPtr[0] >= 0x4A), `Assertion failed: ${dataPtr[0]} < 0x4A`)
+-    const slot = game._res.ui.rp[dataPtr[0]]
+-    let data = game._res.findBankData(slot)
++    const slot = game.services.res.ui.rp[dataPtr[0]]
++    let data = game.services.res.findBankData(slot)
+     if (data === null) {
+-        data = game._res.loadBankData(slot)
++        data = game.services.res.loadBankData(slot)
+     }
+     const posy = y - (dataPtr[2] << 24 >> 24)
+     let posx = x
+@@ -282,9 +282,9 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
+     const spriteH = (((spriteFlags >> 0) & 3) + 1) * 8
+     const spriteW = (((spriteFlags >> 2) & 3) + 1) * 8
+ 
+-    game._vid.pcDecodespc(new Uint8Array(bankDataPtr.buffer, src), spriteW, spriteH, game._res.scratchBuffer)
++    game.services.vid.pcDecodespc(new Uint8Array(bankDataPtr.buffer, src), spriteW, spriteH, game.services.res.scratchBuffer)
+ 
+-    src = game._res.scratchBuffer.byteOffset
++    src = game.services.res.scratchBuffer.byteOffset
+     let spriteMirrorX = false
+     let spriteClippedW: number
+     if (spriteX >= 0) {
+@@ -339,18 +339,18 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
+ 
+     if (getGameWorldState(game).eraseBackground) {
+         if (!(spriteFlags & 0x10)) {
+-            game._vid.drawSpriteSub1ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub1ToFrontLayer(new Uint8Array(game.services.res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         } else {
+-            game._vid.drawSpriteSub2ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub2ToFrontLayer(new Uint8Array(game.services.res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         }
+     } else {
+         if (!(spriteFlags & 0x10)) {
+-            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub3ToFrontLayer(new Uint8Array(game.services.res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         } else {
+-            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub4ToFrontLayer(new Uint8Array(game.services.res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         }
+     }
+-    game._vid.markBlockAsDirty(spriteX, spriteY, spriteClippedW, spriteClippedH, 1)
++    game.services.vid.markBlockAsDirty(spriteX, spriteY, spriteClippedW, spriteClippedH, 1)
+ }
+ 
+ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, posX: number, posY: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
+@@ -442,16 +442,16 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, posX: number,
+ 
+     if (!(flags & pgeFlagFlipX)) {
+         if (var16) {
+-            game._vid.drawSpriteSub5ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub5ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
+         } else {
+-            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub3ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         }
+     } else {
+         if (var16) {
+-            game._vid.drawSpriteSub6ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub6ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
+         } else {
+-            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
++            game.services.vid.drawSpriteSub4ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+         }
+     }
+-    game._vid.markBlockAsDirty(posX, posY, spriteClippedW, spriteClippedH, 1)
++    game.services.vid.markBlockAsDirty(posX, posY, spriteClippedW, spriteClippedH, 1)
+ }
+diff --git a/src/game/game_inventory.ts b/src/game/game-inventory.ts
+similarity index 70%
+rename from src/game/game_inventory.ts
+rename to src/game/game-inventory.ts
+index 901ca40..65b5c32 100644
+--- a/src/game/game_inventory.ts
++++ b/src/game/game-inventory.ts
+@@ -1,14 +1,14 @@
+ import type { InventoryItem, LivePGE } from '../core/intern'
+ import type { Game } from './game'
+ import { LocaleData } from '../resource/resource'
+-import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub_web'
++import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub-web'
+ import { charW, gamescreenW } from '../core/game_constants'
+ import { uint16Max, uint8Max } from '../core/game_constants'
+-import { gameDebugLog } from './game_debug'
+-import { gameChangeStateSlot } from './game_lifecycle'
+-import { getRuntimeRegistryState } from './game_runtime_data'
+-import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { gameInpUpdate } from './game_world'
++import { gameDebugLog } from './game-debug'
++import { gameChangeStateSlot } from './game-lifecycle'
++import { getRuntimeRegistryState } from './game-runtime-data'
++import { getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { gameInpUpdate } from './game-world'
+ 
+ function getOrCreateInventoryItemsForOwner(game: Game, ownerPge: LivePGE) {
+     const runtime = getRuntimeRegistryState(game)
+@@ -52,8 +52,8 @@ export function gameFindInventoryItemByObjectId(game: Game, ownerPge: LivePGE, o
+ 
+ export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
+     const runtime = getRuntimeRegistryState(game)
+-    if (pge.unkF !== uint8Max) {
+-        const _bx: LivePGE = runtime.livePgesByIndex[pge.unkF]
++    if (pge.inventoryOwnerPgeIndex !== uint8Max) {
++        const _bx: LivePGE = runtime.livePgesByIndex[pge.inventoryOwnerPgeIndex]
+         const _di: LivePGE = gameFindInventoryItemBeforePge(game, _bx, pge)
+         if (_di === _bx) {
+             if (gameGetCurrentInventoryItemIndex(game, _di) === pge.index) {
+@@ -68,7 +68,7 @@ export function gameReorderPgeInventoryLinks(game: Game, pge: LivePGE) {
+ }
+ 
+ export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: LivePGE) {
+-    if (pge2.unkF !== uint8Max) {
++    if (pge2.inventoryOwnerPgeIndex !== uint8Max) {
+         gameReorderPgeInventoryLinks(game, pge2)
+     }
+ 
+@@ -76,6 +76,16 @@ export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: Liv
+     gameAddPgeToInventoryChain(game, _ax, pge2, pge1)
+ }
+ 
++// Character codes in FB_TXT.FNT used to draw the config panel box
++const panelCharTopLeft = 0x81
++const panelCharTopRight = 0x82
++const panelCharBottomLeft = 0x83
++const panelCharBottomRight = 0x84
++const panelCharTopEdge = 0x85
++const panelCharLeftEdge = 0x86
++const panelCharRightEdge = 0x87
++const panelCharBottomEdge = 0x88
++
+ export async function gameHandleConfigPanel(game: Game) {
+     const session = getGameSessionState(game)
+     const x = 7
+@@ -83,31 +93,24 @@ export async function gameHandleConfigPanel(game: Game) {
+     const w = 17
+     const h = 12
+ 
+-    game._vid.setTextColors(0xEE, uint8Max, 0xE2)
++    game.services.vid.setTextColors(0xEE, uint8Max, 0xE2)
+ 
+     // the panel background is drawn using special characters from FB_TXT.FNT
+-    // top-left rounded corner
+-    game._vid.pcDrawchar(0x81, y, x)
+-    // top-right rounded corner
+-    game._vid.pcDrawchar(0x82, y, x + w)
+-    // bottom-left rounded corner
+-    game._vid.pcDrawchar(0x83, y + h, x)
+-    // bottom-right rounded corner
+-    game._vid.pcDrawchar(0x84, y + h, x + w)
+-    // horizontal lines
++    game.services.vid.pcDrawchar(panelCharTopLeft, y, x)
++    game.services.vid.pcDrawchar(panelCharTopRight, y, x + w)
++    game.services.vid.pcDrawchar(panelCharBottomLeft, y + h, x)
++    game.services.vid.pcDrawchar(panelCharBottomRight, y + h, x + w)
+     for (let i = 1; i < w; ++i) {
+-        game._vid.pcDrawchar(0x85, y, x + i)
+-        game._vid.pcDrawchar(0x88, y + h, x + i)
++        game.services.vid.pcDrawchar(panelCharTopEdge, y, x + i)
++        game.services.vid.pcDrawchar(panelCharBottomEdge, y + h, x + i)
+     }
+     for (let j = 1; j < h; ++j) {
+-        game._vid.setTextTransparentColor(uint8Max)
+-        // left vertical line
+-        game._vid.pcDrawchar(0x86, y + j, x)
+-        // right vertical line
+-        game._vid.pcDrawchar(0x87, y + j, x + w)
+-        game._vid.setTextTransparentColor(0xE2)
++        game.services.vid.setTextTransparentColor(uint8Max)
++        game.services.vid.pcDrawchar(panelCharLeftEdge, y + j, x)
++        game.services.vid.pcDrawchar(panelCharRightEdge, y + j, x + w)
++        game.services.vid.setTextTransparentColor(0xE2)
+         for (let i = 1; i < w; ++i) {
+-            game._vid.pcDrawchar(0x20, y + j, x + i)
++            game.services.vid.pcDrawchar(0x20, y + j, x + i)
+         }
+     }
+ 
+@@ -116,41 +119,41 @@ export async function gameHandleConfigPanel(game: Game) {
+     game._menu._charVar1 = 0xE2
+     game._menu._charVar2 = 0xEE
+ 
+-    game._vid.fullRefresh()
++    game.services.vid.fullRefresh()
+     const menuItemAbort = 1
+     const menuItemLoad = 2
+     const menuItemSave = 3
+     const colors = [ 2, 3, 3, 3 ]
+     let current = 0
+     gameDebugLog(game, 'session', `[config-panel] opened stateSlot=${session.stateSlot}`)
+-    while (!game._stub._pi.quit) {
+-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
+-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
+-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
+-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
+-        game._vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
+-        const buf = game._res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
++    while (!game.services.stub._pi.quit) {
++        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
++        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
++        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
++        game._menu.drawString(game.services.res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
++        game.services.vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
++        const buf = game.services.res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
+         game._menu.drawString(buf, y + 10, 9, 1)
+ 
+-        game._vid.updateScreen()
+-        await game._stub.sleep(80)
++        game.services.vid.updateScreen()
++        await game.services.stub.sleep(80)
+         await game.inpUpdate()
+ 
+         let prev = current
+-        if (game._stub._pi.dirMask & dirUp) {
+-            game._stub._pi.dirMask &= ~dirUp
++        if (game.services.stub._pi.dirMask & dirUp) {
++            game.services.stub._pi.dirMask &= ~dirUp
+             current = (current + 3) % 4
+         }
+-        if (game._stub._pi.dirMask & dirDown) {
+-            game._stub._pi.dirMask &= ~dirDown
++        if (game.services.stub._pi.dirMask & dirDown) {
++            game.services.stub._pi.dirMask &= ~dirDown
+             current = (current + 1) % 4
+         }
+-        if (game._stub._pi.dirMask & dirLeft) {
+-            game._stub._pi.dirMask &= ~dirLeft
++        if (game.services.stub._pi.dirMask & dirLeft) {
++            game.services.stub._pi.dirMask &= ~dirLeft
+             gameChangeStateSlot(game, -1)
+         }
+-        if (game._stub._pi.dirMask & dirRight) {
+-            game._stub._pi.dirMask &= ~dirRight
++        if (game.services.stub._pi.dirMask & dirRight) {
++            game.services.stub._pi.dirMask &= ~dirRight
+             gameChangeStateSlot(game, 1)
+         }
+         if (prev !== current) {
+@@ -159,26 +162,26 @@ export async function gameHandleConfigPanel(game: Game) {
+             colors[current] = tmp
+             gameDebugLog(game, 'session', `[config-panel] selection=${current} stateSlot=${session.stateSlot}`)
+         }
+-        if (game._stub._pi.enter) {
+-            game._stub._pi.enter = false
++        if (game.services.stub._pi.enter) {
++            game.services.stub._pi.enter = false
+             switch (current) {
+                 case menuItemLoad:
+-                    game._stub._pi.load = true
++                    game.services.stub._pi.load = true
+                     break
+                 case menuItemSave:
+-                    game._stub._pi.save = true
++                    game.services.stub._pi.save = true
+                     break
+             }
+-            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game._stub._pi.load} save=${game._stub._pi.save} stateSlot=${session.stateSlot}`)
++            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game.services.stub._pi.load} save=${game.services.stub._pi.save} stateSlot=${session.stateSlot}`)
+             break
+         }
+-        if (game._stub._pi.escape) {
+-            game._stub._pi.escape = false
++        if (game.services.stub._pi.escape) {
++            game.services.stub._pi.escape = false
+             gameDebugLog(game, 'session', '[config-panel] closed via escape')
+             break
+         }
+     }
+-    game._vid.fullRefresh()
++    game.services.vid.fullRefresh()
+     return (current === menuItemAbort)
+ }
+ 
+@@ -201,8 +204,8 @@ export async function gameHandleInventory(game: Game) {
+         let numItems = 0
+         for (const invPge of inventoryItemIndices) {
+             items[numItems] = {
+-                iconNum: game._res.level.pgeAllInitialStateFromFile[invPge].iconNum,
+-                initPge: game._res.level.pgeAllInitialStateFromFile[invPge],
++                iconNum: game.services.res.level.pgeAllInitialStateFromFile[invPge].iconNum,
++                initPge: game.services.res.level.pgeAllInitialStateFromFile[invPge],
+                 livePge: runtime.livePgesByIndex[invPge]
+             }
+             ++numItems
+@@ -212,7 +215,7 @@ export async function gameHandleInventory(game: Game) {
+         const numLines = (((numItems - 1) / 4) >> 0) + 1
+         let currentLine = 0
+         let displayScore = false
+-        while (!game._stub._pi.backspace && !game._stub._pi.quit) {
++        while (!game.services.stub._pi.backspace && !game.services.stub._pi.quit) {
+             const iconSprW = 16
+             const iconSprH = 16
+ 
+@@ -237,11 +240,11 @@ export async function gameHandleInventory(game: Game) {
+                         selectedPge = items[itemIt].livePge
+                         gameDebugLog(game, 'session', `[inventory] highlight itemIndex=${currentItem} line=${currentLine} pge=${selectedPge.index} icon=${items[itemIt].iconNum} scoreView=${displayScore}`)
+                         const txtNum = items[itemIt].initPge.textNum
+-                        const str = game._res.getTextString(world.currentLevel, txtNum)
++                        const str = game.services.res.getTextString(world.currentLevel, txtNum)
+                         game.drawString(str, gamescreenW, 189, 0xED, true)
+                         if (items[itemIt].initPge.initFlags & 4) {
+                             const buf = selectedPge.life.toString()
+-                            game._vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
++                            game.services.vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
+                         }
+                     }
+                     iconXPos += 32
+@@ -254,33 +257,33 @@ export async function gameHandleInventory(game: Game) {
+                 }
+             } else {
+                 let buf = "SCORE " + ui.score.toString().padStart(8, "0")
+-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
+-                buf = game._res.getMenuString(LocaleData.Id.li06Level) + ":" + game._res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
+-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
++                game.services.vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
++                buf = game.services.res.getMenuString(LocaleData.Id.li06Level) + ":" + game.services.res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
++                game.services.vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
+             }
+ 
+-            await game._vid.updateScreen()
+-            await game._stub.sleep(80)
++            await game.services.vid.updateScreen()
++            await game.services.stub.sleep(80)
+             await game.inpUpdate()
+ 
+-            if (game._stub._pi.dirMask & dirUp) {
+-                game._stub._pi.dirMask &= ~dirUp
++            if (game.services.stub._pi.dirMask & dirUp) {
++                game.services.stub._pi.dirMask &= ~dirUp
+                 if (currentLine < numLines - 1) {
+                     ++currentLine
+                     currentItem = currentLine * 4
+                     gameDebugLog(game, 'session', `[inventory] move up line=${currentLine} itemIndex=${currentItem}`)
+                 }
+             }
+-            if (game._stub._pi.dirMask & dirDown) {
+-                game._stub._pi.dirMask &= ~dirDown
++            if (game.services.stub._pi.dirMask & dirDown) {
++                game.services.stub._pi.dirMask &= ~dirDown
+                 if (currentLine > 0) {
+                     --currentLine
+                     currentItem = currentLine * 4
+                     gameDebugLog(game, 'session', `[inventory] move down line=${currentLine} itemIndex=${currentItem}`)
+                 }
+             }
+-            if (game._stub._pi.dirMask & dirLeft) {
+-                game._stub._pi.dirMask &= ~dirLeft
++            if (game.services.stub._pi.dirMask & dirLeft) {
++                game.services.stub._pi.dirMask &= ~dirLeft
+                 if (currentItem > 0) {
+                     const itemNum = currentItem % 4
+                     if (itemNum > 0) {
+@@ -289,8 +292,8 @@ export async function gameHandleInventory(game: Game) {
+                     }
+                 }
+             }
+-            if (game._stub._pi.dirMask & dirRight) {
+-                game._stub._pi.dirMask &= ~dirRight
++            if (game.services.stub._pi.dirMask & dirRight) {
++                game.services.stub._pi.dirMask &= ~dirRight
+                 if (currentItem < numItems - 1) {
+                     const itemNum = currentItem % 4
+                     if (itemNum < 3) {
+@@ -299,14 +302,14 @@ export async function gameHandleInventory(game: Game) {
+                     }
+                 }
+             }
+-            if (game._stub._pi.enter) {
+-                game._stub._pi.enter = false
++            if (game.services.stub._pi.enter) {
++                game.services.stub._pi.enter = false
+                 displayScore = !displayScore
+                 gameDebugLog(game, 'session', `[inventory] toggled scoreView=${displayScore}`)
+             }
+         }
+-        game._vid.fullRefresh()
+-        game._stub._pi.backspace = false
++        game.services.vid.fullRefresh()
++        game.services.stub._pi.backspace = false
+         if (selectedPge) {
+             const inventoryGame = game as Game & { setCurrentInventoryPge?: (pge: LivePGE) => void }
+             if (typeof inventoryGame.setCurrentInventoryPge === 'function') {
+@@ -341,7 +344,7 @@ export function gameRemovePgeFromInventoryChain(game: Game, pge1: LivePGE, pge2:
+     if (itemPosition >= 0) {
+         inventoryItemIndices.splice(itemPosition, 1)
+     }
+-    pge2.unkF = uint8Max
++    pge2.inventoryOwnerPgeIndex = uint8Max
+ }
+ 
+ export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: LivePGE, pge3: LivePGE) {
+@@ -350,7 +353,7 @@ export function gameAddPgeToInventoryChain(game: Game, pge1: LivePGE, pge2: Live
+     if (existingItemPosition >= 0) {
+         inventoryItemIndices.splice(existingItemPosition, 1)
+     }
+-    pge2.unkF = pge3.index
++    pge2.inventoryOwnerPgeIndex = pge3.index
+ 
+     if (pge1 === pge3) {
+         inventoryItemIndices.unshift(pge2.index)
+diff --git a/src/game/game_lifecycle.ts b/src/game/game-lifecycle.ts
+similarity index 90%
+rename from src/game/game_lifecycle.ts
+rename to src/game/game-lifecycle.ts
+index dfaf5b1..daea447 100644
+--- a/src/game/game_lifecycle.ts
++++ b/src/game/game-lifecycle.ts
+@@ -1,7 +1,7 @@
+ import { uint16Max } from '../core/game_constants'
+ import type { Game } from './game'
+-import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { gameClearStateRewind } from './game_world'
++import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { gameClearStateRewind } from './game-world'
+ 
+ const minStateSlot = 1
+ const maxStateSlot = 99
+@@ -26,12 +26,12 @@ export function gameBeginPlaythrough(game: Game) {
+ export function gameBeginFrameLoop(game: Game) {
+     const session = getGameSessionState(game)
+     session.endLoop = false
+-    session.frameTimestamp = game._stub.getTimeStamp()
++    session.frameTimestamp = game.services.stub.getTimeStamp()
+     session.saveTimestamp = session.frameTimestamp
+ }
+ 
+ export function gameCompleteFrameTiming(game: Game) {
+-    getGameSessionState(game).frameTimestamp = game._stub.getTimeStamp()
++    getGameSessionState(game).frameTimestamp = game.services.stub.getTimeStamp()
+ }
+ 
+ export function gameEndLoop(game: Game) {
+@@ -77,7 +77,7 @@ export function gameResetLevelLifecycle(game: Game, startRoom: number) {
+     const ui = getGameUiState(game)
+     const pge = getGamePgeState(game)
+     world.currentRoom = startRoom
+-    game._cut.setDeathCutSceneId(uint16Max)
++    game.services.cut.setDeathCutSceneId(uint16Max)
+     pge.opcodeTempVar2 = uint16Max
+     world.deathCutsceneCounter = 0
+     world.credits = 0
+@@ -97,7 +97,7 @@ export function gameQueueDeathCutscene(game: Game, counter: number, deathCutscen
+     }
+     world.deathCutsceneCounter = counter
+     if (typeof deathCutsceneId === 'number') {
+-        game._cut.setDeathCutSceneId(deathCutsceneId)
++        game.services.cut.setDeathCutSceneId(deathCutsceneId)
+     }
+     return true
+ }
+@@ -125,7 +125,7 @@ export function gameClearValidSaveState(game: Game) {
+ }
+ 
+ export function gameSetSaveTimestamp(game: Game) {
+-    getGameSessionState(game).saveTimestamp = game._stub.getTimeStamp()
++    getGameSessionState(game).saveTimestamp = game.services.stub.getTimeStamp()
+ }
+ 
+ export function gameSetStateSlot(game: Game, slot: number) {
+diff --git a/src/game/game_opcodes.ts b/src/game/game-opcodes.ts
+similarity index 94%
+rename from src/game/game_opcodes.ts
+rename to src/game/game-opcodes.ts
+index 1fbbfaa..5fa2dfb 100644
+--- a/src/game/game_opcodes.ts
++++ b/src/game/game-opcodes.ts
+@@ -1,16 +1,19 @@
+ import { Game } from "./game"
++import type { PgeOpcodeHandler } from './game'
+ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from "../core/game_constants"
+-import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot, PgeZOrderComparator } from "../core/intern"
+-import { colDetecthit, colDetecthitcallback3, colDetecthitcallback1, colDetecthitcallback2, colDetectgunhitcallback2, colDetectgunhitcallback1, colDetectgunhit, colDetectgunhitcallback3, colDetecthitcallback4, colDetecthitcallback5, colDetecthitcallback6 } from '../core/collision'
+-import { uint8Max, uint16Max, ctRoomSize, ctGridStride, ctGridWidth, ctHeaderSize, globalGameOptions, kIngameSaveSlot } from "../core/game_constants"
+-import { gameFindFirstMatchingCollidingObject, gameFindOverlappingPgeByObjectType, gameGetRoomCollisionGridData } from './game_collision'
+-import { gameDebugLog } from './game_debug'
+-import { gameInitializePgeDefaultAnimation } from './game_pge'
++import { LivePGE, PgeOpcodeArgs, RoomCollisionGridPatchRestoreSlot } from "../core/intern"
++import type { PgeZOrderComparator } from './game'
++import { colDetecthit, colDetecthitcallback3, colDetecthitcallback1, colDetecthitcallback2, colDetectgunhitcallback2, colDetectgunhitcallback1, colDetectgunhit, colDetectgunhitcallback3, colDetecthitcallback4, colDetecthitcallback5, colDetecthitcallback6 } from './collision'
++import { uint8Max, uint16Max, ctRoomSize, ctGridStride, ctGridWidth, ctHeaderSize, kIngameSaveSlot } from "../core/game_constants"
++import { _pgeModkeystable as modifierKeyMasks } from '../core/staticres'
++import { gameFindFirstMatchingCollidingObject, gameFindOverlappingPgeByObjectType, gameGetRoomCollisionGridData } from './game-collision'
++import { gameDebugLog } from './game-debug'
++import { gameInitializePgeDefaultAnimation } from './game-pge'
+ import { assert } from "../core/assert"
+-import { gameMarkSaveStateCompleted, gameQueueDeathCutscene, gameRequestMapReload, gameSetCurrentLevel } from './game_lifecycle'
+-import { getRuntimeRegistryState } from './game_runtime_data'
+-import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { gameGetRandomNumber } from './game_world'
++import { gameMarkSaveStateCompleted, gameQueueDeathCutscene, gameRequestMapReload, gameSetCurrentLevel } from './game-lifecycle'
++import { getRuntimeRegistryState } from './game-runtime-data'
++import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { gameGetRandomNumber } from './game-world'
+ 
+ type OpcodeDebugSnapshot = Record<string, string | number | boolean>
+ type OpcodeDebugConfig = {
+@@ -18,7 +21,6 @@ type OpcodeDebugConfig = {
+ 	after?: (args: PgeOpcodeArgs, game: Game, result: number) => OpcodeDebugSnapshot | null
+ }
+ 
+-type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
+ 
+ const formatOpcodeResult = (result: number) => result === uint16Max ? 'uint16Max' : String(result)
+ 
+@@ -100,7 +102,7 @@ const pgeOpIsinpforward = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinpbackwardmod = (args: PgeOpcodeArgs, game: Game) => {
+ 	// assert(args->a < 3);
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+-	let mask = Game._modifierKeyMasks[args.a]
++	let mask = modifierKeyMasks[args.a]
+ 	if (game.pge.currentPgeFacingIsMirrored) {
+ 		mask |= 4
+ 	} else {
+@@ -116,7 +118,7 @@ const pgeOpIsinpbackwardmod = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinpdownmod = (args: PgeOpcodeArgs, game: Game) => {
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+ 	//assert(args->a < 3);
+-	const mask = Game._modifierKeyMasks[args.a] | 2
++	const mask = modifierKeyMasks[args.a] | 2
+ 	if (mask === game.pge.currentPgeInputMask) {
+ 		return uint16Max
+ 	} else {
+@@ -127,7 +129,7 @@ const pgeOpIsinpdownmod = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinpforwardmod = (args: PgeOpcodeArgs, game: Game) => {
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+ 	//assert(args->a < 3);
+-	let mask = Game._modifierKeyMasks[args.a]
++	let mask = modifierKeyMasks[args.a]
+ 	if (game.pge.currentPgeFacingIsMirrored) {
+ 		mask |= 8
+ 	} else {
+@@ -143,7 +145,7 @@ const pgeOpIsinpforwardmod = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinpupmod = (args: PgeOpcodeArgs, game: Game) => {
+ 	// assert(args->a < 3);
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+-	const mask = Game._modifierKeyMasks[args.a] | 1
++	const mask = modifierKeyMasks[args.a] | 1
+ 	if (mask === game.pge.currentPgeInputMask) {
+ 		return uint16Max
+ 	} else {
+@@ -199,7 +201,7 @@ const pgeOpDoesnotcollide20 = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinpnomod = (args: PgeOpcodeArgs, game: Game) => {
+ 	// assert(args->a < 3);
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+-	const mask = Game._modifierKeyMasks[args.a]
++	const mask = modifierKeyMasks[args.a]
+ 	if (((game.pge.currentPgeInputMask & 0xF) | mask) === game.pge.currentPgeInputMask) {
+ 		return uint16Max
+ 	} else {
+@@ -319,7 +321,7 @@ const pgeZorderifdifferentdirection = (pge1: LivePGE, pge2: LivePGE, comp: numbe
+ 
+ const pgeZorderbyanimyiftype = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+ 	if (pge1.initPge.objectType === comp2) {
+-		if (game._res.getAniData(pge1.scriptStateType)[3] === comp) {
++		if (game.services.res.getAniData(pge1.scriptStateType)[3] === comp) {
+ 			return 1
+ 		}
+ 	}
+@@ -328,7 +330,7 @@ const pgeZorderbyanimyiftype = (pge1: LivePGE, pge2: LivePGE, comp: number, comp
+ 
+ const pgeZorderbyanimy = (pge1: LivePGE, pge2: LivePGE, comp: number, comp2: number, game: Game) => {
+ 	if (pge1 !== pge2) {
+-		if (game._res.getAniData(pge1.scriptStateType)[3] === comp) {
++		if (game.services.res.getAniData(pge1.scriptStateType)[3] === comp) {
+ 			return 1
+ 		}
+ 	}
+@@ -416,7 +418,7 @@ const getActiveRoomCollisionSlotHeadsByArea = (game: Game, area: number) => {
+ const pgeUpdatecollisionstate = (pge: LivePGE, pgeDy: number, var8: number, game: Game) => {
+ 	let pgeCollisionSegments = pge.initPge.numberOfCollisionSegments
+ 	if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
+-        const gridData = game._res.level.ctData.subarray(ctHeaderSize)
++        const gridData = game.services.res.level.ctData.subarray(ctHeaderSize)
+ 		let dataIndex = ctGridStride * pge.roomLocation
+ 		let pgePosY = (((pge.posY / 36)>>0) & ~1) + pgeDy
+ 		let pgePosX = (pge.posX + 8) >> 4
+@@ -514,7 +516,7 @@ const pgeOpCanusecurrentinventoryitem = (args: PgeOpcodeArgs, game: Game) => {
+ 	const runtime = getRuntimeRegistryState(game)
+ 	const pge:LivePGE = runtime.livePgesByIndex[0]
+ 	const currentInventoryItemIndex = game.getCurrentInventoryItemIndex(pge)
+-	if (currentInventoryItemIndex !== uint8Max && game._res.level.pgeAllInitialStateFromFile[currentInventoryItemIndex].objectId === args.a) {
++	if (currentInventoryItemIndex !== uint8Max && game.services.res.level.pgeAllInitialStateFromFile[currentInventoryItemIndex].objectId === args.a) {
+ 		return 1
+ 	}
+ 
+@@ -583,8 +585,8 @@ const pgeOUnk0x40 = (args: PgeOpcodeArgs, game: Game) => {
+ 				if (_cx > ctGridWidth) {
+ 					_cx = ctGridWidth
+ 				}
+-            let var2 = new Int8Array(game._res.level.ctData.buffer)
+-            let var2Index = game._res.level.ctData.byteOffset + ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
++            let var2 = new Int8Array(game.services.res.level.ctData.buffer)
++            let var2Index = game.services.res.level.ctData.byteOffset + ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
+ 
+ 	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 	            let activeRoomSlotIndex = gridPosY + gridPosX
+@@ -599,13 +601,13 @@ const pgeOUnk0x40 = (args: PgeOpcodeArgs, game: Game) => {
+ 						if (colArea < 0) {
+ 	                        return 0
+ 	                    }
+-						pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
++						pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
+ 						if (pgeRoom < 0) {
+ 	                        return 0
+ 	                    }
+ 						var12 = ctGridWidth - 1
+-						var2 = new Int8Array(game._res.level.ctData.buffer)
+-	                    var2Index = game._res.level.ctData.byteOffset + ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + (ctGridWidth - 1) + ctGridWidth
++						var2 = new Int8Array(game.services.res.level.ctData.buffer)
++	                    var2Index = game.services.res.level.ctData.byteOffset + ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + (ctGridWidth - 1) + ctGridWidth
+ 						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 						activeRoomSlotIndex = gridPosY + ctGridWidth
+ 					}
+@@ -633,7 +635,7 @@ const pgeOUnk0x40 = (args: PgeOpcodeArgs, game: Game) => {
+ 					_cx = ctGridWidth
+ 				}
+ 
+-	            let var2 = game._res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX)
++	            let var2 = game.services.res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX)
+ 				let var2Index = 0
+ 	            let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 	            let activeRoomSlotIndex = gridPosY + gridPosX
+@@ -646,13 +648,13 @@ const pgeOUnk0x40 = (args: PgeOpcodeArgs, game: Game) => {
+ 					if (colArea > 2) {
+                         return 0
+                     }
+-					pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
++					pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom]
+ 					if (pgeRoom < 0) {
+                         return 0
+                     }
+ 
+ 						var12 = 0
+-						var2 = game._res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth)
++						var2 = game.services.res.level.ctData.subarray(ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth)
+ 	                    var2Index = 0
+ 						activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 						activeRoomSlotIndex = gridPosY - 1
+@@ -775,10 +777,10 @@ const pgeOpIsnotfacingconrad = (args: PgeOpcodeArgs, game: Game) => {
+ 		} else if (args.a === 0) {
+ 			if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
+ 				if (game.pge.currentPgeFacingIsMirrored) {
+-					if (pgeConrad.roomLocation === game._res.level.ctData[ctRightRoom + pge.roomLocation])
++					if (pgeConrad.roomLocation === game.services.res.level.ctData[ctRightRoom + pge.roomLocation])
+ 						return uint16Max
+ 				} else {
+-					if (pgeConrad.roomLocation === game._res.level.ctData[ctLeftRoom + pge.roomLocation])
++					if (pgeConrad.roomLocation === game.services.res.level.ctData[ctLeftRoom + pge.roomLocation])
+ 						return uint16Max
+ 				}
+ 			}
+@@ -817,10 +819,10 @@ const pgeOpIsfacingconrad = (args: PgeOpcodeArgs, game: Game) => {
+ 		} else if (args.a === 0) {
+ 			if (!(pge.roomLocation & 0x80) && pge.roomLocation < ctRoomSize) {
+ 				if (game.pge.currentPgeFacingIsMirrored) {
+-					if (pgeConrad.roomLocation === game._res.level.ctData[ctLeftRoom + pge.roomLocation])
++					if (pgeConrad.roomLocation === game.services.res.level.ctData[ctLeftRoom + pge.roomLocation])
+ 						return uint16Max
+ 				} else {
+-					if (pgeConrad.roomLocation === game._res.level.ctData[ctRightRoom + pge.roomLocation])
++					if (pgeConrad.roomLocation === game.services.res.level.ctData[ctRightRoom + pge.roomLocation])
+ 						return uint16Max
+ 				}
+ 			}
+@@ -848,7 +850,7 @@ const pgeOpIsbelowconrad = (args: PgeOpcodeArgs, game: Game) => {
+ 			return uint16Max
+ 		}
+ 	} else if (pge.roomLocation < ctRoomSize) {
+-		if (conrad.roomLocation === game._res.level.ctData[ctUpRoom + pge.roomLocation]) {
++		if (conrad.roomLocation === game.services.res.level.ctData[ctUpRoom + pge.roomLocation]) {
+ 			return uint16Max
+ 		}
+ 	}
+@@ -864,7 +866,7 @@ const pgeOpIsaboveconrad = (args: PgeOpcodeArgs, game: Game) => {
+ 			return uint16Max
+ 		}
+ 	} else if (pge.roomLocation < ctRoomSize) {
+-		if (conrad.roomLocation === game._res.level.ctData[ctDownRoom + pge.roomLocation]) {
++		if (conrad.roomLocation === game.services.res.level.ctData[ctDownRoom + pge.roomLocation]) {
+ 			return uint16Max
+ 		}
+ 	}
+@@ -1132,7 +1134,7 @@ const pgeOpSetpgedefaultanim = (args: PgeOpcodeArgs, game: Game) => {
+ }
+ 
+ const pgeOUnk0x34 = (args: PgeOpcodeArgs, game: Game) => {
+-	const mask = (game.pge.currentPgeInputMask & 0xF) | Game._modifierKeyMasks[0]
++	const mask = (game.pge.currentPgeInputMask & 0xF) | modifierKeyMasks[0]
+ 	if (mask === game.pge.currentPgeInputMask) {
+ 		if (gameGetRoomCollisionGridData(game, args.pge, 2, -args.a) === 0) {
+ 			return uint16Max
+@@ -1144,7 +1146,7 @@ const pgeOUnk0x34 = (args: PgeOpcodeArgs, game: Game) => {
+ 
+ const pgeOpIsinpmod = (args: PgeOpcodeArgs, game: Game) => {
+     assert(!(args.a >= 3), `Assertion failed: ${args.a} < 3`)
+-	const mask = Game._modifierKeyMasks[args.a]
++	const mask = modifierKeyMasks[args.a]
+ 	if (mask === game.pge.currentPgeInputMask) {
+ 		return uint16Max
+ 	} else {
+@@ -1219,16 +1221,16 @@ const pgeOpRemovepgeifnotnear = (args: PgeOpcodeArgs, game: Game) => {
+ 	if (pge.roomLocation === world.currentRoom) {
+         return skipPge()
+     }
+-	if (pge.roomLocation === game._res.level.ctData[ctUpRoom + world.currentRoom]) {
++	if (pge.roomLocation === game.services.res.level.ctData[ctUpRoom + world.currentRoom]) {
+         return skipPge()
+     }
+-	if (pge.roomLocation === game._res.level.ctData[ctDownRoom + world.currentRoom]) {
++	if (pge.roomLocation === game.services.res.level.ctData[ctDownRoom + world.currentRoom]) {
+         return skipPge()
+     }
+-	if (pge.roomLocation === game._res.level.ctData[ctRightRoom + world.currentRoom]) {
++	if (pge.roomLocation === game.services.res.level.ctData[ctRightRoom + world.currentRoom]) {
+         return skipPge()
+     }
+-	if (pge.roomLocation === game._res.level.ctData[ctLeftRoom + world.currentRoom]) {
++	if (pge.roomLocation === game.services.res.level.ctData[ctLeftRoom + world.currentRoom]) {
+         return skipPge()
+     }
+ 
+@@ -1304,7 +1306,7 @@ const pgeOUnk0x7f = (args: PgeOpcodeArgs, game: Game) => {
+ 		let nextCollisionGridPositionIndex = uint16Max
+ 		for (const slot of slotBucket) {
+ 			if (slot.pge !== args.pge) {
+-				if (slot.pge.initPge.objectType === 3 && var2 !== slot.pge.unkF) {
++				if (slot.pge.initPge.objectType === 3 && var2 !== slot.pge.inventoryOwnerPgeIndex) {
+ 					return 0
+ 				}
+ 			}
+@@ -1350,7 +1352,7 @@ const pgeOUnk0x6a = (args: PgeOpcodeArgs, game: Game) => {
+ 					_cx = ctGridWidth
+ 				}
+ 
+-				ctData = game._res.level.ctData
++				ctData = game.services.res.level.ctData
+ 				ctIndex = ctHeaderSize + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
+ 				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 				let activeRoomSlotIndex = gridPosY + gridPosX + 1
+@@ -1363,7 +1365,7 @@ const pgeOUnk0x6a = (args: PgeOpcodeArgs, game: Game) => {
+ 					if (colArea < 0) {
+ 						return 0
+ 					}
+-					pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
++					pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
+ 					if (pgeRoom < 0) {
+ 							return 0
+ 						}
+@@ -1396,7 +1398,7 @@ const pgeOUnk0x6a = (args: PgeOpcodeArgs, game: Game) => {
+ 					_cx = ctGridWidth
+ 				}
+ 
+-				ctData = game._res.level.ctData
++				ctData = game.services.res.level.ctData
+ 				ctIndex = ctHeaderSize + 1 + pgeRoom * ctGridStride + gridPosY * 2 + ctGridWidth + gridPosX
+ 				let activeRoomSlotHeads = getActiveRoomCollisionSlotHeadsByArea(game, colArea)
+ 				let activeRoomSlotIndex = gridPosY + gridPosX + 1
+@@ -1410,7 +1412,7 @@ const pgeOUnk0x6a = (args: PgeOpcodeArgs, game: Game) => {
+ 						if (colArea > 2) {
+ 							return 0
+ 							}
+-							pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
++							pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom]
+ 						if (pgeRoom < 0) {
+ 							return 0
+ 							}
+@@ -1500,13 +1502,13 @@ const pgeOUnk0x5f = (args: PgeOpcodeArgs, game: Game) => {
+ 			}
+ 		}
+ 		if (gridPosX < 0) {
+-			pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
++			pgeRoom = game.services.res.level.ctData[ctLeftRoom + pgeRoom]
+ 			if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
+                 return 0
+             }
+ 				gridPosX += ctGridWidth
+ 			} else if (gridPosX > ctGridWidth - 1) {
+-			pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
++			pgeRoom = game.services.res.level.ctData[ctRightRoom + pgeRoom]
+ 			if (pgeRoom < 0 || pgeRoom >= ctRoomSize) {
+                 return 0
+             }
+@@ -1535,9 +1537,7 @@ const pgeOpFindandcopypge = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpIsinrandomrange = (args: PgeOpcodeArgs, game: Game) => {
+ 	let n = args.a & uint16Max
+ 	if (n !== 0) {
+-		const randomNumber = typeof (game as unknown as { getRandomNumber?: () => number }).getRandomNumber === 'function'
+-			? (game as unknown as { getRandomNumber: () => number }).getRandomNumber()
+-			: gameGetRandomNumber(game)
++		const randomNumber = game.getRandomNumber()
+ 		if ((randomNumber % n) === 0) {
+ 			return 1
+ 		}
+@@ -1592,7 +1592,7 @@ const pgeOpSavestate = (args: PgeOpcodeArgs, game: Game) => {
+ 	const session = getGameSessionState(game)
+ 	gameMarkSaveStateCompleted(game)
+ 	game.saveGameState(kIngameSaveSlot)
+-	if (session.validSaveState && globalGameOptions.playGamesavedSound) {
++	if (session.validSaveState && game.options.playGamesavedSound) {
+ 		game.playSound(68, 0)
+ 	}
+ 	return uint16Max
+@@ -1677,8 +1677,8 @@ const pgeOUnk0x71 = (args: PgeOpcodeArgs, game: Game) => {
+ 
+ const pgeOUnk0x72 = (args: PgeOpcodeArgs, game: Game) => {
+ 	const roomCollisionGrid = new Int8Array(
+-		game._res.level.ctData.buffer,
+-		game._res.level.ctData.byteOffset + ctHeaderSize + args.pge.roomLocation * ctGridStride,
++		game.services.res.level.ctData.buffer,
++		game.services.res.level.ctData.byteOffset + ctHeaderSize + args.pge.roomLocation * ctGridStride,
+ 		ctGridStride
+ 	)
+ 	const pgeCollisionGridY = (((args.pge.posY / 36) >> 0) & ~1) + args.a
+@@ -1728,7 +1728,7 @@ const pgeOpDeclifecounter = (args: PgeOpcodeArgs, game: Game) => {
+ const pgeOpPlaycutscene = (args: PgeOpcodeArgs, game: Game) => {
+ 	const world = getGameWorldState(game)
+ 	if (world.deathCutsceneCounter === 0) {
+-		game._cut.setId(args.a)
++		game.services.cut.setId(args.a)
+ 	}
+ 
+ 	return 1
+@@ -1776,7 +1776,7 @@ const pgeOpAdjustpos = (args: PgeOpcodeArgs, game: Game) => {
+ 
+ const pgeOpSetpgeposx = (args: PgeOpcodeArgs, game: Game) => {
+ 	const runtime = getRuntimeRegistryState(game)
+-	const ownerPgeIndex = args.pge.unkF
++	const ownerPgeIndex = args.pge.inventoryOwnerPgeIndex
+ 	if (ownerPgeIndex !== uint8Max) {
+ 		args.pge.posX = runtime.livePgesByIndex[ownerPgeIndex].posX
+ 	}
+@@ -1785,7 +1785,7 @@ const pgeOpSetpgeposx = (args: PgeOpcodeArgs, game: Game) => {
+ 
+ const pgeOpSetpgeposmodx = (args: PgeOpcodeArgs, game: Game) => {
+ 	const runtime = getRuntimeRegistryState(game)
+-	const ownerPgeIndex = args.pge.unkF
++	const ownerPgeIndex = args.pge.inventoryOwnerPgeIndex
+ 	if (ownerPgeIndex !== uint8Max) {
+ 		let dx = runtime.livePgesByIndex[ownerPgeIndex].posX % 256
+ 		if (dx >= args.pge.posX) {
+@@ -1831,7 +1831,7 @@ const pgeOpChangeroom = (args: PgeOpcodeArgs, game: Game) => {
+ 			}
+ 			destinationPge.scriptStateType = sourcePge.scriptStateType
+ 			destinationPge.animSeq = 0
+-			const objectNode = game._res.level.objectNodesMap[destinationPge.initPge.scriptNodeIndex]
++			const objectNode = game.services.res.level.objectNodesMap[destinationPge.initPge.scriptNodeIndex]
+ 			let firstObjNumber = 0
+ 			while (objectNode.objects[firstObjNumber].type !== destinationPge.scriptStateType) {
+ 				++firstObjNumber
+@@ -1854,7 +1854,7 @@ const pgeOpChangelevel = (args: PgeOpcodeArgs, game: Game) => {
+ }
+ 
+ const pgeOpShakescreen = (args: PgeOpcodeArgs, game: Game) => {
+-	game._vid.setShakeOffset(gameGetRandomNumber(game) & 7)
++	game.services.vid.setShakeOffset(gameGetRandomNumber(game) & 7)
+ 	return uint16Max
+ }
+ 
+@@ -1913,7 +1913,7 @@ const opcodeTempVarSnapshot = (_args: PgeOpcodeArgs, game: Game) => ({
+ 
+ const opcodeCutsceneSnapshot = (_args: PgeOpcodeArgs, game: Game) => {
+ 	const world = getGameWorldState(game)
+-	const cutsceneId = typeof game._cut.getId === 'function' ? game._cut.getId() : -1
++	const cutsceneId = typeof game.services.cut.getId === 'function' ? game.services.cut.getId() : -1
+ 	return {
+ 		cutsceneId,
+ 		deathCutsceneCounter: world.deathCutsceneCounter,
+diff --git a/src/game/game_pge.ts b/src/game/game-pge.ts
+similarity index 87%
+rename from src/game/game_pge.ts
+rename to src/game/game-pge.ts
+index ad78ac8..85c9077 100644
+--- a/src/game/game_pge.ts
++++ b/src/game/game-pge.ts
+@@ -6,15 +6,14 @@ import type {
+     PgeOpcodeArgs
+ } from '../core/intern'
+ import { assert } from "../core/assert"
+-import type { PgeOpcodeHandler } from '../core/intern'
++import type { PgeOpcodeHandler } from './game'
+ import type { Game } from './game'
+-import { Game as GameClass } from './game'
+ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
+ import {
+     gameClearDynamicCollisionSlotState,
+     gameGetCollisionLanePositionIndexByXY,
+     gameRegisterPgeCollisionSegments
+-} from './game_collision'
++} from './game-collision'
+ import {
+     initPgeFlagHasCollision,
+     initPgeFlagInCurrentRoomList,
+@@ -25,16 +24,18 @@ import {
+     objFlagSetDead,
+     objFlagToggleMirror,
+     pgeFlagActive,
++    pgeFlagAutoActivate,
+     pgeFlagFlipX,
++    pgeFlagForeground,
+     pgeFlagMirrored,
+     pgeFlagSpecialAnim,
+     uint8Max,
+     uint16Max,
+     ctRoomSize
+ } from '../core/game_constants'
+-import { gamePlayPgeAnimationSoundEffect as gameAudioPgePlayAnimSound } from './game_audio'
+-import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game_debug'
+-import { gameHandlePgeRoomTransition, gameRelocatePgeToRoom } from './game_room_transition'
++import { gamePlayPgeAnimationSoundEffect as gameAudioPgePlayAnimSound } from './game-audio'
++import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game-debug'
++import { gameHandlePgeRoomTransition, gameRelocatePgeToRoom } from './game-room-transition'
+ import {
+     gameAddPgeToInventoryChain as gameInventoryPgeAddToInventory,
+     gameFindInventoryItemBeforePge as gameInventoryPgeGetInventoryItemBefore,
+@@ -42,10 +43,11 @@ import {
+     gameReorderPgeInventoryLinks as gameInventoryPgeReorderInventory,
+     gameSetCurrentInventoryPgeSelection as gameInventoryPgeSetCurrentInventoryObject,
+     gameUpdatePgeInventoryLinks as gameInventoryPgeUpdateInventory
+-} from './game_inventory'
+-import { gameInpUpdate } from './game_world'
+-import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
++} from './game-inventory'
++import { gameInpUpdate } from './game-world'
++import { scoreTable } from '../core/staticres'
++import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { getRoomPges, getRuntimeRegistryState } from './game-runtime-data'
+ 
+ function shouldLogPgeInteraction(game: Game, pge?: LivePGE) {
+     const session = getGameSessionState(game)
+@@ -79,7 +81,7 @@ function warnInvalidScriptEntryTransition(game: Game, pge: LivePGE, scriptNode:
+ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom: number) {
+     const ui = getGameUiState(game)
+     const runtime = getRuntimeRegistryState(game)
+-    const initialPgeFromFile: InitPGE = game._res.level.pgeAllInitialStateFromFile[idx]
++    const initialPgeFromFile: InitPGE = game.services.res.level.pgeAllInitialStateFromFile[idx]
+     const livePge: LivePGE = runtime.livePgesByIndex[idx]
+ 
+     livePge.initPge = initialPgeFromFile
+@@ -97,7 +99,7 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
+     }
+     livePge.counterValue = 0
+     livePge.collisionSlot = uint16Max
+-    livePge.unkF = uint8Max
++    livePge.inventoryOwnerPgeIndex = uint8Max
+     livePge.animNumber = 0
+     livePge.index = idx
+ 
+@@ -114,16 +116,16 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
+         flags |= pgeFlagMirrored
+     }
+     if (initialPgeFromFile.initFlags & initPgeInitFlagsHasFlag3) {
+-        flags |= 0x10
++        flags |= pgeFlagForeground
+     }
+     flags |= (initialPgeFromFile.initFlags & 3) << 5
+     if (initialPgeFromFile.flags & initPgeFlagUnknownBit1) {
+-        flags |= 0x80
++        flags |= pgeFlagAutoActivate
+     }
+ 
+     livePge.flags = flags
+-    assert(!(initialPgeFromFile.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initialPgeFromFile.scriptNodeIndex} < ${game._res.level.numObjectNodes}}`)
+-    const on: PgeScriptNode = game._res.level.objectNodesMap[initialPgeFromFile.scriptNodeIndex]
++    assert(!(initialPgeFromFile.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initialPgeFromFile.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}}`)
++    const on: PgeScriptNode = game.services.res.level.objectNodesMap[initialPgeFromFile.scriptNodeIndex]
+ 
+     let scriptEntryIndex = 0
+     let i = 0
+@@ -144,13 +146,13 @@ export function gameLoadPgeForCurrentLevel(game: Game, idx: number, currentRoom:
+ }
+ 
+ export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
+-    const animData = game._res.getAniData(pge.scriptStateType)
+-    if (pge.animSeq < game._res.readUint16(animData)) {
++    const animData = game.services.res.getAniData(pge.scriptStateType)
++    if (pge.animSeq < game.services.res.readUint16(animData)) {
+         pge.animSeq = 0
+     }
+     const animFrame = animData.subarray(6 + pge.animSeq * 4)
+-    if (game._res.readUint16(animFrame) !== uint16Max) {
+-        let f = game._res.readUint16(animData)
++    if (game.services.res.readUint16(animFrame) !== uint16Max) {
++        let f = game.services.res.readUint16(animData)
+         if (pge.flags & pgeFlagMirrored) {
+             f ^= 0x8000
+         }
+@@ -159,11 +161,11 @@ export function gameInitializePgeDefaultAnimation(game: Game, pge: LivePGE) {
+             pge.flags |= pgeFlagFlipX
+         }
+         pge.flags &= ~pgeFlagSpecialAnim
+-        if (game._res.readUint16(animData, 4) & uint16Max) {
++        if (game.services.res.readUint16(animData, 4) & uint16Max) {
+             pge.flags |= pgeFlagSpecialAnim
+         }
+ 
+-        pge.animNumber = game._res.readUint16(animFrame) & 0x7FFF
++        pge.animNumber = game.services.res.readUint16(animFrame) & 0x7FFF
+     }
+ }
+ 
+@@ -221,14 +223,14 @@ export function gameExecutePgeObjectStep(game: Game, livePge: LivePGE, initPge:
+         }
+     }
+     livePge.scriptStateType = scriptEntry.nextScriptStateType
+-    const nextScriptNode = game._res.level.objectNodesMap[livePge.initPge.scriptNodeIndex]
++    const nextScriptNode = game.services.res.level.objectNodesMap[livePge.initPge.scriptNodeIndex]
+     if (scriptEntry.nextScriptEntryIndex < 0 || scriptEntry.nextScriptEntryIndex >= nextScriptNode.objects.length || scriptEntry.nextScriptEntryIndex > nextScriptNode.lastObjNumber) {
+         warnInvalidScriptEntryTransition(game, livePge, nextScriptNode, scriptEntry)
+     }
+     livePge.firstScriptEntryIndex = scriptEntry.nextScriptEntryIndex
+     livePge.animSeq = 0
+     if (scriptEntry.flags & 0xF0) {
+-        ui.score += GameClass._scoreTable[scriptEntry.flags >> 4]
++        ui.score += scoreTable[scriptEntry.flags >> 4]
+     }
+     if (scriptEntry.flags & objFlagToggleMirror) {
+         livePge.flags ^= pgeFlagMirrored
+@@ -266,8 +268,8 @@ export function gameExecutePgeObjectStep(game: Game, livePge: LivePGE, initPge:
+ 
+ export function gameObjectNodeHasPgeGroupCondition(game: Game, pge: LivePGE) {
+     const initPge: InitPGE = pge.initPge
+-    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
+-    const on: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
++    assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
++    const on: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
+     let objIndex = pge.firstScriptEntryIndex
+     let scriptEntry: PgeScriptEntry = on.objects[objIndex]
+     let i = pge.firstScriptEntryIndex
+@@ -342,14 +344,14 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
+     if (pendingGroups?.length) {
+         gameApplyNextPgeAnimationFrameFromGroups(game, pge, pendingGroups)
+     }
+-    let animData = game._res.getAniData(pge.scriptStateType)
+-    gameDebugTrace(game, 'pge', `read=${game._res.readUint16(animData)} animSeq=${pge.animSeq}`)
+-    if (game._res.readUint16(animData) <= pge.animSeq) {
++    let animData = game.services.res.getAniData(pge.scriptStateType)
++    gameDebugTrace(game, 'pge', `read=${game.services.res.readUint16(animData)} animSeq=${pge.animSeq}`)
++    if (game.services.res.readUint16(animData) <= pge.animSeq) {
+         gameDebugTrace(game, 'pge', 'if')
+         const initPge: InitPGE = pge.initPge
+-        assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
++        assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
+ 
+-        const on: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
++        const on: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
+         let objIndex = pge.firstScriptEntryIndex
+         let scriptEntry: PgeScriptEntry = on.objects[objIndex]
+         let i = 0
+@@ -375,7 +377,7 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
+ 
+             if (_ax !== 0) {
+                 gameDebugTrace(game, 'pge', 'exiting pge_process loop room transition handling')
+-                animData = game._res.getAniData(pge.scriptStateType)
++                animData = game.services.res.getAniData(pge.scriptStateType)
+                 const snd = animData[2]
+ 
+                 if (snd) {
+@@ -399,14 +401,14 @@ export function gameRunPgeFrameLogic(game: Game, pge: LivePGE, currentRoom: numb
+ }
+ 
+ export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
+-    const animData = game._res.getAniData(pge.scriptStateType)
+-    if (game._res.readUint16(animData) < pge.animSeq) {
++    const animData = game.services.res.getAniData(pge.scriptStateType)
++    if (game.services.res.readUint16(animData) < pge.animSeq) {
+         pge.animSeq = 0
+     }
+     const animFrame = animData.subarray(6 + pge.animSeq * 4)
+ 
+-    if (game._res.readUint16(animFrame) !== uint16Max) {
+-        let fl = game._res.readUint16(animFrame)
++    if (game.services.res.readUint16(animFrame) !== uint16Max) {
++        let fl = game.services.res.readUint16(animFrame)
+         if (pge.flags & pgeFlagMirrored) {
+             fl ^= 0x8000
+             pge.posX = pge.posX - (animFrame[2] << 24 >> 24)
+@@ -419,10 +421,10 @@ export function gameAdvancePgeAnimationState(game: Game, pge: LivePGE) {
+             pge.flags |= pgeFlagFlipX
+         }
+         pge.flags &= ~pgeFlagSpecialAnim
+-        if (game._res.readUint16(animData, 4) & uint16Max) {
++        if (game.services.res.readUint16(animData, 4) & uint16Max) {
+             pge.flags |= pgeFlagSpecialAnim
+         }
+-        pge.animNumber = game._res.readUint16(animFrame) & 0x7FFF
++        pge.animNumber = game.services.res.readUint16(animFrame) & 0x7FFF
+     }
+ }
+ 
+@@ -446,11 +448,11 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
+     const pgeState = getGamePgeState(game)
+     const collisionState = getGameCollisionState(game)
+     const initPge: InitPGE = pge.initPge
+-    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
++    assert(!(initPge.scriptNodeIndex >= game.services.res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game.services.res.level.numObjectNodes}`)
+ 
+     const setAnim = () => {
+-        const animData = game._res.getAniData(pge.scriptStateType)
+-        const _dh = game._res.readUint16(animData) & 0x00FF
++        const animData = game.services.res.getAniData(pge.scriptStateType)
++        const _dh = game.services.res.readUint16(animData) & 0x00FF
+         const previousAnimSeq = pge.animSeq
+         const previousPosX = pge.posX
+         const previousPosY = pge.posY
+@@ -458,7 +460,7 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
+         const animFrame = animData.subarray(6 + _dl * 4)
+         let index = 0
+         while (_dh > _dl) {
+-            if (game._res.readUint16(animFrame, index) !== uint16Max) {
++            if (game.services.res.readUint16(animFrame, index) !== uint16Max) {
+                 if (pgeState.currentPgeFacingIsMirrored) {
+                     pge.posX = pge.posX - (animFrame[2 + index] << 24 >> 24)
+                 } else {
+@@ -475,7 +477,7 @@ export function gameApplyNextPgeAnimationFrameFromGroups(game: Game, pge: LivePG
+         gameDebugLog(game, 'pge', `[group-anim] pge=${pge.index} animSeq=${previousAnimSeq}->${pge.animSeq} pos=(${previousPosX},${previousPosY})->(${pge.posX},${pge.posY}) collisionOrigin=(${collisionState.currentPgeCollisionGridX},${collisionState.currentPgeCollisionGridY})`)
+     }
+ 
+-    const on: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
++    const on: PgeScriptNode = game.services.res.level.objectNodesMap[initPge.scriptNodeIndex]
+     let onIndex = pge.firstScriptEntryIndex
+     let scriptEntry: PgeScriptEntry = on.objects[onIndex]
+     let i = pge.firstScriptEntryIndex
+@@ -572,7 +574,7 @@ export function gameRebuildPgeCollisionStateForCurrentRoom(game: Game, currentRo
+         }
+     }
+ 
+-    for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
++    for (let i = 0; i < game.services.res.level.pgeTotalNumInFile; ++i) {
+         const pge2 = runtime.livePgeStore.activeFrameByIndex[i]
+         if (pge2 && currentRoom !== pge2.roomLocation) {
+             const previousCount = getGameCollisionState(game).nextFreeDynamicPgeCollisionSlotPoolIndex
+@@ -598,8 +600,8 @@ export async function gameUpdatePgeDirectionalInputState(game: Game) {
+     const pgeState = getGamePgeState(game)
+     await game.inpUpdate()
+ 
+-    const rawDirMask = game._stub._pi.dirMask
+-    game._inpLastkeyshit = game._stub._pi.dirMask
++    const rawDirMask = game.services.stub._pi.dirMask
++    game._inpLastkeyshit = game.services.stub._pi.dirMask
+     if ((game._inpLastkeyshit & 0xC) && (game._inpLastkeyshit & 0x3)) {
+         const mask = (game._inpLastkeyshit & 0xF0) | (game._inpLastkeyshitleftright & 0xF)
+         pgeState.currentPgeInputMask = mask
+@@ -608,16 +610,16 @@ export async function gameUpdatePgeDirectionalInputState(game: Game) {
+         pgeState.currentPgeInputMask = game._inpLastkeyshit
+         game._inpLastkeyshitleftright = game._inpLastkeyshit
+     }
+-    if (game._stub._pi.enter) {
++    if (game.services.stub._pi.enter) {
+         pgeState.currentPgeInputMask |= 0x10
+     }
+-    if (game._stub._pi.space) {
++    if (game.services.stub._pi.space) {
+         pgeState.currentPgeInputMask |= 0x20
+     }
+-    if (game._stub._pi.shift) {
++    if (game.services.stub._pi.shift) {
+         pgeState.currentPgeInputMask |= 0x40
+     }
+-    gameDebugLog(game, 'session', `[input] rawDirMask=0x${rawDirMask.toString(16)} enter=${game._stub._pi.enter} space=${game._stub._pi.space} shift=${game._stub._pi.shift} resolvedMask=0x${pgeState.currentPgeInputMask.toString(16)}`)
++    gameDebugLog(game, 'session', `[input] rawDirMask=0x${rawDirMask.toString(16)} enter=${game.services.stub._pi.enter} space=${game.services.stub._pi.space} shift=${game.services.stub._pi.shift} resolvedMask=0x${pgeState.currentPgeInputMask.toString(16)}`)
+ }
+ 
+ export function gameResetPgeGroupState(game: Game) {
+diff --git a/src/game/game_room_transition.ts b/src/game/game-room-transition.ts
+similarity index 84%
+rename from src/game/game_room_transition.ts
+rename to src/game/game-room-transition.ts
+index 9d08afe..0ac912a 100644
+--- a/src/game/game_room_transition.ts
++++ b/src/game/game-room-transition.ts
+@@ -2,10 +2,10 @@ import type { InitPGE, LivePGE } from '../core/intern'
+ import type { Game } from './game'
+ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom, gamescreenW } from '../core/game_constants'
+ import { initPgeFlagInCurrentRoomList, pgeFlagActive } from '../core/game_constants'
+-import { gameRequestMapReload } from './game_lifecycle'
+-import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
+-import { getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
+-import { getGameWorldState } from './game_state'
++import { gameRequestMapReload } from './game-lifecycle'
++import { gameRebuildActiveRoomCollisionSlotLookup } from './game-collision'
++import { getRoomPges, getRuntimeRegistryState } from './game-runtime-data'
++import { getGameWorldState } from './game-state'
+ 
+ type PgeTransitionLogger = (scope: string, message: string, pge?: LivePGE) => void
+ 
+@@ -16,19 +16,19 @@ interface PgeRoomBoundaryCrossing {
+ function getPgeRoomBoundaryCrossing(game: Game, pge: LivePGE): PgeRoomBoundaryCrossing | null {
+     if (pge.posX <= -10) {
+         pge.posX += gamescreenW
+-        return { roomLookup: game._res.level.ctData.subarray(ctLeftRoom) }
++        return { roomLookup: game.services.res.level.ctData.subarray(ctLeftRoom) }
+     }
+     if (pge.posX >= gamescreenW) {
+         pge.posX -= gamescreenW
+-        return { roomLookup: game._res.level.ctData.subarray(ctRightRoom) }
++        return { roomLookup: game.services.res.level.ctData.subarray(ctRightRoom) }
+     }
+     if (pge.posY < 0) {
+         pge.posY += 216
+-        return { roomLookup: game._res.level.ctData.subarray(ctUpRoom) }
++        return { roomLookup: game.services.res.level.ctData.subarray(ctUpRoom) }
+     }
+     if (pge.posY >= 216) {
+         pge.posY -= 216
+-        return { roomLookup: game._res.level.ctData.subarray(ctDownRoom) }
++        return { roomLookup: game.services.res.level.ctData.subarray(ctDownRoom) }
+     }
+     return null
+ }
+@@ -60,8 +60,8 @@ function activateNeighborRoomPges(game: Game, room: number, minY: number, label:
+ 
+ function activateRoomTransitionNeighbors(game: Game, currentRoom: number, log: PgeTransitionLogger) {
+     activateCurrentRoomPges(game, currentRoom, log)
+-    activateNeighborRoomPges(game, game._res.level.ctData[ctUpRoom + currentRoom], 48, 'upper-neighbor', log)
+-    activateNeighborRoomPges(game, game._res.level.ctData[ctDownRoom + currentRoom], 176, 'lower-neighbor', log)
++    activateNeighborRoomPges(game, game.services.res.level.ctData[ctUpRoom + currentRoom], 48, 'upper-neighbor', log)
++    activateNeighborRoomPges(game, game.services.res.level.ctData[ctDownRoom + currentRoom], 176, 'lower-neighbor', log)
+ }
+ 
+ export function gameRelocatePgeToRoom(game: Game, pge: LivePGE, previousRoom: number, log: PgeTransitionLogger) {
+diff --git a/src/game/game_runtime_data.ts b/src/game/game-runtime-data.ts
+similarity index 100%
+rename from src/game/game_runtime_data.ts
+rename to src/game/game-runtime-data.ts
+diff --git a/src/game/game_runtime.ts b/src/game/game-runtime.ts
+similarity index 85%
+rename from src/game/game_runtime.ts
+rename to src/game/game-runtime.ts
+index 5e7c4a7..2c617b3 100644
+--- a/src/game/game_runtime.ts
++++ b/src/game/game-runtime.ts
+@@ -2,13 +2,13 @@ import type { LivePGE } from '../core/intern'
+ import type { Game } from './game'
+ import { Menu } from './menu'
+ import { ObjectType, LocaleData } from '../resource/resource'
+-import { dirDown, dirUp } from '../platform/systemstub_web'
++import { dirDown, dirUp } from '../platform/systemstub-web'
+ import { charW, gamescreenW, uint8Max } from '../core/game_constants'
+ import { kAutoSaveIntervalMs, kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
+-import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game_draw'
+-import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
+-import { gameHandleConfigPanel, gameHandleInventory } from './game_inventory'
+-import { getGameServices } from './game_services'
++import { gameDrawAnims, gameDrawCurrentInventoryItem, gameDrawCurrentRoomOverlay, gameDrawLevelTexts, gameDrawStoryTexts } from './game-draw'
++import { gameRebuildActiveRoomCollisionSlotLookup } from './game-collision'
++import { gameHandleConfigPanel, gameHandleInventory } from './game-inventory'
++import { getGameServices } from './game-services'
+ import {
+     gameApplyTitleScreenSelection,
+     gameBeginFrameLoop,
+@@ -21,12 +21,12 @@ import {
+     gameQueueDeathCutscene,
+     gameSetSaveTimestamp,
+     gameTickDeathCutscene
+-} from './game_lifecycle'
+-import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game_pge'
+-import { gameDebugLog, gameDebugWarn } from './game_debug'
+-import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game_world'
+-import { getRuntimeRegistryState } from './game_runtime_data'
++} from './game-lifecycle'
++import { gameRebuildActiveFramePgeList, gameRebuildPgeCollisionStateForCurrentRoom, gameRunPgeFrameLogic, gameUpdatePgeDirectionalInputState } from './game-pge'
++import { gameDebugLog, gameDebugWarn } from './game-debug'
++import { getGameCollisionState, getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { gameChangeLevel, gameHasLevelMap, gameLoadLevelData, gameLoadLevelMap, gamePrepareAnimationsInRooms, gameResetGameState } from './game-world'
++import { getRuntimeRegistryState } from './game-runtime-data'
+ import {
+     gameDidDie,
+     gameDidFinishAllLevels,
+@@ -37,7 +37,7 @@ import {
+     gamePlayCutscene,
+     gameShowFinalScore,
+     gameUpdateTiming,
+-} from './game_session_flow'
++} from './game-session-flow'
+ 
+ export {
+     gameDidDie,
+@@ -50,39 +50,22 @@ export {
+ }
+ 
+ function gameLoadTextResources(game: Game) {
+-    const { res } = getGameServices(game)
+-    const legacyResource = res as typeof res & {
+-        loadText?: () => void
+-    }
+-    if (typeof res.loadText === 'function') {
+-        res.loadText()
+-        return
+-    }
+-    legacyResource.loadText()
++    getGameServices(game).res.loadText()
+ }
+ 
+ async function gameLoadConradSpriteResources(game: Game) {
+     const { res } = getGameServices(game)
+-    const legacyResource = res as typeof res & {
+-        loadSpriteOffsets?: (name: string, spr: unknown) => Promise<void>
+-    }
+-    if (typeof res.loadSpriteOffsets === 'function') {
+-        await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
+-        return
+-    }
+-    await legacyResource.loadSpriteOffsets('PERSO', res.sprites.spr1)
++    await res.loadSpriteOffsets('PERSO', res.sprites.spr1)
+ }
+ 
+ async function gameLoadSoundResources(game: Game) {
+     const { res } = getGameServices(game)
+-    const legacyResource = res as typeof res & {
+-        loadFib?: (name: string) => Promise<void>
+-    }
+     if (typeof res.loadSoundEffects === 'function') {
+         await res.loadSoundEffects('GLOBAL')
+-        return
++    } else {
++        // Legacy fallback for resource implementations that predate loadSoundEffects
++        await (res as unknown as { loadFib(name: string): Promise<void> }).loadFib('GLOBAL')
+     }
+-    await legacyResource.loadFib('GLOBAL')
+ }
+ 
+ async function gameBootResources(game: Game) {
+@@ -140,17 +123,17 @@ function gameStartRenderLoop(game: Game) {
+ }
+ 
+ function gameResetPostSessionInput(game: Game) {
+-    game._stub._pi.dirMask = 0
+-    game._stub._pi.enter = false
+-    game._stub._pi.space = false
+-    game._stub._pi.shift = false
++    game.services.stub._pi.dirMask = 0
++    game.services.stub._pi.enter = false
++    game.services.stub._pi.space = false
++    game.services.stub._pi.shift = false
+ }
+ 
+ async function gameProcessActiveFrame(game: Game) {
+     const world = getGameWorldState(game)
+     const session = getGameSessionState(game)
+     const runtime = getRuntimeRegistryState(game)
+-    game._vid.restoreFrontLayerFromBack()
++    game.services.vid.restoreFrontLayerFromBack()
+     await gameUpdatePgeDirectionalInputState(game)
+     gameRebuildPgeCollisionStateForCurrentRoom(game, world.currentRoom)
+     gameRebuildActiveRoomCollisionSlotLookup(game, world.currentRoom)
+@@ -192,7 +175,7 @@ async function gameResolvePendingMapLoad(game: Game) {
+             'runtime',
+             `[direct-start] triggering death cutscene due to missing map: frame=${game.renders} level=${world.currentLevel} currentRoom=${world.currentRoom} conradRoom=${conrad.roomLocation} pos=(${conrad.posX},${conrad.posY}) state=${conrad.scriptStateType}/${conrad.firstScriptEntryIndex} anim=${conrad.animNumber}`
+         )
+-        game._cut.setId(6)
++        game.services.cut.setId(6)
+         gameQueueDeathCutscene(game, 1)
+         return
+     }
+@@ -200,7 +183,7 @@ async function gameResolvePendingMapLoad(game: Game) {
+     gameDebugLog(game, 'runtime', `[map-load] committing level=${world.currentLevel} room=${room}`)
+     gameCommitLoadedRoom(game, room)
+     await gameLoadLevelMap(game, room)
+-    game._vid.fullRefresh()
++    game.services.vid.fullRefresh()
+     gameDebugLog(game, 'runtime', `[map-load] completed room=${room} overlayCounter=${getGameUiState(game).currentRoomOverlayCounter}`)
+ }
+ 
+@@ -216,29 +199,29 @@ async function gameRenderCurrentFrame(game: Game) {
+     if (world.blinkingConradCounter !== 0) {
+         --world.blinkingConradCounter
+     }
+-    await game._vid.updateScreen()
++    await game.services.vid.updateScreen()
+     await gameUpdateTiming(game)
+     await gameDrawStoryTexts(game)
+ }
+ 
+ async function gameHandleFrameMenus(game: Game) {
+-    if (game._stub._pi.backspace) {
+-        game._stub._pi.backspace = false
++    if (game.services.stub._pi.backspace) {
++        game.services.stub._pi.backspace = false
+         await gameHandleInventory(game)
+     }
+-    if (game._stub._pi.escape) {
++    if (game.services.stub._pi.escape) {
+         if (await gameHandleConfigPanel(game)) {
+             gameEndLoop(game)
+             return true
+         }
+-        game._stub._pi.escape = false
++        game.services.stub._pi.escape = false
+     }
+     return false
+ }
+ 
+ export async function gameRunLoop(game: Game) {
+     await gameMainLoop(game)
+-    if (!game._stub._pi.quit && !getGameSessionState(game).endLoop) {
++    if (!game.services.stub._pi.quit && !getGameSessionState(game).endLoop) {
+         requestAnimationFrame(() => gameRunLoop(game))
+     } else {
+         // @ts-ignore
+@@ -250,21 +233,21 @@ export async function gameRun(game: Game) {
+     await gameBootResources(game)
+ 
+     const presentMenu = true
+-    while (!game._stub._pi.quit) {
++    while (!game.services.stub._pi.quit) {
+         gameDebugLog(game, 'runtime', `[session] title-loop level=${game.world.currentLevel} skill=${game.ui.skillLevel} autoSave=${game.session.autoSave}`)
+         if (presentMenu) {
+             if (!await gamePresentTitleScreen(game)) {
+                 break
+             }
+         }
+-        if (game._stub._pi.quit) {
++        if (game.services.stub._pi.quit) {
+             break
+         }
+         gamePreparePlaythroughSession(game)
+         gameDebugLog(game, 'runtime', `[session] starting playthrough level=${game.world.currentLevel} skill=${game.ui.skillLevel} slot=${game.session.stateSlot}`)
+         await game.loadLevelData()
+         await gameStartRenderLoop(game)
+-        gameDebugLog(game, 'runtime', `[session] playthrough-ended quit=${game._stub._pi.quit} endLoop=${game.session.endLoop} renders=${game.renders}`)
++        gameDebugLog(game, 'runtime', `[session] playthrough-ended quit=${game.services.stub._pi.quit} endLoop=${game.session.endLoop} renders=${game.renders}`)
+         gameResetPostSessionInput(game)
+     }
+ }
+diff --git a/src/game/game_services.ts b/src/game/game-services.ts
+similarity index 89%
+rename from src/game/game_services.ts
+rename to src/game/game-services.ts
+index 0da2fc9..f76440e 100644
+--- a/src/game/game_services.ts
++++ b/src/game/game-services.ts
+@@ -2,7 +2,7 @@ import type { Cutscene } from '../cutscene-players/cutscene'
+ import type { Mixer } from '../audio/mixer'
+ import type { Resource } from '../resource/resource'
+ import type { Video } from '../video/video'
+-import type { SystemStub } from '../platform/systemstub_web'
++import type { SystemStub } from '../platform/systemstub-web'
+ import type { FileSystem } from '../resource/fs'
+ import type { Game } from './game'
+ 
+diff --git a/src/game/game_session_flow.ts b/src/game/game-session-flow.ts
+similarity index 66%
+rename from src/game/game_session_flow.ts
+rename to src/game/game-session-flow.ts
+index 4ba58a6..c56d31a 100644
+--- a/src/game/game_session_flow.ts
++++ b/src/game/game-session-flow.ts
+@@ -2,15 +2,15 @@ import type { Color } from '../core/intern'
+ import type { Game } from './game'
+ import { Cutscene } from '../cutscene-players/cutscene'
+ import { LocaleData } from '../resource/resource'
+-import { dfFastmode, dfSetlife, dirDown, dirUp } from '../platform/systemstub_web'
++import { dfFastmode, dfSetlife, dirDown, dirUp } from '../platform/systemstub-web'
+ import { charW, gamescreenW, uint8Max } from '../core/game_constants'
+ import { kAutoSaveSlot, kIngameSaveSlot, kRewindSize } from './game'
+-import { gameDebugLog } from './game_debug'
+-import { gameChangeStateSlot, gameCompleteFrameTiming, gameEndLoop, gameSetSaveTimestamp, gameTickDeathCutscene } from './game_lifecycle'
+-import { getRuntimeRegistryState } from './game_runtime_data'
+-import { getGameServices } from './game_services'
+-import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { gameClearStateRewind, gameLoadLevelData, gameResetGameState } from './game_world'
++import { gameDebugLog } from './game-debug'
++import { gameChangeStateSlot, gameCompleteFrameTiming, gameEndLoop, gameSetSaveTimestamp, gameTickDeathCutscene } from './game-lifecycle'
++import { getRuntimeRegistryState } from './game-runtime-data'
++import { getGameServices } from './game-services'
++import { getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { gameClearStateRewind, gameLoadLevelData, gameResetGameState } from './game-world'
+ 
+ export async function gamePlayCutscene(game: Game, id: number = -1) {
+     const { cut, mix } = getGameServices(game)
+@@ -40,26 +40,26 @@ export async function gameShowFinalScore(game: Game) {
+     await gamePlayCutscene(game, 0x49)
+ 
+     const buf = getGameUiState(game).score.toString().padStart(8, '0')
+-    game._vid.drawString(buf, (gamescreenW - buf.length * charW) / 2, 40, 0xE5)
+-    while (!game._stub._pi.quit) {
+-        game._vid.presentFrontLayer()
+-        await game._stub.updateScreen(0)
+-        await game._stub.processEvents()
+-        if (game._stub._pi.enter) {
+-            game._stub._pi.enter = false
++    game.services.vid.drawString(buf, (gamescreenW - buf.length * charW) / 2, 40, 0xE5)
++    while (!game.services.stub._pi.quit) {
++        game.services.vid.presentFrontLayer()
++        await game.services.stub.updateScreen(0)
++        await game.services.stub.processEvents()
++        if (game.services.stub._pi.enter) {
++            game.services.stub._pi.enter = false
+             break
+         }
+-        await game._stub.sleep(100)
++        await game.services.stub.sleep(100)
+     }
+ }
+ 
+ export async function gameUpdateTiming(game: Game) {
+     const frameHz = 30
+-    const delay = game._stub.getTimeStamp() - getGameSessionState(game).frameTimestamp
+-    let pause = (game._stub._pi.dbgMask & dfFastmode) ? 20 : (1000 / frameHz)
++    const delay = game.services.stub.getTimeStamp() - getGameSessionState(game).frameTimestamp
++    let pause = (game.services.stub._pi.dbgMask & dfFastmode) ? 20 : (1000 / frameHz)
+     pause -= delay
+     if (pause > 0) {
+-        await game._stub.sleep(pause)
++        await game.services.stub.sleep(pause)
+     }
+     gameCompleteFrameTiming(game)
+ }
+@@ -70,22 +70,22 @@ export async function gameHandleContinueAbort(game: Game) {
+     const colors = [0xE4, 0xE5]
+     let colorInc = uint8Max
+     const col: Color = { r: 0, g: 0, b: 0 }
+-    game._stub.getPaletteEntry(0xE4, col)
+-    game._vid.copyFrontLayerToTemp()
+-    while (timeout >= 0 && !game._stub._pi.quit) {
+-        let str = game._res.getMenuString(LocaleData.Id.li01ContinueOrAbort)
+-        game._vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 64, 0xE3)
+-        str = game._res.getMenuString(LocaleData.Id.li02Time)
++    game.services.stub.getPaletteEntry(0xE4, col)
++    game.services.vid.copyFrontLayerToTemp()
++    while (timeout >= 0 && !game.services.stub._pi.quit) {
++        let str = game.services.res.getMenuString(LocaleData.Id.li01ContinueOrAbort)
++        game.services.vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 64, 0xE3)
++        str = game.services.res.getMenuString(LocaleData.Id.li02Time)
+         let buf = str + ' : ' + ((timeout / 10) >> 0)
+-        game._vid.drawString(buf, 96, 88, 0xE3)
+-        str = game._res.getMenuString(LocaleData.Id.li03Continue)
+-        game._vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 104, colors[0])
+-        str = game._res.getMenuString(LocaleData.Id.li04Abort)
+-        game._vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 112, colors[1])
++        game.services.vid.drawString(buf, 96, 88, 0xE3)
++        str = game.services.res.getMenuString(LocaleData.Id.li03Continue)
++        game.services.vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 104, colors[0])
++        str = game.services.res.getMenuString(LocaleData.Id.li04Abort)
++        game.services.vid.drawString(str, ((gamescreenW - str.length * charW) / 2) >> 0, 112, colors[1])
+         buf = 'SCORE  ' + getGameUiState(game).score.toString().padStart(8, '0')
+-        game._vid.drawString(buf, 64, 154, 0xE3)
+-        if (game._stub._pi.dirMask & dirUp) {
+-            game._stub._pi.dirMask &= ~dirUp
++        game.services.vid.drawString(buf, 64, 154, 0xE3)
++        if (game.services.stub._pi.dirMask & dirUp) {
++            game.services.stub._pi.dirMask &= ~dirUp
+             if (currentColor > 0) {
+                 const color1 = colors[currentColor]
+                 colors[currentColor] = colors[currentColor - 1]
+@@ -93,8 +93,8 @@ export async function gameHandleContinueAbort(game: Game) {
+                 --currentColor
+             }
+         }
+-        if (game._stub._pi.dirMask & dirDown) {
+-            game._stub._pi.dirMask &= ~dirDown
++        if (game.services.stub._pi.dirMask & dirDown) {
++            game.services.stub._pi.dirMask &= ~dirDown
+             if (currentColor < 1) {
+                 const color1 = colors[currentColor]
+                 colors[currentColor] = colors[currentColor + 1]
+@@ -102,12 +102,12 @@ export async function gameHandleContinueAbort(game: Game) {
+                 ++currentColor
+             }
+         }
+-        if (game._stub._pi.enter) {
+-            game._stub._pi.enter = false
++        if (game.services.stub._pi.enter) {
++            game.services.stub._pi.enter = false
+             return currentColor === 0
+         }
+-        game._vid.presentFrontLayer()
+-        await game._stub.updateScreen(0)
++        game.services.vid.presentFrontLayer()
++        await game.services.stub.updateScreen(0)
+         const colorStep = 8
+         const colorMin = 16
+         const colorMax = 256 - 16
+@@ -123,17 +123,17 @@ export async function gameHandleContinueAbort(game: Game) {
+             col.b -= colorStep
+             col.g -= colorStep
+         }
+-        game._stub.setPaletteEntry(0xE4, col)
+-        await game._stub.processEvents()
+-        await game._stub.sleep(100)
++        game.services.stub.setPaletteEntry(0xE4, col)
++        await game.services.stub.processEvents()
++        await game.services.stub.sleep(100)
+         --timeout
+-        game._vid.restoreFrontLayerFromTemp()
++        game.services.vid.restoreFrontLayerFromTemp()
+     }
+     return false
+ }
+ 
+ export async function gameDidFinishAllLevels(game: Game) {
+-    if (game._cut.getId() === 0x3D) {
++    if (game.services.cut.getId() === 0x3D) {
+         await gameShowFinalScore(game)
+         gameEndLoop(game)
+         return true
+@@ -144,7 +144,7 @@ export async function gameDidFinishAllLevels(game: Game) {
+ export async function gameDidDie(game: Game) {
+     const session = getGameSessionState(game)
+     if (gameTickDeathCutscene(game)) {
+-        await gamePlayCutscene(game, game._cut.getDeathCutSceneId())
++        await gamePlayCutscene(game, game.services.cut.getDeathCutSceneId())
+         if (!await gameHandleContinueAbort(game)) {
+             await gamePlayCutscene(game, 0x41)
+             gameEndLoop(game)
+@@ -165,7 +165,7 @@ export async function gameDidDie(game: Game) {
+ export function gameMaybeAutoSave(game: Game, autoSaveIntervalMs: number) {
+     const session = getGameSessionState(game)
+     const world = getGameWorldState(game)
+-    if (!session.autoSave || game._stub.getTimeStamp() - session.saveTimestamp < autoSaveIntervalMs) {
++    if (!session.autoSave || game.services.stub.getTimeStamp() - session.saveTimestamp < autoSaveIntervalMs) {
+         return
+     }
+     if (getRuntimeRegistryState(game).livePgesByIndex[0].life > 0 && world.deathCutsceneCounter === 0) {
+@@ -179,36 +179,36 @@ export function gameMaybeAutoSave(game: Game, autoSaveIntervalMs: number) {
+ 
+ export function gameInpHandleSpecialKeys(game: Game) {
+     const session = getGameSessionState(game)
+-    if (game._stub._pi.dbgMask & dfSetlife) {
++    if (game.services.stub._pi.dbgMask & dfSetlife) {
+         getRuntimeRegistryState(game).livePgesByIndex[0].life = 0x7FFF
+         gameDebugLog(game, 'session', '[debug-key] set Conrad life to max')
+     }
+-    if (game._stub._pi.load) {
++    if (game.services.stub._pi.load) {
+         gameDebugLog(game, 'session', `[debug-key] load requested slot=${session.stateSlot}`)
+         game.loadGameState(session.stateSlot)
+-        game._stub._pi.load = false
++        game.services.stub._pi.load = false
+     }
+-    if (game._stub._pi.save) {
++    if (game.services.stub._pi.save) {
+         gameDebugLog(game, 'session', `[debug-key] save requested slot=${session.stateSlot}`)
+         game.saveGameState(session.stateSlot)
+-        game._stub._pi.save = false
++        game.services.stub._pi.save = false
+     }
+-    if (game._stub._pi.stateSlot !== 0) {
++    if (game.services.stub._pi.stateSlot !== 0) {
+         const previousSlot = session.stateSlot
+-        const slot = gameChangeStateSlot(game, game._stub._pi.stateSlot)
++        const slot = gameChangeStateSlot(game, game.services.stub._pi.stateSlot)
+         if (slot !== previousSlot) {
+             gameDebugLog(game, 'session', `Current game state slot is ${session.stateSlot}`)
+         }
+-        game._stub._pi.stateSlot = 0
++        game.services.stub._pi.stateSlot = 0
+     }
+-    if (game._stub._pi.rewind) {
++    if (game.services.stub._pi.rewind) {
+         if (game._rewindLen !== 0) {
+             gameDebugLog(game, 'session', `[rewind] loading previous state rewindLen=${game._rewindLen} rewindPtr=${game._rewindPtr}`)
+             gameLoadStateRewind(game)
+         } else {
+             gameDebugLog(game, 'session', 'Rewind buffer is empty')
+         }
+-        game._stub._pi.rewind = false
++        game.services.stub._pi.rewind = false
+     }
+ }
+ 
+diff --git a/src/game/game_state.ts b/src/game/game-state.ts
+similarity index 100%
+rename from src/game/game_state.ts
+rename to src/game/game-state.ts
+diff --git a/src/game/game_world.ts b/src/game/game-world.ts
+similarity index 93%
+rename from src/game/game_world.ts
+rename to src/game/game-world.ts
+index f14af22..e691815 100644
+--- a/src/game/game_world.ts
++++ b/src/game/game-world.ts
+@@ -2,19 +2,20 @@ import type { InitPGE, LivePGE, PgeScriptNode } from '../core/intern'
+ import { CreatePGE, readBeUint16, readBeUint32, readLeUint32 } from '../core/intern'
+ import type { Game } from './game'
+ import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
++import { File } from '../resource/file'
+ import { Mixer } from '../audio/mixer'
+ import { ObjectType } from '../resource/resource'
+ import { ctGridStride, ctHeaderSize, gamescreenH, gamescreenW } from '../core/game_constants'
+-import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/game_constants'
++import { pgeFlagFlipX, pgeFlagForeground, pgeFlagSpecialAnim, uint16Max, uint8Max, xorRandSeedPolynomial } from '../core/game_constants'
+ import { _gameLevels } from '../core/staticres'
+ import { monsterListsByLevel } from '../core/staticres-monsters'
+ import { assert } from "../core/assert"
+-import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game_debug'
+-import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game_pge'
+-import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game_lifecycle'
+-import { getGameServices } from './game_services'
+-import { getGameCollisionState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
+-import { getRenderDataState, getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
++import { gameDebugLog, gameDebugTrace, gameDebugWarn } from './game-debug'
++import { gameInitializePgeDefaultAnimation, gameLoadPgeForCurrentLevel, gameResetPgeGroupState } from './game-pge'
++import { gameClearValidSaveState, gameCommitLoadedRoom, roomOverlayDurationFrames, gameResetLevelLifecycle } from './game-lifecycle'
++import { getGameServices } from './game-services'
++import { getGameCollisionState, getGameSessionState, getGameUiState, getGameWorldState } from './game-state'
++import { getRenderDataState, getRoomPges, getRuntimeRegistryState } from './game-runtime-data'
+ 
+ const monsterPaletteSlot = 5
+ 
+@@ -95,7 +96,7 @@ export function gameGetRandomNumber(game: Game) {
+     const session = getGameSessionState(game)
+     let n = session.randSeed * 2
+     if ((session.randSeed << 32 >> 32) >= 0) {
+-        n ^= 0x1D872B41
++        n ^= xorRandSeedPolynomial
+     }
+     session.randSeed = n
+     return n & uint16Max
+@@ -219,8 +220,8 @@ export function gameCreatePgeLiveTable1(game: Game) {
+     runtime.livePgeStore.liveByRoom.forEach((roomList) => {
+         roomList.length = 0
+     })
+-    for (let i = 0; i < game._res.level.pgeTotalNumInFile; ++i) {
+-        if (game._res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
++    for (let i = 0; i < game.services.res.level.pgeTotalNumInFile; ++i) {
++        if (game.services.res.level.pgeAllInitialStateFromFile[i].skill <= ui.skillLevel) {
+             gameDebugTrace(game, 'world', `i=${i} => skill!`)
+             const pge = runtime.livePgesByIndex[i]
+             runtime.livePgeStore.liveByRoom[pge.roomLocation].push(pge)
+@@ -288,7 +289,7 @@ export function gameClearStateRewind(game: Game) {
+     game._rewindLen = 0
+ }
+ 
+-export function gameLoadState(_game: Game, _f: any) {
++export function gameLoadState(_game: Game, _f: File) {
+     throw new Error('gameLoadState() is not implemented')
+ }
+ 
+@@ -357,7 +358,7 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
+ 
+         assert(!(pge.animNumber >= 1287), `Assertion failed: ${pge.animNumber} < 1287`)
+         const loadedMonsterVisual = getLoadedMonsterVisualForPge(game, pge)
+-        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game._res.sprites.resolvedSpriteSet
++        const resolvedSpriteSet = loadedMonsterVisual ? loadedMonsterVisual.resolvedSpriteSet : game.services.res.sprites.resolvedSpriteSet
+         const paletteColorMaskOverride = getPaletteColorMaskOverrideForPge(game, pge)
+         dataPtr = resolvedSpriteSet.spritesByIndex[pge.animNumber]
+         if (dataPtr === null) {
+@@ -387,19 +388,19 @@ export async function gamePrepareAnimsHelper(game: Game, pge: LivePGE, dx: numbe
+         xpos += 8
+         if (pge === runtime.livePgesByIndex[0]) {
+             render.animBuffers.addState(1, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+-        } else if (pge.flags & 0x10) {
++        } else if (pge.flags & pgeFlagForeground) {
+             render.animBuffers.addState(2, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+         } else {
+             render.animBuffers.addState(0, xpos, ypos, dataPtr, pge, w, h, paletteColorMaskOverride)
+         }
+     } else {
+-        assert(!(pge.animNumber >= game._res.sprites.numSpc), `Assertion failed: ${pge.animNumber} < ${game._res.sprites.numSpc}`)
+-        const dataPtr = game._res.sprites.spc.subarray(readBeUint16(game._res.sprites.spc, pge.animNumber * 2))
++        assert(!(pge.animNumber >= game.services.res.sprites.numSpc), `Assertion failed: ${pge.animNumber} < ${game.services.res.sprites.numSpc}`)
++        const dataPtr = game.services.res.sprites.spc.subarray(readBeUint16(game.services.res.sprites.spc, pge.animNumber * 2))
+         const xpos = dx + pge.posX + 8
+         const ypos = dy + pge.posY + 2
+         if (pge.initPge.objectType === 11) {
+             render.animBuffers.addState(3, xpos, ypos, dataPtr, pge)
+-        } else if (pge.flags & 0x10) {
++        } else if (pge.flags & pgeFlagForeground) {
+             render.animBuffers.addState(2, xpos, ypos, dataPtr, pge)
+         } else {
+             render.animBuffers.addState(0, xpos, ypos, dataPtr, pge)
+@@ -423,7 +424,7 @@ export async function gamePrepareAdjacentRoomAnims(
+     shouldPrepare: (game: Game, pge: LivePGE) => boolean,
+     currentRoom: number
+ ) {
+-    const pgeRoom = game._res.level.ctData[roomOffset + currentRoom]
++    const pgeRoom = game.services.res.level.ctData[roomOffset + currentRoom]
+     if (pgeRoom >= 0 && pgeRoom < 0x40) {
+         const roomPges = getRoomPges(game, pgeRoom)
+         gameDebugLog(game, 'world', `[anim-prep] adjacent sourceRoom=${currentRoom} targetRoom=${pgeRoom} offset=(${offsetX},${offsetY}) candidates=${roomPges.length}`)
+diff --git a/src/game/game.ts b/src/game/game.ts
+index e1584ee..0b0309e 100644
+--- a/src/game/game.ts
++++ b/src/game/game.ts
+@@ -1,28 +1,20 @@
+-import { Level, LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
+-import type { PgeOpcodeHandler } from '../core/intern'
++import { LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
+ import { Cutscene } from '../cutscene-players/cutscene'
+ import { Mp4CutscenePlayer } from '../cutscene-players/mp4-cutscene-player'
+ import { Mixer } from '../audio/mixer'
+ import { Resource, ObjectType, LocaleData } from '../resource/resource'
+ import { Video } from '../video/video'
+-import { dfFastmode, dfSetlife, dirDown, dirUp, SystemStub } from '../platform/systemstub_web'
++import { dfFastmode, dfSetlife, dirDown, dirUp, SystemStub } from '../platform/systemstub-web'
+ import { FileSystem } from '../resource/fs'
+ import { Menu } from './menu'
+-import { gamescreenW, gamescreenH, charW } from '../core/game_constants'
++import { gamescreenW, gamescreenH, charW, globalGameOptionDefaults } from '../core/game_constants'
++import type { GameOptions } from '../core/game_constants'
++import { _pgeOpcodetable as defaultOpcodeHandlers } from './game-opcodes'
+ 
+-import {
+-    scoreTable,
+-    _gameLevels,
+-    _pgeModkeystable as modifierKeyMasksData,
+-    _protectionCodeData,
+-    _protectionPal,
+-    _protectionWordData,
+-} from '../core/staticres'
+ import {
+     monsterListsByLevel
+ } from '../core/staticres-monsters'
+ import { File } from '../resource/file'
+-import { _pgeOpcodetable as opcodeHandlers } from './game_opcodes'
+ import {
+     uint8Max,
+     kIngameSaveSlot,
+@@ -36,7 +28,7 @@ import {
+     ctLeftRoom,
+     pgeNum,
+ } from '../core/game_constants'
+-import { gamePlaySound } from './game_audio'
++import { gamePlaySound } from './game-audio'
+ import {
+     gameDrawAnimBuffer,
+     gameDrawCharacter,
+@@ -45,21 +37,22 @@ import {
+     gameDrawObjectFrame,
+     gameDrawPge,
+     gameDrawString
+-} from './game_draw'
++} from './game-draw'
+ import {
+     gameLoadGameState,
+     gameRun,
+     gameSaveGameState,
+-} from './game_runtime'
++} from './game-runtime'
+ import {
+     gameClearStateRewind,
++    gameGetRandomNumber,
+     gameInpUpdate,
+     gameLoadLevelData,
+     gameLoadLevelMap,
+     gameLoadMonsterSprites,
+     gameLoadState,
+     gameResetGameState
+-} from './game_world'
++} from './game-world'
+ import {
+     gameAddPgeToInventory,
+     gameFindInventoryItemBeforePge,
+@@ -70,16 +63,18 @@ import {
+     gameResetPgeGroupState,
+     gameSetCurrentInventoryPge,
+     gameUpdatePgeInventory
+-} from './game_pge'
++} from './game-pge'
+ import {
+     gameGetCurrentInventoryItemIndex,
+     gameGetInventoryItemIndices,
+     gameGetNextInventoryItemIndex
+-} from './game_inventory'
+-import type { GameServicesShape } from './game_services'
++} from './game-inventory'
++import type { GameServicesShape } from './game-services'
+ 
+-type colCallback1 = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
+-type colCallback2 = (livePGE: LivePGE, p1: number, p2: number, p3: number, game: Game) => number
++type colCallback1 = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
++type colCallback2 = (pge: LivePGE, verticalOffset: number, distanceStep: number, groupId: number, game: Game) => number
++type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
++type PgeZOrderComparator = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
+ 
+ interface GameWorldState {
+     currentLevel: number
+@@ -155,24 +150,13 @@ interface GameRenderDataState {
+ }
+ 
+ class Game {
+-    static _gameLevels: Level[] = _gameLevels
+-    static _scoreTable: Uint16Array = scoreTable
+-    _opcodeHandlers: PgeOpcodeHandler[] = opcodeHandlers
+-    static _modifierKeyMasks: Uint8Array = modifierKeyMasksData
+-    static _protectionCodeData: Uint8Array = _protectionCodeData
+-    static _protectionWordData: Uint8Array = _protectionWordData
+-    static _protectionPal: Uint8Array = _protectionPal
++
++    _opcodeHandlers: PgeOpcodeHandler[] = defaultOpcodeHandlers
+ 
+     renderPromise: Promise<unknown>
+     renderDone: { (): void; (value: unknown): void }
+ 
+-    _cut: Cutscene
+     _menu: Menu
+-    _mix: Mixer
+-    _res: Resource
+-    _vid: Video
+-    _stub: SystemStub
+-    _fs: FileSystem
+     _rewindBuffer: File[]
+     _rewindPtr: number
+     _rewindLen: number
+@@ -303,21 +287,19 @@ class Game {
+     }
+     renders: number
+     debugStartFrame: number
++    options: GameOptions = { ...globalGameOptionDefaults }
+ 
+-    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean) {
++    constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean, options?: Partial<GameOptions>) {
++        if (options) {
++            Object.assign(this.options, options)
++        }
+         this.services.res = new Resource(fs) // there is only one resource class for the whole game
+-        this.services.vid = new Video(this.services.res, stub)
+-        this.services.cut = new Cutscene(this.services.res, stub, this.services.vid)
++        this.services.vid = new Video(this.services.res, stub, this.options)
++        this.services.cut = new Cutscene(this.services.res, stub, this.services.vid, this.options)
+         this._menu = new Menu(this.services.res, stub, this.services.vid)
+         this.services.mix = new Mixer(fs, stub)
+         this.services.stub = stub
+         this.services.fs = fs
+-        this._res = this.services.res
+-        this._vid = this.services.vid
+-        this._cut = this.services.cut
+-        this._mix = this.services.mix
+-        this._stub = this.services.stub
+-        this._fs = this.services.fs
+         this.runtimeData.livePgeStore = createLivePgeRegistry(this.runtimeData.livePgesByIndex)
+         this.session.stateSlot = 1
+         this.ui.skillLevel = this._menu._skill = Skill.kSkillNormal
+@@ -471,7 +453,11 @@ class Game {
+         return gameClearStateRewind(this)
+     }
+ 
++    getRandomNumber() {
++        return gameGetRandomNumber(this)
++    }
++
+ }
+ 
+ export { Game, ctUpRoom, ctDownRoom, ctRightRoom, ctLeftRoom, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }
+-export type { colCallback1, colCallback2 }
++export type { colCallback1, colCallback2, PgeOpcodeHandler, PgeZOrderComparator }
+diff --git a/src/game/menu.ts b/src/game/menu.ts
+index 07a5778..6ef4085 100644
+--- a/src/game/menu.ts
++++ b/src/game/menu.ts
+@@ -1,6 +1,6 @@
+ import {  Skill } from "../core/intern"
+ import { LocaleData, Resource } from "../resource/resource"
+-import { dirDown, dirUp, SystemStub } from "../platform/systemstub_web"
++import { dirDown, dirUp, SystemStub } from "../platform/systemstub-web"
+ import {gamescreenH, gamescreenW, Video} from "../video/video"
+ import { charW, charH, uint8Max } from '../core/game_constants'
+ import { _gameLevels } from '../core/staticres'
+diff --git a/src/tools/level-generator/!README.md b/src/level-generator/!README.md
+similarity index 100%
+rename from src/tools/level-generator/!README.md
+rename to src/level-generator/!README.md
+diff --git a/src/tools/level-generator/ChatGPTPromtpForLevel.txt b/src/level-generator/ChatGPTPromtpForLevel.txt
+similarity index 100%
+rename from src/tools/level-generator/ChatGPTPromtpForLevel.txt
+rename to src/level-generator/ChatGPTPromtpForLevel.txt
+diff --git a/src/tools/level-generator/ct-array-rebuilder.ts b/src/level-generator/ct-array-rebuilder.ts
+similarity index 100%
+rename from src/tools/level-generator/ct-array-rebuilder.ts
+rename to src/level-generator/ct-array-rebuilder.ts
+diff --git a/src/tools/level-generator/generation-config.ts b/src/level-generator/generation-config.ts
+similarity index 100%
+rename from src/tools/level-generator/generation-config.ts
+rename to src/level-generator/generation-config.ts
+diff --git a/src/tools/level-generator/merge-room-layer-png.ts b/src/level-generator/merge-room-layer-png.ts
+similarity index 100%
+rename from src/tools/level-generator/merge-room-layer-png.ts
+rename to src/level-generator/merge-room-layer-png.ts
+diff --git a/src/tools/level-generator/rebuild-adjacency-json-from-txt.ts b/src/level-generator/rebuild-adjacency-json-from-txt.ts
+similarity index 100%
+rename from src/tools/level-generator/rebuild-adjacency-json-from-txt.ts
+rename to src/level-generator/rebuild-adjacency-json-from-txt.ts
+diff --git a/src/tools/level-generator/rebuild-ct-from-txt.ts b/src/level-generator/rebuild-ct-from-txt.ts
+similarity index 100%
+rename from src/tools/level-generator/rebuild-ct-from-txt.ts
+rename to src/level-generator/rebuild-ct-from-txt.ts
+diff --git a/src/tools/level-generator/remap_room_layer_from_indexed_png.ts b/src/level-generator/remap_room_layer_from_indexed_png.ts
+similarity index 100%
+rename from src/tools/level-generator/remap_room_layer_from_indexed_png.ts
+rename to src/level-generator/remap_room_layer_from_indexed_png.ts
+diff --git a/src/tools/level-generator/render_room_layers_from_grid.ts b/src/level-generator/render_room_layers_from_grid.ts
+similarity index 100%
+rename from src/tools/level-generator/render_room_layers_from_grid.ts
+rename to src/level-generator/render_room_layers_from_grid.ts
+diff --git a/src/platform/systemstub_web.ts b/src/platform/systemstub-web.ts
+similarity index 100%
+rename from src/platform/systemstub_web.ts
+rename to src/platform/systemstub-web.ts
+diff --git a/src/tools/debugger/front-layer-image.ts b/src/video/video-layer-debug.ts
+similarity index 93%
+rename from src/tools/debugger/front-layer-image.ts
+rename to src/video/video-layer-debug.ts
+index c1c4149..26ecbb5 100644
+--- a/src/tools/debugger/front-layer-image.ts
++++ b/src/video/video-layer-debug.ts
+@@ -1,5 +1,3 @@
+-import { globalGameOptions } from "../../core/game_constants"
+-
+ const dumpedFrontLayers: { [key: string]: boolean } = {}
+ const dumpedFrontLayerPixels: { [key: string]: boolean } = {}
+ 
+@@ -9,9 +7,10 @@ function writeLayerImages(
+     layer: Uint8Array,
+     width: number,
+     height: number,
+-    palette: Uint8ClampedArray
++    palette: Uint8ClampedArray,
++    enabled: boolean
+ ) {
+-    if (!globalGameOptions.dumpFrontLayerImage) {
++    if (!enabled) {
+         return
+     }
+     const key = `${level}-${room}`
+@@ -86,9 +85,10 @@ function writeLayerImages(
+ function writeLayerPixelData(
+     level: number,
+     room: number,
+-    layer: Uint8Array
++    layer: Uint8Array,
++    enabled: boolean
+ ) {
+-    if (!globalGameOptions.dumpFrontLayerPixelData) {
++    if (!enabled) {
+         return
+     }
+     const key = `${level}-${room}`
+diff --git a/src/video/video-palette.ts b/src/video/video-palette.ts
+index 1745137..fa8afd4 100644
+--- a/src/video/video-palette.ts
++++ b/src/video/video-palette.ts
+@@ -1,7 +1,7 @@
+ import type { Color } from '../core/intern'
+ import { _gameLevels } from '../core/staticres'
+ import type { Resource } from '../resource/resource'
+-import type { SystemStub } from '../platform/systemstub_web'
++import type { SystemStub } from '../platform/systemstub-web'
+ import { File } from '../resource/file'
+ import { decodeIndexedPng, paletteBankToColors } from '../core/indexed-png'
+ import type { PaletteHeaderColors, VideoLayerState, VideoPaletteState } from './video-state'
+diff --git a/src/video/video-screen.ts b/src/video/video-screen.ts
+index 8425a5c..890dcda 100644
+--- a/src/video/video-screen.ts
++++ b/src/video/video-screen.ts
+@@ -1,4 +1,4 @@
+-import type { SystemStub } from '../platform/systemstub_web'
++import type { SystemStub } from '../platform/systemstub-web'
+ import { screenblockH, screenblockW } from '../core/game_constants'
+ import type { VideoLayerState, VideoScreenState } from './video-state'
+ 
+diff --git a/src/video/video.ts b/src/video/video.ts
+index 65c07e3..0637b60 100644
+--- a/src/video/video.ts
++++ b/src/video/video.ts
+@@ -1,9 +1,10 @@
+ import { Color, readBeUint16, readLeUint16 } from "../core/intern"
+ import { Resource } from "../resource/resource"
+ import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
+-import { SystemStub } from "../platform/systemstub_web"
+-import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
+-import { writeLayerImages, writeLayerPixelData } from "../tools/debugger/front-layer-image"
++import { SystemStub } from "../platform/systemstub-web"
++import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptionDefaults } from '../core/game_constants'
++import type { GameOptions } from '../core/game_constants'
++import { writeLayerImages, writeLayerPixelData } from "./video-layer-debug"
+ import { assert } from "../core/assert"
+ import { applyLevelPalettes, readRoomPaletteOffsets, tryLoadFrontLayerFromFile } from "./video-palette"
+ import { createVideoLayerState, createVideoPaletteState, createVideoScreenState, createVideoTextState } from "./video-state"
+@@ -19,14 +20,16 @@ class Video {
+ 
+     _res: Resource
+     _stub: SystemStub
++    _options: GameOptions
+     readonly layers = createVideoLayerState()
+     readonly palette = createVideoPaletteState()
+     readonly text = createVideoTextState((dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => drawStringChar(dst, pitch, x, y, src, color, chr))
+     readonly screen = createVideoScreenState()
+ 
+-    constructor(res: Resource, stub: SystemStub) {
++    constructor(res: Resource, stub: SystemStub, options?: GameOptions) {
+       this._res = res
+       this._stub = stub
++      this._options = options ?? { ...globalGameOptionDefaults }
+     }
+ 
+     private hasHiResRoomLayer() {
+@@ -327,8 +330,8 @@ pitch = 16
+         )
+         this.copyFrontLayerToBack()
+         this.pcSetlevelpalettes(level)
+-        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette)
+-        writeLayerPixelData(level, room, this.layers.frontLayer)
++        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette, this._options.dumpFrontLayerImage)
++        writeLayerPixelData(level, room, this.layers.frontLayer, this._options.dumpFrontLayerPixelData)
+     }
+ 
+     pcSetlevelpalettes(level: number) {
+@@ -361,7 +364,7 @@ pitch = 16
+             this._stub.setPaletteEntry(palSlot * 16 + i, c)
+         }
+ 
+-        if (palSlot === 4 && globalGameOptions.useWhiteTshirt) {
++        if (palSlot === 4 && this._options.useWhiteTshirt) {
+             const color12: Color = Video.amigaConvertcolor(0x888)
+             const conradDarkShirtVisual = this._res.sprites.loadedConradVisualsByVariantId.get(2)
+             const color13: Color = Video.amigaConvertcolor((palData === conradDarkShirtVisual.palette) ? 0x888 : 0xCCC)
+diff --git a/test/collision_logic.test.js b/test/collision_logic.test.js
+index af7afbb..8e2a41b 100644
+--- a/test/collision_logic.test.js
++++ b/test/collision_logic.test.js
+@@ -19,14 +19,14 @@ const {
+     gameGetRoomCollisionGridData,
+     gameRegisterPgeCollisionSegments,
+     gameRebuildActiveRoomCollisionSlotLookup,
+-} = require('../src/game/game_collision.ts')
++} = require('../src/game/game-collision.ts')
+ const {
+     colDetecthit,
+     colDetecthitcallback1,
+     colDetecthitcallback4,
+     colDetecthitcallbackhelper,
+     colDetecthitcallback6,
+-} = require('../src/core/collision.ts')
++} = require('../src/game/collision.ts')
+ 
+ function createCollisionGame() {
+     const ctData = new Int8Array(ctHeaderSize + ctGridStride * 0x40)
+@@ -88,6 +88,10 @@ function createCollisionGame() {
+         get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
+         set pendingSignalsByTargetPgeIndex(value) { game._pendingSignalsByTargetPgeIndex = value },
+     }
++    game.services = {
++        get res() { return game._res },
++        set res(value) { game._res = value },
++    }
+     return game
+ }
+ 
+diff --git a/test/game_draw.test.js b/test/game_draw.test.js
+index 77639e7..4107eb8 100644
+--- a/test/game_draw.test.js
++++ b/test/game_draw.test.js
+@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
+ const test = require('node:test')
+ const assert = require('node:assert/strict')
+ 
+-const gameDraw = require('../src/game/game_draw.ts')
++const gameDraw = require('../src/game/game-draw.ts')
+ const { pgeFlagSpecialAnim, uint8Max } = require('../src/core/game_constants.ts')
+ const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
+ 
+@@ -204,6 +204,7 @@ test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy
+             },
+         },
+     }
++    game.services = { get vid() { return game._vid } }
+ 
+     gameDraw.gameDrawCurrentRoomOverlay(game)
+ 
+diff --git a/test/game_lifecycle.test.js b/test/game_lifecycle.test.js
+index 76a9beb..b1ef041 100644
+--- a/test/game_lifecycle.test.js
++++ b/test/game_lifecycle.test.js
+@@ -12,7 +12,7 @@ const {
+     gameCommitLoadedRoom,
+     gameResetLevelLifecycle,
+     gameMarkSaveStateCompleted,
+-} = require('../src/game/game_lifecycle.ts')
++} = require('../src/game/game-lifecycle.ts')
+ 
+ test('lifecycle helpers update grouped state on real Game-shaped objects instead of legacy flat fields', () => {
+     const world = {
+@@ -72,6 +72,13 @@ test('lifecycle helpers update grouped state on real Game-shaped objects instead
+                 this.deathCutsceneId = id
+             },
+         },
++        _stub: {
++            getTimeStamp() { return 0 },
++        },
++    }
++    game.services = {
++        get cut() { return game._cut },
++        get stub() { return game._stub },
+     }
+ 
+     gameRequestMapReload(game, 8)
+diff --git a/test/game_opcodes.test.js b/test/game_opcodes.test.js
+index f859b73..1da0761 100644
+--- a/test/game_opcodes.test.js
++++ b/test/game_opcodes.test.js
+@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
+ const test = require('node:test')
+ const assert = require('node:assert/strict')
+ 
+-const { _pgeOpcodetable } = require('../src/game/game_opcodes.ts')
++const { _pgeOpcodetable } = require('../src/game/game-opcodes.ts')
+ const {
+     ctHeaderSize,
+     ctGridStride,
+@@ -12,7 +12,7 @@ const {
+     uint8Max,
+     pgeFlagActive,
+ } = require('../src/core/game_constants.ts')
+-const { globalGameOptions, kIngameSaveSlot } = require('../src/core/game_constants.ts')
++const { kIngameSaveSlot, globalGameOptionDefaults } = require('../src/core/game_constants.ts')
+ const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
+ 
+ function createAnimData(animNumber = 9, special = 0) {
+@@ -125,6 +125,13 @@ function createOpcodeGame(overrides = {}) {
+     game._livePgesByIndex[0] = currentPge
+     game._livePgeStore.activeFrameByIndex[0] = currentPge
+     game._livePgeStore.liveByRoom[currentPge.roomLocation].push(currentPge)
++    game.services = {
++        get res() { return game._res },
++        get cut() { return game._cut },
++        get stub() { return game._stub },
++        get vid() { return game._vid },
++    }
++    game.options = { ...globalGameOptionDefaults }
+ 
+     Object.assign(game, overrides)
+     return attachOpcodeGroupedGameState(game)
+@@ -160,23 +167,18 @@ test('addToCredits updates credits, mirrors the inventory counter life, and hide
+ })
+ 
+ test('saveState persists into the ingame slot and plays the save sound when enabled', () => {
+-    const previous = globalGameOptions.playGamesavedSound
+-    globalGameOptions.playGamesavedSound = true
+     const game = createOpcodeGame()
++    game.options.playGamesavedSound = true
+ 
+-    try {
+-        const result = runOpcode(0x69, { pge: game._livePgesByIndex[0], a: 0, b: 0 }, game)
+-
+-        assert.equal(result, uint16Max)
+-        assert.equal(game._saveStateCompleted, true)
+-        assert.equal(game._validSaveState, true)
+-        assert.deepEqual(game.calls, [
+-            ['saveGameState', kIngameSaveSlot],
+-            ['playSound', 68, 0],
+-        ])
+-    } finally {
+-        globalGameOptions.playGamesavedSound = previous
+-    }
++    const result = runOpcode(0x69, { pge: game._livePgesByIndex[0], a: 0, b: 0 }, game)
++
++    assert.equal(result, uint16Max)
++    assert.equal(game._saveStateCompleted, true)
++    assert.equal(game._validSaveState, true)
++    assert.deepEqual(game.calls, [
++        ['saveGameState', kIngameSaveSlot],
++        ['playSound', 68, 0],
++    ])
+ })
+ 
+ test('setPgeDefaultAnim moves the PGE to its scripted room and reloads the map for room 1', () => {
+diff --git a/test/game_pge.test.js b/test/game_pge.test.js
+index 6959ce4..95b8d51 100644
+--- a/test/game_pge.test.js
++++ b/test/game_pge.test.js
+@@ -16,8 +16,8 @@ const {
+     uint16Max,
+ } = require('../src/core/game_constants.ts')
+ const { ctLeftRoom, ctRightRoom } = require('../src/game/game.ts')
+-const gameCollision = require('../src/game/game_collision.ts')
+-const gamePge = require('../src/game/game_pge.ts')
++const gameCollision = require('../src/game/game-collision.ts')
++const gamePge = require('../src/game/game-pge.ts')
+ const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
+ 
+ const attachPgeGroupedGameState = (game) => attachGroupedGameState(game, {
+diff --git a/test/game_runtime.test.js b/test/game_runtime.test.js
+index 905593d..cce794e 100644
+--- a/test/game_runtime.test.js
++++ b/test/game_runtime.test.js
+@@ -3,16 +3,16 @@ require('ts-node/register/transpile-only')
+ const test = require('node:test')
+ const assert = require('node:assert/strict')
+ 
+-const gamePge = require('../src/game/game_pge.ts')
+-const gameDraw = require('../src/game/game_draw.ts')
+-const gameCollision = require('../src/game/game_collision.ts')
+-const gameInventory = require('../src/game/game_inventory.ts')
+-const gameWorld = require('../src/game/game_world.ts')
++const gamePge = require('../src/game/game-pge.ts')
++const gameDraw = require('../src/game/game-draw.ts')
++const gameCollision = require('../src/game/game-collision.ts')
++const gameInventory = require('../src/game/game-inventory.ts')
++const gameWorld = require('../src/game/game-world.ts')
+ const {
+     dfFastmode,
+     dfSetlife,
+     dirDown,
+-} = require('../src/platform/systemstub_web.ts')
++} = require('../src/platform/systemstub-web.ts')
+ const { LocaleData } = require('../src/resource/resource.ts')
+ const { Menu } = require('../src/game/menu.ts')
+ const { kAutoSaveSlot } = require('../src/game/game.ts')
+@@ -28,7 +28,7 @@ const {
+     gameLoadStateRewind,
+     gameProcessActivePgesForFrame,
+     gameMainLoop,
+-} = require('../src/game/game_runtime.ts')
++} = require('../src/game/game-runtime.ts')
+ 
+ function createPlayerInput() {
+     return {
+diff --git a/test/game_world.test.js b/test/game_world.test.js
+index 5634241..dee8c78 100644
+--- a/test/game_world.test.js
++++ b/test/game_world.test.js
+@@ -3,7 +3,7 @@ require('ts-node/register/transpile-only')
+ const test = require('node:test')
+ const assert = require('node:assert/strict')
+ 
+-const gamePge = require('../src/game/game_pge.ts')
++const gamePge = require('../src/game/game-pge.ts')
+ const { Mixer } = require('../src/audio/mixer.ts')
+ const {
+     ctUpRoom,
+@@ -41,7 +41,7 @@ const {
+     gamePrepareCurrentRoomAnims,
+     gamePrepareAdjacentRoomAnims,
+     gamePrepareAnimationsInRooms,
+-} = require('../src/game/game_world.ts')
++} = require('../src/game/game-world.ts')
+ const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
+ 
+ const attachWorldGroupedGameState = (game) => attachGroupedGameState(game, {
+diff --git a/test/global_fib_audio_exporter.test.js b/test/global_fib_audio_exporter.test.js
+index 692ae53..0584b72 100644
+--- a/test/global_fib_audio_exporter.test.js
++++ b/test/global_fib_audio_exporter.test.js
+@@ -6,7 +6,7 @@ const fs = require('node:fs')
+ const os = require('node:os')
+ const path = require('node:path')
+ 
+-const { GlobalFibAudioExporter } = require('../src/tools/debugger/global-fib-audio-exporter.ts')
++const { GlobalFibAudioExporter } = require('../src/debugger/global-fib-audio-exporter.ts')
+ 
+ function createGlobalFibFixture() {
+     const count = 3
+diff --git a/test/index.test.js b/test/index.test.js
+index 71b1988..1676640 100644
+--- a/test/index.test.js
++++ b/test/index.test.js
+@@ -30,9 +30,9 @@ test('main loads the game with the configured boot sequence', async () => {
+     }
+ 
+     class FakeGame {
+-        constructor(stub, fs, savePath, levelNum, autoSave) {
+-            this._vid = { layers: { w: 320, h: 200 } }
+-            calls.gameConstructor = { stub, fs, savePath, levelNum, autoSave }
++        constructor(stub, fs, savePath, levelNum, autoSave, options) {
++            this.services = { vid: { layers: { w: 320, h: 200 } } }
++            calls.gameConstructor = { stub, fs, savePath, levelNum, autoSave, options }
+         }
+ 
+         async run() {
+diff --git a/test/inventory_and_story_text.test.js b/test/inventory_and_story_text.test.js
+index de29afd..8aea2e1 100644
+--- a/test/inventory_and_story_text.test.js
++++ b/test/inventory_and_story_text.test.js
+@@ -3,8 +3,8 @@ require('ts-node/register/transpile-only')
+ const test = require('node:test')
+ const assert = require('node:assert/strict')
+ 
+-const { gameHandleInventory } = require('../src/game/game_inventory.ts')
+-const { gameDrawStoryTexts } = require('../src/game/game_draw.ts')
++const { gameHandleInventory } = require('../src/game/game-inventory.ts')
++const { gameDrawStoryTexts } = require('../src/game/game-draw.ts')
+ const { LocaleData } = require('../src/resource/resource.ts')
+ const { uint16Max, uint8Max } = require('../src/core/game_constants.ts')
+ 
+@@ -37,6 +37,12 @@ function attachInventoryGroupedGameState(game) {
+     game.services = {
+         get res() { return game._res },
+         set res(value) { game._res = value },
++        get vid() { return game._vid },
++        set vid(value) { game._vid = value },
++        get stub() { return game._stub },
++        set stub(value) { game._stub = value },
++        get mix() { return game._mix },
++        set mix(value) { game._mix = value },
+     }
+     game.runtimeData = {
+         get livePgesByIndex() { return game._livePgesByIndex },
+@@ -61,6 +67,12 @@ function attachStoryGroupedGameState(game) {
+     game.services = {
+         get res() { return game._res },
+         set res(value) { game._res = value },
++        get vid() { return game._vid },
++        set vid(value) { game._vid = value },
++        get stub() { return game._stub },
++        set stub(value) { game._stub = value },
++        get mix() { return game._mix },
++        set mix(value) { game._mix = value },
+     }
+     return game
+ }
+diff --git a/test/menu.test.js b/test/menu.test.js
+index 9588a2b..6a828b1 100644
+--- a/test/menu.test.js
++++ b/test/menu.test.js
+@@ -5,7 +5,7 @@ const assert = require('node:assert/strict')
+ 
+ const { Menu } = require('../src/game/menu.ts')
+ const { LocaleData } = require('../src/resource/resource.ts')
+-const { dirDown } = require('../src/platform/systemstub_web.ts')
++const { dirDown } = require('../src/platform/systemstub-web.ts')
+ const { gamescreenW, gamescreenH } = require('../src/video/video.ts')
+ 
+ function createMenuFixture(overrides = {}) {
+diff --git a/test/systemstub_web.test.js b/test/systemstub_web.test.js
+index 4761db8..587a456 100644
+--- a/test/systemstub_web.test.js
++++ b/test/systemstub_web.test.js
+@@ -7,7 +7,7 @@ const {
+     SystemStub,
+     dirRight,
+     dirLeft,
+-} = require('../src/platform/systemstub_web.ts')
++} = require('../src/platform/systemstub-web.ts')
+ 
+ const createPlayerInput = () => ({
+     dirMask: 0,
+-- 
+2.46.0
+
