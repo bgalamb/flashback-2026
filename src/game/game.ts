@@ -1,4 +1,4 @@
-import { LivePGE, AnimBufferState, AnimBuffers,  Skill, PgeScriptEntry, PgeScriptNode, PgeOpcodeArgs, PendingPgeSignal, CollisionSlot, ActiveRoomCollisionSlotWindow, RoomCollisionGridPatchRestoreSlot, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePGE, createLivePgeRegistry, createActiveRoomCollisionSlotWindow, LivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
+import { LivePGE, AnimBufferState, Skill, InitPGE, Color, readBeUint16, readLeUint32, readBeUint32, createLivePgeRegistry, LoadedMonsterVisual } from '../core/intern'
 import { Cutscene } from '../cutscene-players/cutscene'
 import { Mp4CutscenePlayer } from '../cutscene-players/mp4-cutscene-player'
 import { Mixer } from '../audio/mixer'
@@ -17,16 +17,11 @@ import {
 import { File } from '../resource/file'
 import {
     uint8Max,
-    kIngameSaveSlot,
-    kRewindSize,
-    kAutoSaveSlot,
-    kAutoSaveIntervalMs,
     ctRoomSize,
     ctUpRoom,
     ctDownRoom,
     ctRightRoom,
     ctLeftRoom,
-    pgeNum,
 } from '../core/game_constants'
 import { gamePlaySound } from './game-audio'
 import {
@@ -70,84 +65,17 @@ import {
     gameGetNextInventoryItemIndex
 } from './game-inventory'
 import type { GameServicesShape } from './game-services'
-
-type colCallback1 = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
-type colCallback2 = (pge: LivePGE, verticalOffset: number, distanceStep: number, groupId: number, game: Game) => number
-type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
-type PgeZOrderComparator = (colliderPge: LivePGE, detectorPge: LivePGE, groupId: number, targetObjectType: number, game: Game) => number
-
-interface GameWorldState {
-    currentLevel: number
-    currentRoom: number
-    currentIcon: number
-    loadMap: boolean
-    printLevelCodeCounter: number
-    credits: number
-    blinkingConradCounter: number
-    textToDisplay: number
-    eraseBackground: boolean
-    deathCutsceneCounter: number
-}
-
-interface GameUiState {
-    skillLevel: number
-    score: number
-    currentRoomOverlayCounter: number
-    currentInventoryIconNum: number
-    saveStateCompleted: boolean
-}
-
-interface GameSessionState {
-    randSeed: number
-    endLoop: boolean
-    skipNextLevelCutscene: boolean
-    startedFromLevelSelect: boolean
-    frameTimestamp: number
-    autoSave: boolean
-    saveTimestamp: number
-    stateSlot: number
-    validSaveState: boolean
-}
-
-interface GamePgeExecutionState {
-    currentPgeRoom: number
-    currentPgeFacingIsMirrored: boolean
-    shouldProcessCurrentPgeObjectNode: boolean
-    currentPgeInputMask: number
-    opcodeTempVar1: number
-    opcodeTempVar2: number
-    opcodeComparisonResult1: number
-    opcodeComparisonResult2: number
-}
-
-interface GameCollisionState {
-    nextFreeDynamicPgeCollisionSlotPoolIndex: number
-    dynamicPgeCollisionSlotsByPosition: Map<number, CollisionSlot[]>
-    dynamicPgeCollisionSlotObjectPool: CollisionSlot[]
-    roomCollisionGridPatchRestoreSlotPool: RoomCollisionGridPatchRestoreSlot[]
-    nextFreeRoomCollisionGridPatchRestoreSlot: RoomCollisionGridPatchRestoreSlot
-    activeRoomCollisionGridPatchRestoreSlots: RoomCollisionGridPatchRestoreSlot
-    activeRoomCollisionSlotWindow: ActiveRoomCollisionSlotWindow
-    activeCollisionLeftRoom: number
-    activeCollisionRightRoom: number
-    currentPgeCollisionGridX: number
-    currentPgeCollisionGridY: number
-}
-
-interface GameRuntimeDataState {
-    livePgesByIndex: LivePGE[]
-    livePgeStore: LivePgeRegistry
-    pendingSignalsByTargetPgeIndex: Map<number, PendingPgeSignal[]>
-    inventoryItemIndicesByOwner: Map<number, number[]>
-}
-
-interface GameRenderDataState {
-    animBuffer0State: AnimBufferState[]
-    animBuffer1State: AnimBufferState[]
-    animBuffer2State: AnimBufferState[]
-    animBuffer3State: AnimBufferState[]
-    animBuffers: AnimBuffers
-}
+import type { PgeOpcodeHandler } from './game-types'
+import type { GameCollisionStateShape, GamePgeStateShape, GameSessionStateShape, GameUiStateShape, GameWorldStateShape } from './game-state'
+import {
+    createInitialGameCollisionState,
+    createInitialGamePgeState,
+    createInitialGameSessionState,
+    createInitialGameUiState,
+    createInitialGameWorldState,
+} from './game-state'
+import type { RenderDataState, RuntimeRegistryState } from './game-runtime-data'
+import { createInitialRenderDataState, createInitialRuntimeRegistryState } from './game-runtime-data'
 
 class Game {
 
@@ -168,126 +96,34 @@ class Game {
         stub: null,
         fs: null,
     }
-    readonly world: GameWorldState = {
-        currentLevel: 0,
-        currentRoom: 0,
-        currentIcon: 0,
-        loadMap: false,
-        printLevelCodeCounter: 0,
-        credits: 0,
-        blinkingConradCounter: 0,
-        textToDisplay: 0,
-        eraseBackground: false,
-        deathCutsceneCounter: 0,
-    }
-    readonly ui: GameUiState = {
-        skillLevel: Skill.kSkillNormal,
-        score: 0,
-        currentRoomOverlayCounter: 0,
-        currentInventoryIconNum: 0,
-        saveStateCompleted: false,
-    }
-    readonly session: GameSessionState = {
-        randSeed: 0,
-        endLoop: false,
-        skipNextLevelCutscene: false,
-        startedFromLevelSelect: false,
-        frameTimestamp: 0,
-        autoSave: false,
-        saveTimestamp: 0,
-        stateSlot: 1,
-        validSaveState: false,
-    }
-    readonly pge: GamePgeExecutionState = {
-        currentPgeRoom: 0,
-        currentPgeFacingIsMirrored: false,
-        shouldProcessCurrentPgeObjectNode: false,
-        currentPgeInputMask: 0,
-        opcodeTempVar1: 0,
-        opcodeTempVar2: 0,
-        opcodeComparisonResult1: 0,
-        opcodeComparisonResult2: 0,
-    }
-    readonly collision: GameCollisionState = {
-        nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
-        dynamicPgeCollisionSlotsByPosition: new Map(),
-        dynamicPgeCollisionSlotObjectPool: new Array(pgeNum).fill(null).map(() => ({
-            collisionGridPositionIndex: 0,
-            pge: null,
-            index: 0
-        })),
-        roomCollisionGridPatchRestoreSlotPool: new Array(pgeNum).fill(null).map(() => ({
-            nextPatchedRegionRestoreSlot: null,
-            patchedGridDataView: null,
-            patchedCellCount: 0,
-            originalGridCellValues: new Uint8Array(0x10)
-        })),
-        nextFreeRoomCollisionGridPatchRestoreSlot: null,
-        activeRoomCollisionGridPatchRestoreSlots: null,
-        activeRoomCollisionSlotWindow: createActiveRoomCollisionSlotWindow(),
-        activeCollisionLeftRoom: 0,
-        activeCollisionRightRoom: 0,
-        currentPgeCollisionGridX: 0,
-        currentPgeCollisionGridY: 0,
-    }
+    readonly world: GameWorldStateShape = createInitialGameWorldState()
+    readonly ui: GameUiStateShape = createInitialGameUiState()
+    readonly session: GameSessionStateShape = createInitialGameSessionState()
+    readonly pge: GamePgeStateShape = createInitialGamePgeState()
+    readonly collision: GameCollisionStateShape = createInitialGameCollisionState()
 
     // Loaded monster visuals keep sprite data and palette data together.
     // Monsters currently still render through palette slot 5, but the map keeps
     // the visual data grouped by monster script-node index.
     _loadedMonsterVisualsByScriptNodeIndex: Map<number, LoadedMonsterVisual> = new Map()
-    readonly renderData: GameRenderDataState = {
-        animBuffer0State: new Array(41).fill(null).map(() => ({
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-        dataPtr: null,
-        pge: null,
-        paletteColorMaskOverride: -1,
-    })),
-        animBuffer1State: new Array(6).fill(null).map(() => ({
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-        dataPtr: null,
-        pge: null,
-        paletteColorMaskOverride: -1,
-    })),
-        animBuffer2State: new Array(42).fill(null).map(() => ({
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-        dataPtr: null,
-        pge: null,
-        paletteColorMaskOverride: -1,
-    })),
-        animBuffer3State: new Array(12).fill(null).map(() => ({
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-        dataPtr: null,
-        pge: null,
-        paletteColorMaskOverride: -1,
-    })),
-        animBuffers: new AnimBuffers(),
-    }
+    readonly renderData: RenderDataState = createInitialRenderDataState()
 
     _inpLastkeyshit: number
     _inpLastkeyshitleftright: number
     _shouldPlayPgeAnimationSound: boolean
 
-    readonly runtimeData: GameRuntimeDataState = {
-        livePgesByIndex: new Array<LivePGE>(pgeNum).fill(null).map(() => createLivePGE()),
-        livePgeStore: null,
-        pendingSignalsByTargetPgeIndex: new Map(),
-        inventoryItemIndicesByOwner: new Map(),
-    }
+    readonly runtimeData: RuntimeRegistryState = createInitialRuntimeRegistryState()
     renders: number
     debugStartFrame: number
     options: GameOptions = { ...globalGameOptionDefaults }
+
+    get _res() {
+        return this.services.res
+    }
+
+    get _vid() {
+        return this.services.vid
+    }
 
     constructor(stub: SystemStub, fs: FileSystem, savePath: string, level: number, autoSave: boolean, options?: Partial<GameOptions>) {
         if (options) {
@@ -459,5 +295,4 @@ class Game {
 
 }
 
-export { Game, ctUpRoom, ctDownRoom, ctRightRoom, ctLeftRoom, kIngameSaveSlot, kAutoSaveSlot, kAutoSaveIntervalMs, kRewindSize }
-export type { colCallback1, colCallback2, PgeOpcodeHandler, PgeZOrderComparator }
+export { Game, ctUpRoom, ctDownRoom, ctRightRoom, ctLeftRoom }

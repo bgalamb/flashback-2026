@@ -15,7 +15,7 @@ const {
 } = require('../src/platform/systemstub-web.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
 const { Menu } = require('../src/game/menu.ts')
-const { kAutoSaveSlot } = require('../src/game/game.ts')
+const { kAutoSaveSlot } = require('../src/game/game-constants.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 const {
     gamePlayCutscene,

@@ -4,7 +4,7 @@ This folder contains scripts for building level assets from collision grids.
 
 Shared default output root:
 
-- `DATA/levels/generated`
+- `DATA/levels`
 
 This is defined in:
 
@@ -14,7 +14,7 @@ Scripts that allow an omitted output directory use that root by default.
 
 Source collision grids now live under:
 
-- `DATA/levels/generated/<level>-collisions`
+- `src/collisions/<level>`
 
 The tools here currently cover these related tasks:
 
@@ -42,7 +42,7 @@ The intended room-art pipeline in this folder is:
 
 There is no repo script that generates a fresh collision dataset anymore.
 
-To create a new level dataset, prepare these files manually in a collisions folder such as `DATA/levels/tmp_generated/level11-collisions`:
+To create a new level dataset, prepare these files manually in a collisions folder such as `src/collisions/level11`:
 
 - `<levelName>-ct-adjacency.txt`
 - `<levelName>-ct-adjacency.json`
@@ -58,17 +58,17 @@ Recommended manual workflow:
 
 ### Build A New Level From A Manual Collision Dataset
 
-Once `DATA/levels/tmp_generated/level11-collisions` has been authored manually and validated:
+Once `src/collisions/level11` has been authored manually and validated:
 
 ```bash
-npm run rebuild:ct:from-txt -- DATA/levels/tmp_generated DATA/levels/tmp_generated/level11
+npm run rebuild:ct:from-txt -- src/collisions DATA/levels/level11
 
 npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts \
-  DATA/levels/tmp_generated/level11-collisions \
-  DATA/levels/tmp_generated/level11 \
+  src/collisions/level11 \
+  DATA/levels/level11 \
   all
 
-for back in DATA/levels/tmp_generated/level11/level11-room*-backlayer.png; do
+for back in DATA/levels/level11/level11-room*-backlayer.png; do
   room_base=${back%-backlayer.png}
   front=${room_base}-frontlayer.png
   out=${room_base}.pixeldata.png
@@ -78,10 +78,10 @@ done
 
 This produces:
 
-- `DATA/levels/generated/level11/level11.ct.bin`
-- `DATA/levels/generated/level11/level11-roomXX-backlayer.png`
-- `DATA/levels/generated/level11/level11-roomXX-frontlayer.png`
-- `DATA/levels/generated/level11/level11-roomXX.pixeldata.png`
+- `DATA/levels/level11/level11.ct.bin`
+- `DATA/levels/level11/level11-roomXX-backlayer.png`
+- `DATA/levels/level11/level11-roomXX-frontlayer.png`
+- `DATA/levels/level11/level11-roomXX.pixeldata.png`
 
 ## Room Layer PNG Generator
 
@@ -113,8 +113,8 @@ Generate one room from a manually prepared collision dataset:
 
 ```bash
 npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts \
-  DATA/levels/tmp_generated/level11-collisions \
-  DATA/levels/tmp_generated/level11 \
+  src/collisions/level11 \
+  DATA/levels/level11 \
   17
 ```
 
@@ -122,8 +122,8 @@ Generate all rooms:
 
 ```bash
 npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts \
-  DATA/levels/tmp_generated/level11-collisions \
-  DATA/levels/tmp_generated/level11 \
+  src/collisions/level11 \
+  DATA/levels/level11 \
   all
 ```
 
@@ -131,7 +131,7 @@ Default-output example:
 
 ```bash
 npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts \
-  DATA/levels/tmp_generated/level10-collisions \
+  DATA/levels/level10 \
   all
 ```
 
@@ -146,8 +146,8 @@ Output:
 
 Example output files:
 
-- `DATA/levels/generated/level11/level11-room17-backlayer.png`
-- `DATA/levels/generated/level11/level11-room17-frontlayer.png`
+- `DATA/levels/level11/level11-room17-backlayer.png`
+- `DATA/levels/level11/level11-room17-frontlayer.png`
 
 ## Indexed PNG Layer Remapper
 
@@ -224,7 +224,7 @@ npm run rebuild:ct:from-txt -- <txtExportRootDir> [outputDir]
 Example:
 
 ```bash
-npm run rebuild:ct:from-txt -- DATA/levels/tmp_generated DATA/levels/tmp_generated/level10
+npm run rebuild:ct:from-txt -- src/collisions DATA/levels/level10
 ```
 
 Default-output example:
@@ -235,11 +235,7 @@ npm run rebuild:ct:from-txt -- DATA/levels
 
 This writes rebuilt `*.ct.bin` files under:
 
-- `DATA/levels/generated`
-
-When `outputDir` is provided and is not `DATA/levels/generated`, the rebuild is also mirrored into:
-
-- `DATA/levels/generated`
+- `DATA/levels/<level>`
 
 This rebuilds:
 
@@ -255,9 +251,9 @@ using:
 To rebuild the collision binary and regenerate all room PNG artifacts for `level10` after editing collision grids:
 
 ```bash
-npm run rebuild:ct:from-txt -- DATA/levels/tmp_generated DATA/levels/tmp_generated/level10
-npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts DATA/levels/tmp_generated/level10-collisions DATA/levels/tmp_generated/level10 all
-for back in DATA/levels/tmp_generated/level10/level10-room*-backlayer.png; do
+npm run rebuild:ct:from-txt -- src/collisions DATA/levels/level10
+npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts src/collisions/level10 DATA/levels/level10 all
+for back in DATA/levels/level10/level10-room*-backlayer.png; do
   room_base=${back%-backlayer.png}
   front=${room_base}-frontlayer.png
   out=${room_base}.pixeldata.png
@@ -268,9 +264,9 @@ done
 This writes:
 
 - `DATA/levels/generated/level10/level10.ct.bin`
-- `DATA/levels/generated/level10/level10-roomXX-backlayer.png`
-- `DATA/levels/generated/level10/level10-roomXX-frontlayer.png`
-- `DATA/levels/generated/level10/level10-roomXX.pixeldata.png`
+- `DATA/levels/level10/level10-roomXX-backlayer.png`
+- `DATA/levels/level10/level10-roomXX-frontlayer.png`
+- `DATA/levels/level10/level10-roomXX.pixeldata.png`
 
 ## Adjacency TXT To JSON
 
@@ -288,7 +284,7 @@ Example:
 
 ```bash
 npm run rebuild:adjacency:json:from-txt -- \
-  DATA/levels/tmp_generated/level10-collisions/level10-ct-adjacency.txt \
+  src/collisions/level10/level10-ct-adjacency.txt \
   /tmp/level10-ct-adjacency-from-txt.json
 ```
 
@@ -315,9 +311,9 @@ Example:
 
 ```bash
 npx ts-node --transpile-only ./src/tools/level-generator/merge-room-layer-png.ts \
-  DATA/levels/tmp_generated/level10/level10-room17-backlayer.png \
-  DATA/levels/tmp_generated/level10/level10-room17-frontlayer.png \
-  DATA/levels/tmp_generated/level10/level10-room17.pixeldata.png
+  DATA/levels/level10/level10-room17-backlayer.png \
+  DATA/levels/level10/level10-room17-frontlayer.png \
+  DATA/levels/level10/level10-room17.pixeldata.png
 ```
 
 This merges the two indexed layer PNGs into the final room pixeldata PNG used by the existing room-art workflow.

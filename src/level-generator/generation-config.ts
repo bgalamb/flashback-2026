@@ -1,10 +1,10 @@
 import * as path from "path"
 
 const defaultLevelDataRoot = path.join("DATA", "levels")
-const defaultLevelGeneratorOutputRoot = path.join("DATA", "levels", "tmp_generated")
+const defaultLevelGeneratorOutputRoot = defaultLevelDataRoot
 
 function resolveDefaultCollisionDir(levelName: string) {
-    return path.resolve(defaultLevelDataRoot, levelName, "collisions")
+    return path.resolve("src", "collisions", levelName)
 }
 
 function resolveDefaultGeneratedLevelDir(levelName: string) {

@@ -1,6 +1,16 @@
 # Debugger Helpers
 
-This folder contains helper scripts for exporting and rebuilding CT (collision table) data.
+This folder contains helper scripts for export, validation, and legacy-data inspection workflows.
+
+Current layout:
+
+- [`audio`](/Users/balazsgalambos/git/flashback-web/src/debugger/audio): audio export helpers
+- [`checks`](/Users/balazsgalambos/git/flashback-web/src/debugger/checks): asset and data validation scripts used by `npm run check`
+- [`ct`](/Users/balazsgalambos/git/flashback-web/src/debugger/ct): collision-table export and visualization helpers
+- [`cutscenes`](/Users/balazsgalambos/git/flashback-web/src/debugger/cutscenes): cutscene export/debug scripts
+- [`legacy-data`](/Users/balazsgalambos/git/flashback-web/src/debugger/legacy-data): raw legacy file parsers and JSON exporters
+- [`levels`](/Users/balazsgalambos/git/flashback-web/src/debugger/levels): room, MBK, palette, and level image exporters
+- [`sprites`](/Users/balazsgalambos/git/flashback-web/src/debugger/sprites): sprite export and visualization helpers
 
 ## PGE Export Command
 
@@ -179,9 +189,9 @@ Example:
 
 ```bash
 npm run export:ct-grid:merged-png -- \
-  ./DATA/levels/tmp_generated/level10-collisions/level10-ct-adjacency.txt \
-  ./DATA/levels/tmp_generated/level10-collisions \
-  ./DATA/levels/tmp_generated/level10-collisions/level10-merged-grid.png \
+  ./src/collisions/level10/level10-ct-adjacency.txt \
+  ./src/collisions/level10 \
+  ./DATA/levels/level10/level10-merged-grid.png \
   16
 ```
 
@@ -216,7 +226,7 @@ Recommended workflow:
 4. Edit the `room-XX-grid.txt` files manually.
 5. Review the resulting dataset manually before rebuilding CT and PNG assets.
 
-The remaining scripts in [`src/tools/level-generator`](/Users/balazsgalambos/git/flashback-web/src/tools/level-generator) assume this manual preparation step has already been completed.
+The remaining scripts in [`src/level-generator`](/Users/balazsgalambos/git/flashback-web/src/level-generator) assume this manual preparation step has already been completed.
 
 ## CT Rebuild Command
 
@@ -298,7 +308,7 @@ Currently the exporter supports:
 - `conrad:<variantId>`
 - `monster:<level>:<monsterScriptNodeIndex>`
 
-These are resolved in [`sprite-image-exporter.ts`](/Users/balazsgalambos/git/flashback-web/src/tools/debugger/sprite-image-exporter.ts):
+These are resolved in [`sprite-image-exporter.ts`](/Users/balazsgalambos/git/flashback-web/src/debugger/sprites/sprite-image-exporter.ts):
 
 - `conrad:<variantId>`
   - resolved from Conrad palette variants in [`staticres.ts`](/Users/balazsgalambos/git/flashback-web/src/staticres.ts)
@@ -323,8 +333,8 @@ The room-layer pipeline now uses indexed PNG files instead of legacy room image 
 
 There are two related scripts:
 
-- `export-all-level-layer-artifacts.ts`
-- `merge-room-layer-png.ts`
+- `levels/export-all-level-layer-artifacts.ts`
+- `../level-generator/merge-room-layer-png.ts`
 
 The first one generates per-room indexed PNG assets from the legacy Amiga source files. The second one takes the split back/front layer PNGs and rebuilds the full room `pixeldata` PNG used by the runtime.
 
@@ -405,7 +415,7 @@ So the split files preserve the runtime room bytes directly for the visible laye
 Generate room PNGs and split layer PNGs for all levels:
 
 ```bash
-npx ts-node --transpile-only ./src/tools/debugger/export-all-level-layer-artifacts.ts ./DATA ./DATA/levels
+npx ts-node --transpile-only ./src/debugger/levels/export-all-level-layer-artifacts.ts ./DATA ./DATA/levels
 ```
 
 This command reads the legacy sources from:
@@ -424,14 +434,14 @@ Internally, the exporter:
 3. writes the full indexed room PNG
 4. writes the split back/front indexed PNGs
 
-The implementation lives in [`legacy-room-png-exporter.ts`](/Users/balazsgalambos/git/flashback-web/src/tools/debugger/legacy-room-png-exporter.ts).
+The implementation lives in [`legacy-room-png-exporter.ts`](/Users/balazsgalambos/git/flashback-web/src/debugger/levels/legacy-room-png-exporter.ts).
 
 ### Export One Room
 
 Generate the three PNGs for one room:
 
 ```bash
-npx ts-node --transpile-only ./src/tools/debugger/export-room-layer-artifacts.ts \
+npx ts-node --transpile-only ./src/debugger/levels/export-room-layer-artifacts.ts \
   DATA/levels/legacy-level-data/level1.lev \
   DATA/levels/level1/level1.mbk \
   DATA/levels/legacy-level-data/palettes/level1.pal \
@@ -462,7 +472,7 @@ Arguments:
 To rebuild the runtime room PNG from the split layer PNGs:
 
 ```bash
-npx ts-node --transpile-only ./src/tools/debugger/merge-room-layer-png.ts \
+npx ts-node --transpile-only ./src/level-generator/merge-room-layer-png.ts \
   DATA/levels/level1/level1-room26-backlayer.png \
   DATA/levels/level1/level1-room26-frontlayer.png \
   /tmp/level1-room26.pixeldata.png

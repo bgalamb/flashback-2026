@@ -6,8 +6,8 @@ import type {
     PgeOpcodeArgs
 } from '../core/intern'
 import { assert } from "../core/assert"
-import type { PgeOpcodeHandler } from './game'
 import type { Game } from './game'
+import type { PgeOpcodeHandler } from './game-types'
 import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom } from '../core/game_constants'
 import {
     gameClearDynamicCollisionSlotState,

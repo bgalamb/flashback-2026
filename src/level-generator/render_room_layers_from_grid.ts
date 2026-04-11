@@ -147,30 +147,9 @@ function printUsage() {
     console.error("Usage: npx ts-node --transpile-only ./src/tools/level-generator/render_room_layers_from_grid.ts <collisionDir> [outputDir] [room|all]")
 }
 
-function main() {
-    const args = process.argv.slice(2)
-    if (args.length < 1 || args.length > 3) {
-        printUsage()
-        process.exit(1)
-    }
-
-    const collisionDir = path.resolve(args[0] || resolveDefaultCollisionDir("level10"))
-    let outputDirArg = ""
-    let roomArg = "all"
-
-    if (args.length === 2) {
-        if (args[1] === "all" || /^\d+$/.test(args[1])) {
-            roomArg = args[1]
-        } else {
-            outputDirArg = args[1]
-        }
-    } else if (args.length === 3) {
-        outputDirArg = args[1]
-        roomArg = args[2]
-    }
-
-    const collisionLevelName = path.basename(collisionDir)
-    const outputDir = path.resolve(outputDirArg || resolveDefaultGeneratedLevelDir(collisionLevelName))
+function renderRoomLayersFromGrid(collisionDirArg: string, outputDirArg?: string, roomArg: string = "all") {
+    const collisionDir = path.resolve(collisionDirArg || resolveDefaultCollisionDir("level10"))
+    const outputDir = path.resolve(outputDirArg || resolveDefaultGeneratedLevelDir(path.basename(collisionDir)))
     const levelName = path.basename(outputDir)
 
     const rooms = roomArg === "all"
@@ -206,6 +185,37 @@ function main() {
             Buffer.from(encodeIndexedPng(WIDTH, HEIGHT, frontPixels, palette, alpha))
         )
     }
+
+    return { levelName, rooms }
 }
 
-main()
+function main() {
+    const args = process.argv.slice(2)
+    if (args.length < 1 || args.length > 3) {
+        printUsage()
+        process.exit(1)
+    }
+
+    const collisionDir = args[0] || resolveDefaultCollisionDir("level10")
+    let outputDirArg = ""
+    let roomArg = "all"
+
+    if (args.length === 2) {
+        if (args[1] === "all" || /^\d+$/.test(args[1])) {
+            roomArg = args[1]
+        } else {
+            outputDirArg = args[1]
+        }
+    } else if (args.length === 3) {
+        outputDirArg = args[1]
+        roomArg = args[2]
+    }
+
+    renderRoomLayersFromGrid(collisionDir, outputDirArg, roomArg)
+}
+
+if (require.main === module) {
+    main()
+}
+
+export { renderRoomLayersFromGrid }

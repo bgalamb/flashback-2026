@@ -31,14 +31,7 @@ function deriveLevelIndexFromPath(filePath: string) {
     return Number(match[1]) - 1
 }
 
-async function main() {
-    const args = process.argv.slice(2)
-    if (args.length !== 3) {
-        printUsage()
-        process.exit(1)
-    }
-
-    const [backPath, frontPath, outputPath] = args
+async function mergeRoomLayerPng(backPath: string, frontPath: string, outputPath: string, options?: { logWrites?: boolean }) {
     const fs = require("fs")
 
     const backPng = await decodeIndexedPng(new Uint8Array(fs.readFileSync(backPath)))
@@ -125,10 +118,27 @@ async function main() {
         mergedPalette
     )))
 
-    console.log(`Wrote ${outputPath}`)
+    if (options?.logWrites !== false) {
+        console.log(`Wrote ${outputPath}`)
+    }
 }
 
-main().catch((error) => {
-    console.error(error)
-    process.exit(1)
-})
+async function main() {
+    const args = process.argv.slice(2)
+    if (args.length !== 3) {
+        printUsage()
+        process.exit(1)
+    }
+
+    const [backPath, frontPath, outputPath] = args
+    await mergeRoomLayerPng(backPath, frontPath, outputPath)
+}
+
+if (require.main === module) {
+    main().catch((error) => {
+        console.error(error)
+        process.exit(1)
+    })
+}
+
+export { mergeRoomLayerPng }

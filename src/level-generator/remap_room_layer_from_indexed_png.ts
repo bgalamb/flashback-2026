@@ -136,14 +136,7 @@ function writePixeldataPalette(sourcePalette: Color[], sourceAlpha: Uint8Array, 
     setPaletteBank(palette, alpha, 0xD, sourcePalette, sourceAlpha, 0x3)
 }
 
-async function main() {
-    const args = process.argv.slice(2)
-    if (args.length !== 3) {
-        printUsage()
-        process.exit(1)
-    }
-
-    const [inputPath, layer, outputPath] = args
+async function remapRoomLayerFromIndexedPng(inputPath: string, layer: string, outputPath: string, options?: { logWrites?: boolean }) {
     const input = await decodeIndexedPng(new Uint8Array(fs.readFileSync(inputPath)))
     const compacted = compactSourcePalette(input.palette, input.paletteAlpha, input.pixels)
 
@@ -167,10 +160,27 @@ async function main() {
         Buffer.from(encodeIndexedPng(input.width, input.height, pixels, palette, alpha))
     )
 
-    console.log(`Wrote ${outputPath}`)
+    if (options?.logWrites !== false) {
+        console.log(`Wrote ${outputPath}`)
+    }
 }
 
-main().catch((error) => {
-    console.error(error)
-    process.exit(1)
-})
+async function main() {
+    const args = process.argv.slice(2)
+    if (args.length !== 3) {
+        printUsage()
+        process.exit(1)
+    }
+
+    const [inputPath, layer, outputPath] = args
+    await remapRoomLayerFromIndexedPng(inputPath, layer, outputPath)
+}
+
+if (require.main === module) {
+    main().catch((error) => {
+        console.error(error)
+        process.exit(1)
+    })
+}
+
+export { remapRoomLayerFromIndexedPng }

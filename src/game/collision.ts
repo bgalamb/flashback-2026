@@ -1,6 +1,6 @@
 import type { Game } from './game'
 import type { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from '../core/intern'
-import type { colCallback1, colCallback2 } from './game'
+import type { colCallback1, colCallback2 } from './game-types'
 import { ctDownRoom, ctLeftRoom, ctRightRoom, uint16Max } from '../core/game_constants'
 import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from './game-collision'
 import { assert } from '../core/assert'
