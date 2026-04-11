@@ -1,4 +1,4 @@
-import type { SystemStub } from '../platform/systemstub_web'
+import type { SystemPort } from '../platform/system-port'
 import { screenblockH, screenblockW } from '../core/game_constants'
 import type { VideoLayerState, VideoScreenState } from './video-state'
 
@@ -31,7 +31,7 @@ function requestFullRefresh(screen: VideoScreenState, layers: VideoLayerState) {
     screen.screenBlocks.fill(0, (layers.w / screenblockW) * (layers.h / screenblockH))
 }
 
-async function updateVideoScreen(stub: SystemStub, layers: VideoLayerState, screen: VideoScreenState) {
+async function updateVideoScreen(stub: SystemPort, layers: VideoLayerState, screen: VideoScreenState) {
     if (screen.fullRefresh) {
         stub.copyRect(0, 0, layers.w, layers.h, layers.frontLayer, layers.w)
         await stub.updateScreen(screen.shakeOffset)

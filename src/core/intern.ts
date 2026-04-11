@@ -220,6 +220,18 @@ interface AnimBufferState {
     paletteColorMaskOverride: number
 }
 
+function createAnimBufferEntry(): AnimBufferState {
+    return {
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0,
+        dataPtr: null,
+        pge: null,
+        paletteColorMaskOverride: -1,
+    }
+}
+
 type PgeOpcodeHandler = (args: PgeOpcodeArgs, game: Game) => number
 type PgeZOrderComparator = (livePGE1: LivePGE, livePGE2: LivePGE, p1: number, p2: number, game: Game) => number
 
@@ -231,6 +243,12 @@ class AnimBuffers {
         assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
         const curPos = this._curPos[stateNum]
         const index = curPos === uint8Max ? 0 : curPos + 1
+        if (!this._states[stateNum]) {
+            this._states[stateNum] = []
+        }
+        if (!this._states[stateNum][index]) {
+            this._states[stateNum][index] = createAnimBufferEntry()
+        }
         const state: AnimBufferState = this._states[stateNum][index]
         state.x = x
         state.y = y

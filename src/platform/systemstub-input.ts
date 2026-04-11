@@ -1,9 +1,68 @@
-import { createPlayerInput, dirDown, dirLeft, dirRight, dirUp } from './systemstub-types'
+import { createPlayerInput, dfDblocks, dfFastmode, dfSetlife, dirDown, dirLeft, dirRight, dirUp } from './systemstub-types'
 import type { PlayerInput } from './systemstub-types'
 
-function applyKeyDown(playerInput: PlayerInput, key: string) {
+type KeyboardLike = {
+    key: string
+    code?: string
+    ctrlKey?: boolean
+}
+
+function isRewindKey(keyboardEvent: Pick<KeyboardLike, 'key' | 'code' | 'ctrlKey'>) {
+    return isShortcutMatch(keyboardEvent, 'r', 'KeyR')
+}
+
+function isShortcutMatch(keyboardEvent: Pick<KeyboardLike, 'key' | 'code'>, key: string, code?: string) {
+    if (keyboardEvent.key === key || keyboardEvent.key === key.toUpperCase()) {
+        return true
+    }
+    return typeof code === 'string' && keyboardEvent.code === code
+}
+
+function isHandledCtrlShortcut(keyboardEvent: Pick<KeyboardLike, 'key' | 'code'>) {
+    return isShortcutMatch(keyboardEvent, 'r', 'KeyR') ||
+        isShortcutMatch(keyboardEvent, 'f', 'KeyF') ||
+        isShortcutMatch(keyboardEvent, 'b', 'KeyB') ||
+        isShortcutMatch(keyboardEvent, 'i', 'KeyI') ||
+        isShortcutMatch(keyboardEvent, 's', 'KeyS') ||
+        isShortcutMatch(keyboardEvent, 'l', 'KeyL') ||
+        keyboardEvent.key === 'PageUp' ||
+        keyboardEvent.key === 'PageDown'
+}
+
+function applyKeyDown(playerInput: PlayerInput, keyOrEvent: string | KeyboardLike) {
+    const keyboardEvent = typeof keyOrEvent === 'string' ? { key: keyOrEvent, ctrlKey: false } : keyOrEvent
+    const { key } = keyboardEvent
+    if (keyboardEvent.ctrlKey) {
+        if (isShortcutMatch(keyboardEvent, 'r', 'KeyR')) {
+            playerInput.rewind = true
+            console.log(`[rewind-input] mapped ctrl shortcut key=${keyboardEvent.key} code=${keyboardEvent.code ?? ''}`)
+        } else if (isShortcutMatch(keyboardEvent, 'f', 'KeyF')) {
+            playerInput.dbgMask ^= dfFastmode
+        } else if (isShortcutMatch(keyboardEvent, 'b', 'KeyB')) {
+            playerInput.dbgMask ^= dfDblocks
+        } else if (isShortcutMatch(keyboardEvent, 'i', 'KeyI')) {
+            playerInput.dbgMask ^= dfSetlife
+        } else if (isShortcutMatch(keyboardEvent, 's', 'KeyS')) {
+            playerInput.save = true
+        } else if (isShortcutMatch(keyboardEvent, 'l', 'KeyL')) {
+            playerInput.load = true
+        } else if (key === 'PageUp') {
+            playerInput.stateSlot = 1
+        } else if (key === 'PageDown') {
+            playerInput.stateSlot = -1
+        }
+        return
+    }
+
     switch (key) {
+        case 'r':
+        case 'R':
+            playerInput.rewind = true
+            console.log(`[rewind-input] mapped plain key key=${keyboardEvent.key} code=${keyboardEvent.code ?? ''}`)
+            break
         case ' ':
+        case 'Space':
+        case 'Spacebar':
             playerInput.space = true
             break
         case 'o':
@@ -39,6 +98,8 @@ function applyKeyDown(playerInput: PlayerInput, key: string) {
 function applyKeyUp(playerInput: PlayerInput, key: string) {
     switch (key) {
         case ' ':
+        case 'Space':
+        case 'Spacebar':
             playerInput.space = false
             break
         case 'Escape':
@@ -69,8 +130,12 @@ function applyKeyUp(playerInput: PlayerInput, key: string) {
 
 function queueBrowserEvent(events: Event[], event: Event) {
     const keyboardEvent = event as KeyboardEvent
-    if (!keyboardEvent.metaKey && !keyboardEvent.ctrlKey) {
+    const shouldPreventDefault = (!keyboardEvent.metaKey && !keyboardEvent.ctrlKey) || (keyboardEvent.ctrlKey && isHandledCtrlShortcut(keyboardEvent))
+    if (shouldPreventDefault) {
         keyboardEvent.preventDefault()
+    }
+    if (event.type === 'keydown' && isRewindKey(keyboardEvent)) {
+        console.log(`[rewind-input] queued event type=${event.type} key=${keyboardEvent.key} code=${keyboardEvent.code ?? ''} ctrl=${keyboardEvent.ctrlKey ? 1 : 0} prevented=${shouldPreventDefault ? 1 : 0}`)
     }
     events.push(event)
 }
@@ -79,4 +144,4 @@ function resetPlayerInput(): PlayerInput {
     return createPlayerInput()
 }
 
-export { applyKeyDown, applyKeyUp, queueBrowserEvent, resetPlayerInput }
+export { applyKeyDown, applyKeyUp, isHandledCtrlShortcut, queueBrowserEvent, resetPlayerInput }

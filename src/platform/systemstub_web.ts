@@ -2,6 +2,7 @@ import { Color } from '../core/intern'
 import { Scaler, ScalerType } from '../core/scaler'
 import { assert } from "../core/assert"
 import type { Game } from '../game/game'
+import type { SystemPort } from './system-port'
 import { createAudioContext, initializeAudioNodes, postWorkletMessage, resumeAudioContext } from './systemstub-audio'
 import { applyCanvasStyles, copyIndexedRectToScreenBuffer, copyRgb24RectToScreenBuffer, drawRectOutline, getCanvasDisplaySize, getClippedScaleFactor, getPaletteEntry as readPaletteEntry, getRootCanvasElement, presentScreen, resolveScaler, setPalette as writePalette, setPaletteColor as writePaletteColor } from './systemstub-canvas'
 import { applyKeyDown, applyKeyUp, queueBrowserEvent, resetPlayerInput } from './systemstub-input'
@@ -10,7 +11,7 @@ import type { PlayerInput, ScalerParameters } from './systemstub-types'
 
 type AudioCallback = (param: any, stream: Int16Array, len: number) => void
 
-class SystemStub {
+class SystemStub implements SystemPort {
 	_pi: PlayerInput
 	_canvas: HTMLCanvasElement
 	_context: CanvasRenderingContext2D
@@ -61,7 +62,20 @@ class SystemStub {
 		this._audioUnavailableWarned = false
 		this._unsupportedWarnings = {}
 		this._game = null
+		this._pi = resetPlayerInput()
 		this.resumeAudio()
+	}
+
+	get input() {
+		return this._pi
+	}
+
+	get rgbPalette() {
+		return this._rgbPalette
+	}
+
+	getCanvasElement() {
+		return this._canvas || null
 	}
 
 	private warnUnsupportedOnce(feature: string, message: string) {
@@ -139,7 +153,7 @@ class SystemStub {
 
 	onKeyDown = (event: KeyboardEvent) => {
 		this.resumeAudio()
-		applyKeyDown(this._pi, event.key)
+		applyKeyDown(this._pi, event)
 	}
 
 	onKeyUp = (event: KeyboardEvent) => {
@@ -374,6 +388,12 @@ class SystemStub {
 	}
 
 	processEvent = (e: Event) => {
+		if (e.type === 'keydown') {
+			const keyboardEvent = e as KeyboardEvent
+			if (keyboardEvent.key === 'r' || keyboardEvent.key === 'R' || keyboardEvent.code === 'KeyR') {
+				console.log(`[rewind-input] processing event key=${keyboardEvent.key} code=${keyboardEvent.code ?? ''} ctrl=${keyboardEvent.ctrlKey ? 1 : 0}`)
+			}
+		}
 		switch(e.type) {
 			case 'keydown':
 				this.onKeyDown(e as KeyboardEvent)

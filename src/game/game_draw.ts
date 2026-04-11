@@ -1,6 +1,7 @@
 import type { AnimBufferState, LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { maxVolume } from '../audio/mixer'
+import { LocaleData } from '../resource/resource'
 import { charW, gamescreenH, gamescreenW } from '../core/game_constants'
 import { pgeFlagFlipX, pgeFlagSpecialAnim, uint16Max, uint8Max } from '../core/game_constants'
 import { gameFindFirstMatchingCollidingObject } from './game_collision'
@@ -37,34 +38,38 @@ async function gameLoadVoiceSegment(game: Game, textId: number, segment: number)
 }
 
 export function gameDrawIcon(game: Game, iconNum: number, x: number, y: number, colMask: number) {
+    const { res, vid } = getGameServices(game)
     const buf = new Uint8Array(16 * 16)
 
-    game._vid.pcDecodeicn(game._res.ui.icn, iconNum, buf)
+    vid.pcDecodeicn(res.ui.icn, iconNum, buf)
 
-    game._vid.drawSpriteSub1ToFrontLayer(buf, x + y * game._vid.layers.w, 16, 16, 16, colMask << 4)
-    game._vid.markBlockAsDirty(x, y, 16, 16, 1)
+    vid.drawSpriteSub1ToFrontLayer(buf, x + y * vid.layers.w, 16, 16, 16, colMask << 4)
+    vid.markBlockAsDirty(x, y, 16, 16, 1)
 }
 
 export function gameDrawCurrentInventoryItem(game: Game) {
+    const { res } = getGameServices(game)
     const world = getGameWorldState(game)
     const src = gameGetCurrentInventoryItemIndex(game, getRuntimeRegistryState(game).livePgesByIndex[0])
     if (src !== uint8Max) {
-        world.currentIcon = game._res.level.pgeAllInitialStateFromFile[src].iconNum
-        game.drawIcon(world.currentIcon, 232, 8, 0xC)
+        world.currentIcon = res.level.pgeAllInitialStateFromFile[src].iconNum
+        gameDrawIcon(game, world.currentIcon, 232, 8, 0xC)
     }
 }
 
 export function gameDrawCurrentRoomOverlay(game: Game) {
+    const { vid } = getGameServices(game)
     const ui = getGameUiState(game)
     const world = getGameWorldState(game)
     if (ui.currentRoomOverlayCounter <= 0 || world.currentRoom < 0 || world.currentRoom >= 0x40) {
         return
     }
-    game._vid.drawString(`ROOM ${world.currentRoom}`, 8, 8, 0xE6)
+    vid.drawString(`ROOM ${world.currentRoom}`, 8, 8, 0xE6)
     gameTickRoomOverlay(game)
 }
 
 export function gameDrawLevelTexts(game: Game) {
+    const { res } = getGameServices(game)
     const world = getGameWorldState(game)
     const ui = getGameUiState(game)
     const pge: LivePGE = getRuntimeRegistryState(game).livePgesByIndex[0]
@@ -78,12 +83,12 @@ export function gameDrawLevelTexts(game: Game) {
         world.printLevelCodeCounter = 0
         if (world.textToDisplay === uint16Max) {
             const iconNum = obj - 1
-            game.drawIcon(iconNum, 80, 8, 0xC)
+            gameDrawIcon(game, iconNum, 80, 8, 0xC)
             const txtNum = pgeOut.initPge.textNum % pgeNum
-            const str = game._res.getTextString(world.currentLevel, txtNum)
-            game.drawString(str, 176, 26, 0xE6, true)
+            const str = res.getTextString(world.currentLevel, txtNum)
+            gameDrawString(game, str, 176, 26, 0xE6, true)
             if (iconNum === 2) {
-                game.printSaveStateCompleted()
+                printSaveStateCompleted(game)
                 return
             }
         } else {
@@ -94,23 +99,25 @@ export function gameDrawLevelTexts(game: Game) {
 }
 
 export async function gameDrawStoryTexts(game: Game) {
+    const { mix, res, stub, vid } = getGameServices(game)
+    const input = stub.input
     const world = getGameWorldState(game)
     const ui = getGameUiState(game)
     if (world.textToDisplay !== uint16Max) {
         gameDebugLog(game, 'storyText', `[story-text] start frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} inventoryIcon=${ui.currentInventoryIconNum}`)
         let textColor = 0xE8
-        let str = game._res.getGameString(world.textToDisplay)
+        let str = res.getGameString(world.textToDisplay)
         let index = 0
-        game._vid.copyFrontLayerToTemp()
+        vid.copyFrontLayerToTemp()
         let textSpeechSegment = 0
-        while (!game._stub._pi.quit) {
+        while (!input.quit) {
             gameDebugLog(game, 'storyText', `[story-text] segment frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay} segment=${textSpeechSegment} charIndex=${index}`)
             const storyIconNum = Number.isInteger(ui.currentInventoryIconNum) ? ui.currentInventoryIconNum : uint8Max
             if (storyIconNum === uint8Max) {
                 gameDebugWarn(game, 'storyText', `[story-text] missing inventory icon frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}; skipping story icon draw`)
             } else {
                 gameDebugLog(game, 'storyText', `[story-text] draw icon frame=${game.renders} icon=${storyIconNum}`)
-                game.drawIcon(storyIconNum, 80, 8, 0xC)
+                gameDrawIcon(game, storyIconNum, 80, 8, 0xC)
             }
             let yPos = 26
 
@@ -125,7 +132,7 @@ export async function gameDrawStoryTexts(game: Game) {
                 const len = getLineLength(remaining)
                 const line = remaining.subarray(0, len)
                 gameDebugLog(game, 'storyText', `[story-text] draw line len=${len} y=${yPos} firstByte=${str[index]} index=${index}`)
-                game._vid.drawString(new TextDecoder().decode(line), ((176 - len * charW) / 2) >> 0, yPos, textColor)
+                vid.drawString(new TextDecoder().decode(line), ((176 - len * charW) / 2) >> 0, yPos, textColor)
 
                 index += len
                 const terminator = str[index]
@@ -147,31 +154,31 @@ export async function gameDrawStoryTexts(game: Game) {
             voiceSegmentLen = res.bufSize
             gameDebugLog(game, 'storyText', `[story-text] voice frame=${game.renders} text=${world.textToDisplay} hasVoice=${!!voiceSegmentData} voiceLen=${voiceSegmentLen}`)
             if (voiceSegmentData) {
-                game._mix.play(voiceSegmentData, voiceSegmentLen, 32000, maxVolume)
+                mix.play(voiceSegmentData, voiceSegmentLen, 32000, maxVolume)
             }
-            await game._vid.updateScreen()
+            await vid.updateScreen()
             if (!voiceSegmentData) {
                 gameDebugLog(game, 'storyText', `[story-text] waiting for input without voice frame=${game.renders} text=${world.textToDisplay}`)
             }
-            while (!game._stub._pi.backspace && !game._stub._pi.quit) {
-                if (voiceSegmentData && !game._mix.isPlaying(voiceSegmentData)) {
+            while (!input.backspace && !input.quit) {
+                if (voiceSegmentData && !mix.isPlaying(voiceSegmentData)) {
                     gameDebugLog(game, 'storyText', `[story-text] voice finished frame=${game.renders} text=${world.textToDisplay}`)
                     break
                 }
-                await game.inpUpdate()
-                await game._stub.sleep(80)
+                await gameInpUpdate(game)
+                await stub.sleep(80)
             }
             if (voiceSegmentData) {
-                game._mix.stopAll()
+                mix.stopAll()
             }
-            game._stub._pi.backspace = false
+            input.backspace = false
 
             if (str[index] === 0) {
                 break
             }
             index++
 
-            game._vid.restoreFrontLayerFromTemp()
+            vid.restoreFrontLayerFromTemp()
         }
         gameDebugLog(game, 'storyText', `[story-text] end frame=${game.renders} currentRoom=${world.currentRoom} text=${world.textToDisplay}`)
         world.textToDisplay = uint16Max
@@ -179,6 +186,7 @@ export async function gameDrawStoryTexts(game: Game) {
 }
 
 export function gameDrawString(game: Game, p: Uint8Array, x: number, y: number, color: number, hcenter: boolean) {
+    const { vid } = getGameServices(game)
     const str = new TextDecoder().decode(p).split('\u0000')[0]
     let len = 0
 
@@ -187,21 +195,22 @@ export function gameDrawString(game: Game, p: Uint8Array, x: number, y: number, 
         x = ((x - len * charW) / 2) >> 0
     }
 
-    game._vid.drawStringLen(str, len, x, y, color)
+    vid.drawStringLen(str, len, x, y, color)
 }
 
 export async function gameDrawAnims(game: Game) {
     const world = getGameWorldState(game)
     const render = getRenderDataState(game)
     world.eraseBackground = false
-    await game.drawAnimBuffer(2, render.animBuffer2State)
-    await game.drawAnimBuffer(1, render.animBuffer1State)
-    await game.drawAnimBuffer(0, render.animBuffer0State)
+    await gameDrawAnimBuffer(game, 2, render.animBuffer2State)
+    await gameDrawAnimBuffer(game, 1, render.animBuffer1State)
+    await gameDrawAnimBuffer(game, 0, render.animBuffer0State)
     world.eraseBackground = true
-    await game.drawAnimBuffer(3, render.animBuffer3State)
+    await gameDrawAnimBuffer(game, 3, render.animBuffer3State)
 }
 
 export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: AnimBufferState[]) {
+    const { res, vid } = getGameServices(game)
     assert(!(stateNum >= 4), `Assertion failed: ${stateNum} < 4`)
     const render = getRenderDataState(game)
     render.animBuffers._states[stateNum] = state
@@ -221,13 +230,13 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
                 const ptr = state[index].dataPtr
                 const val = new DataView(ptr.buffer, ptr.byteOffset - 2).getUint8(0)
                 if (!(val & 0x80)) {
-                    game._vid.pcDecodespm(state[index].dataPtr, game._res.scratchBuffer)
-                    game.drawCharacter(game._res.scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
+                    vid.pcDecodespm(state[index].dataPtr, res.scratchBuffer)
+                    gameDrawCharacter(game, res.scratchBuffer, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 } else {
-                    game.drawCharacter(state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
+                    gameDrawCharacter(game, state[index].dataPtr, state[index].x, state[index].y, state[index].h, state[index].w, pge.flags, state[index].paletteColorMaskOverride)
                 }
             } else {
-                game.drawPge(state[index])
+                gameDrawPge(game, state[index])
             }
             index--
         } while (--numAnims !== 0)
@@ -237,15 +246,16 @@ export async function gameDrawAnimBuffer(game: Game, stateNum: number, state: An
 export function gameDrawPge(game: Game, state: AnimBufferState) {
     const pge: LivePGE = state.pge
     const paletteColorMaskOverride = (pge.initPge.objectType === 6 || pge.initPge.objectType === 7 || pge.initPge.objectType === 8) ? 0x60 : -1
-    game.drawObject(state.dataPtr, state.x, state.y, pge.flags, paletteColorMaskOverride)
+    gameDrawObject(game, state.dataPtr, state.x, state.y, pge.flags, paletteColorMaskOverride)
 }
 
 export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
+    const { res } = getGameServices(game)
     assert(!(dataPtr[0] >= 0x4A), `Assertion failed: ${dataPtr[0]} < 0x4A`)
-    const slot = game._res.ui.rp[dataPtr[0]]
-    let data = game._res.findBankData(slot)
+    const slot = res.ui.rp[dataPtr[0]]
+    let data = res.findBankData(slot)
     if (data === null) {
-        data = game._res.loadBankData(slot)
+        data = res.loadBankData(slot)
     }
     const posy = y - (dataPtr[2] << 24 >> 24)
     let posx = x
@@ -258,12 +268,21 @@ export function gameDrawObject(game: Game, dataPtr: Uint8Array, x: number, y: nu
     dataPtr = dataPtr.subarray(6)
 
     for (let i = 0; i < count; ++i) {
-        game.drawObjectFrame(data, dataPtr, posx, posy, flags, paletteColorMaskOverride)
+        gameDrawObjectFrame(game, data, dataPtr, posx, posy, flags, paletteColorMaskOverride)
         dataPtr = dataPtr.subarray(4)
     }
 }
 
+export function printSaveStateCompleted(game: Game) {
+    if (getGameUiState(game).saveStateCompleted) {
+        const { res, vid } = getGameServices(game)
+        const str = res.getMenuString(LocaleData.Id.li05Completed)
+        vid.drawString(str, ((176 - str.length * charW) / 2) >> 0, 34, 0xE6)
+    }
+}
+
 export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr: Uint8Array, x: number, y: number, flags: number, paletteColorMaskOverride: number = -1) {
+    const { res, vid } = getGameServices(game)
     let src = bankDataPtr.byteOffset + dataPtr[0] * 32
 
     let spriteY = y + dataPtr[2]
@@ -282,9 +301,9 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
     const spriteH = (((spriteFlags >> 0) & 3) + 1) * 8
     const spriteW = (((spriteFlags >> 2) & 3) + 1) * 8
 
-    game._vid.pcDecodespc(new Uint8Array(bankDataPtr.buffer, src), spriteW, spriteH, game._res.scratchBuffer)
+    vid.pcDecodespc(new Uint8Array(bankDataPtr.buffer, src), spriteW, spriteH, res.scratchBuffer)
 
-    src = game._res.scratchBuffer.byteOffset
+    src = res.scratchBuffer.byteOffset
     let spriteMirrorX = false
     let spriteClippedW: number
     if (spriteX >= 0) {
@@ -339,21 +358,22 @@ export function gameDrawObjectFrame(game: Game, bankDataPtr: Uint8Array, dataPtr
 
     if (getGameWorldState(game).eraseBackground) {
         if (!(spriteFlags & 0x10)) {
-            game._vid.drawSpriteSub1ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub1ToFrontLayer(new Uint8Array(res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         } else {
-            game._vid.drawSpriteSub2ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub2ToFrontLayer(new Uint8Array(res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         }
     } else {
         if (!(spriteFlags & 0x10)) {
-            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub3ToFrontLayer(new Uint8Array(res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         } else {
-            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(game._res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub4ToFrontLayer(new Uint8Array(res.scratchBuffer.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         }
     }
-    game._vid.markBlockAsDirty(spriteX, spriteY, spriteClippedW, spriteClippedH, 1)
+    vid.markBlockAsDirty(spriteX, spriteY, spriteClippedW, spriteClippedH, 1)
 }
 
 export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, posX: number, posY: number, a: number, b: number, flags: number, paletteColorMaskOverride: number = -1) {
+    const { vid } = getGameServices(game)
     let var16 = false
     if (b & 0x40) {
         b &= 0xBF
@@ -442,16 +462,16 @@ export function gameDrawCharacter(game: Game, dataPtr: Uint8Array, posX: number,
 
     if (!(flags & pgeFlagFlipX)) {
         if (var16) {
-            game._vid.drawSpriteSub5ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub5ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
         } else {
-            game._vid.drawSpriteSub3ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub3ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         }
     } else {
         if (var16) {
-            game._vid.drawSpriteSub6ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub6ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteH, spriteClippedH, spriteClippedW, spriteColMask)
         } else {
-            game._vid.drawSpriteSub4ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
+            vid.drawSpriteSub4ToFrontLayer(new Uint8Array(dataPtr.buffer, src), dstOffset, spriteW, spriteClippedH, spriteClippedW, spriteColMask)
         }
     }
-    game._vid.markBlockAsDirty(posX, posY, spriteClippedW, spriteClippedH, 1)
+    vid.markBlockAsDirty(posX, posY, spriteClippedW, spriteClippedH, 1)
 }

@@ -1,11 +1,14 @@
 import type { InventoryItem, LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { LocaleData } from '../resource/resource'
-import { dirDown, dirLeft, dirRight, dirUp } from '../platform/systemstub_web'
+import { dirDown, dirLeft, dirRight, dirUp } from '../platform/system-port'
 import { charW, gamescreenW } from '../core/game_constants'
 import { uint16Max, uint8Max } from '../core/game_constants'
+import { gamePlaySound } from './game_audio'
+import { gameDrawIcon, gameDrawString } from './game_draw'
 import { gameDebugLog } from './game_debug'
 import { gameChangeStateSlot } from './game_lifecycle'
+import { getGameServices } from './game_services'
 import { getRuntimeRegistryState } from './game_runtime_data'
 import { getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameInpUpdate } from './game_world'
@@ -77,80 +80,81 @@ export function gameUpdatePgeInventoryLinks(game: Game, pge1: LivePGE, pge2: Liv
 }
 
 export async function gameHandleConfigPanel(game: Game) {
+    const { menu, res, stub, vid } = getGameServices(game)
     const session = getGameSessionState(game)
     const x = 7
     const y = 10
     const w = 17
     const h = 12
 
-    game._vid.setTextColors(0xEE, uint8Max, 0xE2)
+    vid.setTextColors(0xEE, uint8Max, 0xE2)
 
     // the panel background is drawn using special characters from FB_TXT.FNT
     // top-left rounded corner
-    game._vid.pcDrawchar(0x81, y, x)
+    vid.pcDrawchar(0x81, y, x)
     // top-right rounded corner
-    game._vid.pcDrawchar(0x82, y, x + w)
+    vid.pcDrawchar(0x82, y, x + w)
     // bottom-left rounded corner
-    game._vid.pcDrawchar(0x83, y + h, x)
+    vid.pcDrawchar(0x83, y + h, x)
     // bottom-right rounded corner
-    game._vid.pcDrawchar(0x84, y + h, x + w)
+    vid.pcDrawchar(0x84, y + h, x + w)
     // horizontal lines
     for (let i = 1; i < w; ++i) {
-        game._vid.pcDrawchar(0x85, y, x + i)
-        game._vid.pcDrawchar(0x88, y + h, x + i)
+        vid.pcDrawchar(0x85, y, x + i)
+        vid.pcDrawchar(0x88, y + h, x + i)
     }
     for (let j = 1; j < h; ++j) {
-        game._vid.setTextTransparentColor(uint8Max)
+        vid.setTextTransparentColor(uint8Max)
         // left vertical line
-        game._vid.pcDrawchar(0x86, y + j, x)
+        vid.pcDrawchar(0x86, y + j, x)
         // right vertical line
-        game._vid.pcDrawchar(0x87, y + j, x + w)
-        game._vid.setTextTransparentColor(0xE2)
+        vid.pcDrawchar(0x87, y + j, x + w)
+        vid.setTextTransparentColor(0xE2)
         for (let i = 1; i < w; ++i) {
-            game._vid.pcDrawchar(0x20, y + j, x + i)
+            vid.pcDrawchar(0x20, y + j, x + i)
         }
     }
 
-    game._menu._charVar3 = 0xE4
-    game._menu._charVar4 = 0xE5
-    game._menu._charVar1 = 0xE2
-    game._menu._charVar2 = 0xEE
+    menu._charVar3 = 0xE4
+    menu._charVar4 = 0xE5
+    menu._charVar1 = 0xE2
+    menu._charVar2 = 0xEE
 
-    game._vid.fullRefresh()
+    vid.fullRefresh()
     const menuItemAbort = 1
     const menuItemLoad = 2
     const menuItemSave = 3
     const colors = [ 2, 3, 3, 3 ]
     let current = 0
     gameDebugLog(game, 'session', `[config-panel] opened stateSlot=${session.stateSlot}`)
-    while (!game._stub._pi.quit) {
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
-        game._menu.drawString(game._res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
-        game._vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
-        const buf = game._res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
-        game._menu.drawString(buf, y + 10, 9, 1)
+    while (!stub.input.quit) {
+        menu.drawString(res.getMenuString(LocaleData.Id.li18ResumeGame), y + 2, 9, colors[0])
+        menu.drawString(res.getMenuString(LocaleData.Id.li19AbortGame), y + 4, 9, colors[1])
+        menu.drawString(res.getMenuString(LocaleData.Id.li20LoadGame), y + 6, 9, colors[2])
+        menu.drawString(res.getMenuString(LocaleData.Id.li21SaveGame), y + 8, 9, colors[3])
+        vid.fillRect(charW * (x + 1), charW * (y + 10), charW * (w - 2), charW, 0xE2)
+        const buf = res.getMenuString(LocaleData.Id.li22SaveSlot) + " < " + session.stateSlot.toString().padStart(2, "0") + " >"
+        menu.drawString(buf, y + 10, 9, 1)
 
-        game._vid.updateScreen()
-        await game._stub.sleep(80)
-        await game.inpUpdate()
+        vid.updateScreen()
+        await stub.sleep(80)
+        await gameInpUpdate(game)
 
         let prev = current
-        if (game._stub._pi.dirMask & dirUp) {
-            game._stub._pi.dirMask &= ~dirUp
+        if (stub.input.dirMask & dirUp) {
+            stub.input.dirMask &= ~dirUp
             current = (current + 3) % 4
         }
-        if (game._stub._pi.dirMask & dirDown) {
-            game._stub._pi.dirMask &= ~dirDown
+        if (stub.input.dirMask & dirDown) {
+            stub.input.dirMask &= ~dirDown
             current = (current + 1) % 4
         }
-        if (game._stub._pi.dirMask & dirLeft) {
-            game._stub._pi.dirMask &= ~dirLeft
+        if (stub.input.dirMask & dirLeft) {
+            stub.input.dirMask &= ~dirLeft
             gameChangeStateSlot(game, -1)
         }
-        if (game._stub._pi.dirMask & dirRight) {
-            game._stub._pi.dirMask &= ~dirRight
+        if (stub.input.dirMask & dirRight) {
+            stub.input.dirMask &= ~dirRight
             gameChangeStateSlot(game, 1)
         }
         if (prev !== current) {
@@ -159,31 +163,32 @@ export async function gameHandleConfigPanel(game: Game) {
             colors[current] = tmp
             gameDebugLog(game, 'session', `[config-panel] selection=${current} stateSlot=${session.stateSlot}`)
         }
-        if (game._stub._pi.enter) {
-            game._stub._pi.enter = false
+        if (stub.input.enter) {
+            stub.input.enter = false
             switch (current) {
                 case menuItemLoad:
-                    game._stub._pi.load = true
+                    stub.input.load = true
                     break
                 case menuItemSave:
-                    game._stub._pi.save = true
+                    stub.input.save = true
                     break
             }
-            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${game._stub._pi.load} save=${game._stub._pi.save} stateSlot=${session.stateSlot}`)
+            gameDebugLog(game, 'session', `[config-panel] confirmed selection=${current} load=${stub.input.load} save=${stub.input.save} stateSlot=${session.stateSlot}`)
             break
         }
-        if (game._stub._pi.escape) {
-            game._stub._pi.escape = false
+        if (stub.input.escape) {
+            stub.input.escape = false
             gameDebugLog(game, 'session', '[config-panel] closed via escape')
             break
         }
     }
-    game._vid.fullRefresh()
+    vid.fullRefresh()
     return (current === menuItemAbort)
 }
 
 
 export async function gameHandleInventory(game: Game) {
+    const { res, stub, vid } = getGameServices(game)
     const world = getGameWorldState(game)
     const ui = getGameUiState(game)
     const runtime = getRuntimeRegistryState(game)
@@ -192,7 +197,7 @@ export async function gameHandleInventory(game: Game) {
     const inventoryItemIndices = gameGetInventoryItemIndices(game, pge)
     if (pge.life > 0 && inventoryItemIndices.length !== 0) {
         gameDebugLog(game, 'session', `[inventory] opened owner=${pge.index} items=${inventoryItemIndices.join(',')}`)
-        game.playSound(66, 0)
+        gamePlaySound(game, 66, 0)
         const items: InventoryItem[] = new Array(24).fill(null).map(() => ({
             iconNum: 0,
             livePge: null,
@@ -201,8 +206,8 @@ export async function gameHandleInventory(game: Game) {
         let numItems = 0
         for (const invPge of inventoryItemIndices) {
             items[numItems] = {
-                iconNum: game._res.level.pgeAllInitialStateFromFile[invPge].iconNum,
-                initPge: game._res.level.pgeAllInitialStateFromFile[invPge],
+                iconNum: res.level.pgeAllInitialStateFromFile[invPge].iconNum,
+                initPge: res.level.pgeAllInitialStateFromFile[invPge],
                 livePge: runtime.livePgesByIndex[invPge]
             }
             ++numItems
@@ -212,14 +217,14 @@ export async function gameHandleInventory(game: Game) {
         const numLines = (((numItems - 1) / 4) >> 0) + 1
         let currentLine = 0
         let displayScore = false
-        while (!game._stub._pi.backspace && !game._stub._pi.quit) {
+        while (!stub.input.backspace && !stub.input.quit) {
             const iconSprW = 16
             const iconSprH = 16
 
             let iconNum = 31
             for (let y = 140; y < 140 + 5 * iconSprH; y += iconSprH) {
                 for (let x = 56; x < 56 + 9 * iconSprW; x += iconSprW) {
-                    game.drawIcon(iconNum, x, y, 0xF)
+                    gameDrawIcon(game, iconNum, x, y, 0xF)
                     ++iconNum
                 }
             }
@@ -231,56 +236,56 @@ export async function gameHandleInventory(game: Game) {
                     if (items[itemIt].iconNum === uint8Max) {
                         break
                     }
-                    game.drawIcon(items[itemIt].iconNum, iconXPos, 157, 0xC)
+                    gameDrawIcon(game, items[itemIt].iconNum, iconXPos, 157, 0xC)
                     if (currentItem === itemIt) {
-                        game.drawIcon(76, iconXPos, 157, 0xC)
+                        gameDrawIcon(game, 76, iconXPos, 157, 0xC)
                         selectedPge = items[itemIt].livePge
                         gameDebugLog(game, 'session', `[inventory] highlight itemIndex=${currentItem} line=${currentLine} pge=${selectedPge.index} icon=${items[itemIt].iconNum} scoreView=${displayScore}`)
                         const txtNum = items[itemIt].initPge.textNum
-                        const str = game._res.getTextString(world.currentLevel, txtNum)
-                        game.drawString(str, gamescreenW, 189, 0xED, true)
+                        const str = res.getTextString(world.currentLevel, txtNum)
+                        gameDrawString(game, str, gamescreenW, 189, 0xED, true)
                         if (items[itemIt].initPge.initFlags & 4) {
                             const buf = selectedPge.life.toString()
-                            game._vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
+                            vid.drawString(buf, ((gamescreenW - buf.length * charW) / 2) >> 0, 197, 0xED)
                         }
                     }
                     iconXPos += 32
                 }
                 if (currentLine !== 0) {
-                    game.drawIcon(78, 120, 176, 0xC)
+                    gameDrawIcon(game, 78, 120, 176, 0xC)
                 }
                 if (currentLine !== numLines - 1) {
-                    game.drawIcon(77, 120, 143, 0xC)
+                    gameDrawIcon(game, 77, 120, 143, 0xC)
                 }
             } else {
                 let buf = "SCORE " + ui.score.toString().padStart(8, "0")
-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
-                buf = game._res.getMenuString(LocaleData.Id.li06Level) + ":" + game._res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
-                game._vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
+                vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 158, 0xE5)
+                buf = res.getMenuString(LocaleData.Id.li06Level) + ":" + res.getMenuString(LocaleData.Id.li13Easy + ui.skillLevel)
+                vid.drawString(buf, (((114 - buf.length * charW) / 2) >> 0) + 72, 166, 0xE5)
             }
 
-            await game._vid.updateScreen()
-            await game._stub.sleep(80)
-            await game.inpUpdate()
+            await vid.updateScreen()
+            await stub.sleep(80)
+            await gameInpUpdate(game)
 
-            if (game._stub._pi.dirMask & dirUp) {
-                game._stub._pi.dirMask &= ~dirUp
+            if (stub.input.dirMask & dirUp) {
+                stub.input.dirMask &= ~dirUp
                 if (currentLine < numLines - 1) {
                     ++currentLine
                     currentItem = currentLine * 4
                     gameDebugLog(game, 'session', `[inventory] move up line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
-            if (game._stub._pi.dirMask & dirDown) {
-                game._stub._pi.dirMask &= ~dirDown
+            if (stub.input.dirMask & dirDown) {
+                stub.input.dirMask &= ~dirDown
                 if (currentLine > 0) {
                     --currentLine
                     currentItem = currentLine * 4
                     gameDebugLog(game, 'session', `[inventory] move down line=${currentLine} itemIndex=${currentItem}`)
                 }
             }
-            if (game._stub._pi.dirMask & dirLeft) {
-                game._stub._pi.dirMask &= ~dirLeft
+            if (stub.input.dirMask & dirLeft) {
+                stub.input.dirMask &= ~dirLeft
                 if (currentItem > 0) {
                     const itemNum = currentItem % 4
                     if (itemNum > 0) {
@@ -289,8 +294,8 @@ export async function gameHandleInventory(game: Game) {
                     }
                 }
             }
-            if (game._stub._pi.dirMask & dirRight) {
-                game._stub._pi.dirMask &= ~dirRight
+            if (stub.input.dirMask & dirRight) {
+                stub.input.dirMask &= ~dirRight
                 if (currentItem < numItems - 1) {
                     const itemNum = currentItem % 4
                     if (itemNum < 3) {
@@ -299,24 +304,19 @@ export async function gameHandleInventory(game: Game) {
                     }
                 }
             }
-            if (game._stub._pi.enter) {
-                game._stub._pi.enter = false
+            if (stub.input.enter) {
+                stub.input.enter = false
                 displayScore = !displayScore
                 gameDebugLog(game, 'session', `[inventory] toggled scoreView=${displayScore}`)
             }
         }
-        game._vid.fullRefresh()
-        game._stub._pi.backspace = false
+        vid.fullRefresh()
+        stub.input.backspace = false
         if (selectedPge) {
-            const inventoryGame = game as Game & { setCurrentInventoryPge?: (pge: LivePGE) => void }
-            if (typeof inventoryGame.setCurrentInventoryPge === 'function') {
-                inventoryGame.setCurrentInventoryPge(selectedPge)
-            } else {
-                gameSetCurrentInventoryPgeSelection(game, selectedPge)
-            }
+            gameSetCurrentInventoryPgeSelection(game, selectedPge)
         }
         gameDebugLog(game, 'session', `[inventory] closed selected=${selectedPge?.index ?? 'none'} scoreView=${displayScore}`)
-        game.playSound(66, 0)
+        gamePlaySound(game, 66, 0)
     }
 }
 

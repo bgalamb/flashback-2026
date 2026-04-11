@@ -1,0 +1,18 @@
+{
+  "extends": "./src/tsconfig.json",
+  "include": [
+    "src/app/**/*.ts",
+    "src/audio/**/*.ts",
+    "src/core/**/*.ts",
+    "src/cutscene-players/**/*.ts",
+    "src/game/**/*.ts",
+    "src/platform/**/*.ts",
+    "src/resource/**/*.ts",
+    "src/video/**/*.ts"
+  ],
+  "exclude": [
+    "src/tools/**/*",
+    "src/dist/**/*",
+    "dist/**/*"
+  ]
+}

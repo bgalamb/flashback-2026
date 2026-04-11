@@ -1,7 +1,7 @@
 import { Color, readBeUint16, readLeUint16 } from "../core/intern"
 import { Resource } from "../resource/resource"
 import { _gameLevels, _palSlot0xF, _textPal } from "../core/staticres"
-import { SystemStub } from "../platform/systemstub_web"
+import type { SystemPort } from "../platform/system-port"
 import { screenblockW, screenblockH, gamescreenW, gamescreenH, charH, charW, uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
 import { writeLayerImages, writeLayerPixelData } from "../tools/debugger/front-layer-image"
 import { assert } from "../core/assert"
@@ -18,13 +18,13 @@ class Video {
     static _tempMbkSize = 1024
 
     _res: Resource
-    _stub: SystemStub
+    _stub: SystemPort
     readonly layers = createVideoLayerState()
     readonly palette = createVideoPaletteState()
     readonly text = createVideoTextState((dst: Uint8Array, pitch: number, x: number, y: number, src: Uint8Array, color: number, chr: number) => drawStringChar(dst, pitch, x, y, src, color, chr))
     readonly screen = createVideoScreenState()
 
-    constructor(res: Resource, stub: SystemStub) {
+    constructor(res: Resource, stub: SystemPort) {
       this._res = res
       this._stub = stub
     }
@@ -327,7 +327,7 @@ pitch = 16
         )
         this.copyFrontLayerToBack()
         this.pcSetlevelpalettes(level)
-        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub._rgbPalette)
+        writeLayerImages(level, room, this.layers.frontLayer, this.layers.w, this.layers.h, this._stub.rgbPalette)
         writeLayerPixelData(level, room, this.layers.frontLayer)
     }
 

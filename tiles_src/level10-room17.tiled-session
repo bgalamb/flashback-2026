@@ -1,36 +1,141 @@
 {
-    "activeFile": "level10-room18.tmx",
+    "activeFile": "level10-room61.tmx",
     "expandedProjectPaths": [
         "."
     ],
+    "exportAsImage.includeBackgroundColor": true,
     "fileStates": {
         "fb-level10-tiles.tsx": {
             "dynamicWrapping": true,
-            "scaleInDock": 0.2757,
+            "scaleInDock": 0.3718,
             "scaleInEditor": 0.53
         },
         "level10-room17.tmx": {
-            "scale": 0.542724609375,
+            "scale": 0.7982,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 512.2303193882142,
-                "y": 503.9388214125056
+                "x": 657.1034828363818,
+                "y": 471.6862941618641
             }
         },
         "level10-room18.tmx": {
-            "scale": 0.56,
+            "scale": 0.6608,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 439.2857142857142,
-                "y": 343.74999999999994
+                "x": 130.90193704600483,
+                "y": 662.0762711864405
+            }
+        },
+        "level10-room19.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 445.21739130434776,
+                "y": 698.9347431547385
+            }
+        },
+        "level10-room25.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room26.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
             }
         },
         "level10-room27.tmx": {
-            "scale": 0.5177,
+            "scale": 0.5317,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 395.9822290902067,
-                "y": 321.6148348464361
+                "x": 179.6125634756442,
+                "y": 670.4908783148393
+            }
+        },
+        "level10-room28.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room33.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room35.tmx": {
+            "scale": 0.5517,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 713.2499546855175,
+                "y": 457.6762733369585
+            }
+        },
+        "level10-room36.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 524.4030616270811,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room37.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room45.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room53.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 511.47478892132887,
+                "y": 503.3946184802336
+            }
+        },
+        "level10-room59.tmx": {
+            "scale": 0.6061,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 306.05510641808286,
+                "y": 624.4844085134466
+            }
+        },
+        "level10-room60.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 487.23427759804304,
+                "y": 498.54651621557645
+            }
+        },
+        "level10-room61.tmx": {
+            "scale": 0.618798828125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 416.128777716405,
+                "y": 485.6182435098241
             }
         }
     },
@@ -39,13 +144,34 @@
         "fb-level10-tiles.tsx",
         "level10-room17.tmx",
         "level10-room18.tmx",
-        "level10-room27.tmx"
+        "level10-room27.tmx",
+        "level10-room19.tmx",
+        "level10-room26.tmx",
+        "level10-room25.tmx",
+        "level10-room35.tmx",
+        "level10-room28.tmx",
+        "level10-room36.tmx",
+        "level10-room37.tmx",
+        "level10-room45.tmx",
+        "level10-room53.tmx",
+        "level10-room59.tmx",
+        "level10-room60.tmx",
+        "level10-room61.tmx",
+        "level10-room33.tmx"
     ],
     "project": "level10-room17.tiled-project",
     "recentFiles": [
         "fb-level10-tiles.tsx",
         "level10-room17.tmx",
+        "level10-room18.tmx",
         "level10-room27.tmx",
-        "level10-room18.tmx"
+        "level10-room19.tmx",
+        "level10-room26.tmx",
+        "level10-room25.tmx",
+        "level10-room35.tmx",
+        "level10-room28.tmx",
+        "level10-room36.tmx",
+        "level10-room37.tmx",
+        "level10-room45.tmx"
     ]
 }

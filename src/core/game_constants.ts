@@ -48,7 +48,7 @@ const configDefaults = {
   scaler: "point@4",
   language: "EN",
   widescreen: "none",
-  autosave: false
+  autosave: true
 }
 
 const globalGameOptionDefaults = {

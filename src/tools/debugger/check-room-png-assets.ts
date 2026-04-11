@@ -9,6 +9,19 @@ const runtimeLevelDirPattern = /^level\d+(?:_\d+)?$/i
 const allowedPixelSlots = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB])
 const allowedNonEmptyPaletteBanks = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD])
 
+function isSupportedRoomPngSize(width: number, height: number) {
+    if (width === gamescreenW && height === gamescreenH) {
+        return true
+    }
+    if (width <= gamescreenW || height <= gamescreenH) {
+        return false
+    }
+    if (width % gamescreenW !== 0 || height % gamescreenH !== 0) {
+        return false
+    }
+    return width / gamescreenW === height / gamescreenH
+}
+
 function walkFiles(rootDir: string, predicate: (filePath: string) => boolean) {
     const fs = require("fs")
     const path = require("path")
@@ -77,8 +90,10 @@ async function validateMergedRoomPng(filePath: string) {
     const fs = require("fs")
     const png = await decodeIndexedPng(new Uint8Array(fs.readFileSync(filePath)))
 
-    if (png.width !== gamescreenW || png.height !== gamescreenH) {
-        throw new Error(`Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH}`)
+    if (!isSupportedRoomPngSize(png.width, png.height)) {
+        throw new Error(
+            `Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH} or an integer-scale hi-res multiple`
+        )
     }
 
     for (let i = 0; i < png.pixels.length; ++i) {

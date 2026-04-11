@@ -51,6 +51,7 @@ const attachWorldGroupedGameState = (game) => attachGroupedGameState(game, {
         mix: '_mix',
         cut: '_cut',
         stub: '_stub',
+        menu: '_menu',
     },
     world: {
         currentIcon: '_currentIcon',
@@ -87,6 +88,7 @@ const attachWorldGroupedGameState = (game) => attachGroupedGameState(game, {
         livePgesByIndex: '_livePgesByIndex',
         livePgeStore: '_livePgeStore',
         inventoryItemIndicesByOwner: '_inventoryItemIndicesByOwner',
+        pendingSignalsByTargetPgeIndex: '_pendingSignalsByTargetPgeIndex',
     },
     renderData: {
         animBuffer0State: '_animBuffer0State',
@@ -94,6 +96,11 @@ const attachWorldGroupedGameState = (game) => attachGroupedGameState(game, {
         animBuffer2State: '_animBuffer2State',
         animBuffer3State: '_animBuffer3State',
         animBuffers: '_animBuffers',
+    },
+    rewind: {
+        buffer: '_rewindBuffer',
+        ptr: '_rewindPtr',
+        len: '_rewindLen',
     },
 })
 
@@ -131,6 +138,7 @@ function createWorldGame(overrides = {}) {
         },
         _deathCutsceneCounter: 2,
         _inventoryItemIndicesByOwner: new Map([[1, [2, 3]]]),
+        _pendingSignalsByTargetPgeIndex: new Map(),
         _livePgeStore: {
             activeFrameByIndex: ['x', 'y'],
             activeFrameList: ['a'],
@@ -177,14 +185,15 @@ function createWorldGame(overrides = {}) {
             level: {
                 ctData: new Uint8Array(ctHeaderSize + ctGridStride * 0x40),
                 objectNodesMap: {
-                    12: { objects: [{ type: 1 }, { type: 57 }] },
-                    22: { objects: [{ type: 1 }] },
+                    12: { numObjects: 2, lastObjNumber: 1, objects: [{ type: 1 }, { type: 57 }] },
+                    22: { numObjects: 1, lastObjNumber: 0, objects: [{ type: 1 }] },
                 },
                 pgeAllInitialStateFromFile: [
-                    { initRoom: 7, objectType: 1, scriptNodeIndex: 12, skill: 0 },
-                    { initRoom: 9, objectType: 1, scriptNodeIndex: 22, skill: 2 },
+                    { type: 1, initRoom: 7, roomLocation: 7, objectType: 1, scriptNodeIndex: 12, skill: 0, mirrorX: 0, initFlags: 0, flags: 0, life: 20 },
+                    { type: 1, initRoom: 9, roomLocation: 9, objectType: 1, scriptNodeIndex: 22, skill: 2, mirrorX: 0, initFlags: 0, flags: 0, life: 5 },
                 ],
                 pgeTotalNumInFile: 2,
+                numObjectNodes: 23,
                 ani: Uint8Array.from([1]),
             },
             sprites: {
@@ -209,6 +218,12 @@ function createWorldGame(overrides = {}) {
             async loadMonsterResolvedSpriteSet(name) {
                 loadCalls.push(['loadMonsterResolvedSpriteSet', name])
                 return { spritesByIndex: [] }
+            },
+            getAniData() {
+                return Uint8Array.from([0, 1, 0, 0, 0, 0, 0, 9])
+            },
+            readUint16(buffer, offset = 0) {
+                return (buffer[offset] << 8) | buffer[offset + 1]
             },
         },
         _roomCollisionGridPatchRestoreSlotPool: roomCollisionPool,
@@ -274,10 +289,15 @@ function createWorldGame(overrides = {}) {
         debugStartFrame: 0,
         renders: 0,
         loadCalls,
+        _rewindBuffer: [],
+        _rewindLen: 0,
+        _rewindPtr: -1,
     }
 
     Object.assign(game, overrides)
-    return attachWorldGroupedGameState(game)
+    const grouped = attachWorldGroupedGameState(game)
+    grouped.monsterVisualsByScriptNodeIndex = grouped._loadedMonsterVisualsByScriptNodeIndex
+    return grouped
 }
 
 test('gameGetRandomNumber advances the seed and returns the low 16 bits', () => {
@@ -291,14 +311,26 @@ test('gameGetRandomNumber advances the seed and returns the low 16 bits', () => 
 })
 
 test('gameChangeLevel fades out, reloads level state, and refreshes palettes', async () => {
-    const game = createWorldGame({ _currentRoom: 11 })
+    const closed = []
+    const game = createWorldGame({
+        _currentRoom: 11,
+        _rewindBuffer: [
+            { close() { closed.push('slot-0') } },
+            { close() { closed.push('slot-1') } },
+        ],
+        _rewindLen: 2,
+        _rewindPtr: 1,
+    })
 
     await gameChangeLevel(game)
 
-    assert.equal(game.clearStateRewindCalls, 1)
-    assert.equal(game.loadLevelDataCalls, 1)
-    assert.deepEqual(game.loadLevelMapCalls, [11])
-    assert.deepEqual(game._vid.calls, ['fadeOut', 'setPalette0xF', 'setTextPalette', 'fullRefresh'])
+    assert.deepEqual(closed, ['slot-1', 'slot-0'])
+    assert.equal(game._rewindLen, 0)
+    assert.equal(game._rewindPtr, -1)
+    assert.equal(game._printLevelCodeCounter, 150)
+    assert.deepEqual(game._mix.calls, [Mixer.musicTrack + 4])
+    assert.equal(game._currentRoom, 7)
+    assert.deepEqual(game._vid.calls, ['fadeOut', ['PC_decodeMap', 1, 7], 'setPalette0xF', 'setTextPalette', 'fullRefresh'])
     assert.equal(game._currentRoomOverlayCounter, 90)
 })
 
@@ -312,8 +344,17 @@ test('gameInpUpdate forwards to the stub event pump', async () => {
 
 test('gameResetGameState restores animation buffers and runtime defaults', () => {
     const game = createWorldGame()
+    const originalResetPgeGroupState = gamePge.gameResetPgeGroupState
 
-    gameResetGameState(game)
+    gamePge.gameResetPgeGroupState = () => {
+        game.resetPgeGroupsCalls += 1
+    }
+
+    try {
+        gameResetGameState(game)
+    } finally {
+        gamePge.gameResetPgeGroupState = originalResetPgeGroupState
+    }
 
     assert.equal(game._animBuffers._states[0], game._animBuffer0State)
     assert.equal(game._animBuffers._states[3], game._animBuffer3State)
@@ -497,6 +538,18 @@ test('gameLoadLevelData loads level assets, recreates live tables, and applies d
     gamePge.gameInitializePgeDefaultAnimation = (_game, pge) => {
         initCalls.push(pge.index)
     }
+    const originalLoadPgeForCurrentLevel = gamePge.gameLoadPgeForCurrentLevel
+    const originalResetPgeGroupState = gamePge.gameResetPgeGroupState
+
+    gamePge.gameLoadPgeForCurrentLevel = (currentGame, index, currentRoom) => {
+        currentGame.loadPgeForCurrentLevelCalls.push([index, currentRoom])
+        const pge = currentGame._livePgesByIndex[index]
+        pge.roomLocation = currentRoom
+        pge.initPge = currentGame._res.level.pgeAllInitialStateFromFile[index]
+    }
+    gamePge.gameResetPgeGroupState = () => {
+        game.resetPgeGroupsCalls += 1
+    }
 
     try {
         const currentRoom = await gameLoadLevelData(game)
@@ -522,6 +575,8 @@ test('gameLoadLevelData loads level assets, recreates live tables, and applies d
         assert.deepEqual(initCalls, [0])
     } finally {
         gamePge.gameInitializePgeDefaultAnimation = originalInitializePgeDefaultAnimation
+        gamePge.gameLoadPgeForCurrentLevel = originalLoadPgeForCurrentLevel
+        gamePge.gameResetPgeGroupState = originalResetPgeGroupState
     }
 })
 

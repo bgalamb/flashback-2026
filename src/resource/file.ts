@@ -60,18 +60,27 @@ export class FILE {
     fread(ptr: ArrayBuffer, size: number, nmemb: number) {
         const req = size * nmemb
         const max = Math.min(req, this._len - this._pos)
-        const buf = new DataView(this._buf)
         new Uint8Array(ptr, 0, ptr.byteLength).set(new Uint8Array(this._buf, this._pos, max))
         this._pos += max
         return max
     }
     static async fopen(path: string, mode: string):Promise<FILE> {
+        const startedAt = Date.now()
         try {
+            console.log(`[file-fetch] start path='${path}' mode='${mode}'`)
             const response = await fetch(path)
+            console.log(
+                `[file-fetch] response path='${path}' status=${response.status} ok=${response.ok} contentLength='${response.headers.get("content-length") || ""}' elapsedMs=${Date.now() - startedAt}`
+            )
+            if (!response.ok) {
+                console.error(`FILE_impl::open non-OK response for ${path} (${mode}) status=${response.status}`)
+                return undefined
+            }
             const buffer = await response.arrayBuffer()
+            console.log(`[file-fetch] buffer path='${path}' bytes=${buffer.byteLength} elapsedMs=${Date.now() - startedAt}`)
             return new FILE(buffer)
         } catch(e) {
-            console.error(`FILE_impl::open could not open file ${path} (${mode})`)
+            console.error(`FILE_impl::open could not open file ${path} (${mode})`, e)
             return undefined
         }
     }

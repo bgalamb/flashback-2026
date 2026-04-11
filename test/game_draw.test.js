@@ -8,6 +8,10 @@ const { pgeFlagSpecialAnim, uint8Max } = require('../src/core/game_constants.ts'
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 
 const attachDrawGroupedGameState = (game) => attachGroupedGameState(game, {
+    services: {
+        res: '_res',
+        vid: '_vid',
+    },
     world: {
         blinkingConradCounter: '_blinkingConradCounter',
     },
@@ -20,8 +24,9 @@ const attachDrawGroupedGameState = (game) => attachGroupedGameState(game, {
 })
 
 function createDrawGame(overrides = {}) {
-    const drawCharacterCalls = []
-    const drawObjectCalls = []
+    const spriteDrawCalls = []
+    const dirtyCalls = []
+    const decodeObjectCalls = []
 
     const game = {
         _animBuffers: {
@@ -31,25 +36,35 @@ function createDrawGame(overrides = {}) {
         _blinkingConradCounter: 0,
         _livePgesByIndex: [{}],
         _res: {
-            _scratchBuffer: new Uint8Array(32),
+            ui: {
+                rp: new Uint8Array(0x4A),
+            },
+            scratchBuffer: new Uint8Array(64),
+            findBankData() {
+                return null
+            },
+            loadBankData() {
+                return new Uint8Array(64)
+            },
         },
         _vid: {
             pcDecodespmcalls: [],
             pcDecodespm(dataPtr, scratchBuffer) {
                 this.pcDecodespmcalls.push([dataPtr, scratchBuffer])
             },
+            pcDecodespc(dataPtr, w, h, scratchBuffer) {
+                decodeObjectCalls.push([dataPtr, w, h, scratchBuffer])
+            },
+            drawSpriteSub3ToFrontLayer(dataPtr, dstOffset, stride, clippedH, clippedW, colMask) {
+                spriteDrawCalls.push([dataPtr, dstOffset, stride, clippedH, clippedW, colMask])
+            },
+            markBlockAsDirty(x, y, w, h, layer) {
+                dirtyCalls.push([x, y, w, h, layer])
+            },
         },
-        drawCharacter(...args) {
-            drawCharacterCalls.push(args)
-        },
-        drawObject(...args) {
-            drawObjectCalls.push(args)
-        },
-        drawPge(state) {
-            return gameDraw.gameDrawPge(this, state)
-        },
-        drawCharacterCalls,
-        drawObjectCalls,
+        spriteDrawCalls,
+        dirtyCalls,
+        decodeObjectCalls,
     }
 
     Object.assign(game, overrides)
@@ -78,15 +93,9 @@ test('gameDrawAnimBuffer renders monster sprites with their prepared palette ove
 
     await gameDraw.gameDrawAnimBuffer(game, 0, state)
 
-    assert.deepEqual(game.drawCharacterCalls, [[
-        encodedSprite,
-        36,
-        51,
-        6,
-        5,
-        0,
-        0x50,
-    ]])
+    assert.deepEqual(Array.from(game.spriteDrawCalls[0][0].subarray(0, 3)), [7, 8, 9])
+    assert.deepEqual(game.spriteDrawCalls[0].slice(1), [13092, 5, 6, 5, 0x50])
+    assert.deepEqual(game.dirtyCalls, [[36, 51, 5, 6, 1]])
     assert.equal(game._vid.pcDecodespmcalls.length, 0)
     assert.equal(game._animBuffers._curPos[0], uint8Max)
 })
@@ -114,15 +123,9 @@ test('gameDrawAnimBuffer renders Conrad from the player animation layer through 
 
     await gameDraw.gameDrawAnimBuffer(game, 1, state)
 
-    assert.deepEqual(game.drawCharacterCalls, [[
-        encodedSprite,
-        47,
-        100,
-        4,
-        3,
-        0,
-        -1,
-    ]])
+    assert.deepEqual(Array.from(game.spriteDrawCalls[0][0].subarray(0, 3)), [9, 8, 7])
+    assert.deepEqual(game.spriteDrawCalls[0].slice(1), [25647, 3, 4, 3, 0x40])
+    assert.deepEqual(game.dirtyCalls, [[47, 100, 3, 4, 1]])
     assert.equal(game._vid.pcDecodespmcalls.length, 0)
     assert.equal(game._animBuffers._curPos[1], uint8Max)
 })
@@ -150,7 +153,7 @@ test('gameDrawAnimBuffer skips Conrad rendering on blinking frames', async () =>
 
     await gameDraw.gameDrawAnimBuffer(game, 1, state)
 
-    assert.deepEqual(game.drawCharacterCalls, [])
+    assert.deepEqual(game.spriteDrawCalls, [])
     assert.equal(game._animBuffers._curPos[1], uint8Max)
 })
 
@@ -167,7 +170,7 @@ test('gameDrawAnimBuffer renders special visible PGEs through drawObject with th
         y: 70,
         w: 0,
         h: 0,
-        dataPtr: objectData,
+        dataPtr: Uint8Array.from([1, 2, 3, 0, 0, 1, 0, 0, 0, 0]),
         pge: visiblePge,
         paletteColorMaskOverride: -1,
     }]
@@ -176,13 +179,20 @@ test('gameDrawAnimBuffer renders special visible PGEs through drawObject with th
 
     await gameDraw.gameDrawAnimBuffer(game, 3, state)
 
-    assert.deepEqual(game.drawObjectCalls, [[objectData, 67, 70, pgeFlagSpecialAnim, 0x60]])
+    assert.equal(game.decodeObjectCalls.length, 1)
+    assert.deepEqual(game.spriteDrawCalls[0].slice(1), [17217, 8, 8, 8, 0x60])
+    assert.deepEqual(game.dirtyCalls, [[65, 67, 8, 8, 1]])
     assert.equal(game._animBuffers._curPos[3], uint8Max)
 })
 
 test('gameDrawCurrentRoomOverlay reads grouped world/ui state instead of legacy flat fields', () => {
     const drawStringCalls = []
     const game = {
+        services: {
+            get vid() {
+                return game._vid
+            },
+        },
         world: {
             currentLevel: 0,
             currentRoom: 12,

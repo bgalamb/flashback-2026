@@ -24,6 +24,7 @@ const attachPgeGroupedGameState = (game) => attachGroupedGameState(game, {
     services: {
         res: '_res',
         stub: '_stub',
+        menu: '_menu',
     },
     world: {
         currentRoom: '_currentRoom',
@@ -54,6 +55,11 @@ const attachPgeGroupedGameState = (game) => attachGroupedGameState(game, {
         livePgesByIndex: '_livePgesByIndex',
         livePgeStore: '_livePgeStore',
         pendingSignalsByTargetPgeIndex: '_pendingSignalsByTargetPgeIndex',
+    },
+    transient: {
+        lastInputMask: '_inpLastkeyshit',
+        lastLeftRightInputMask: '_inpLastkeyshitleftright',
+        shouldPlayPgeAnimationSound: '_shouldPlayPgeAnimationSound',
     },
 })
 
@@ -107,6 +113,9 @@ function createPgeGame() {
                 space: false,
                 shift: false,
             },
+            get input() {
+                return this._pi
+            },
         },
         debugStartFrame: 99999,
         inpCalls: 0,
@@ -114,6 +123,7 @@ function createPgeGame() {
             this.inpCalls += 1
         },
         renders: 0,
+        opcodeHandlers: [],
     })
 }
 
@@ -148,6 +158,23 @@ test('gameQueuePgeGroupSignal activates collision-capable inactive targets and r
     assert.equal((target.flags & pgeFlagActive) !== 0, true)
     assert.equal(game._livePgeStore.activeFrameByIndex[2], target)
     assert.deepEqual(game._pendingSignalsByTargetPgeIndex.get(2), [{ senderPgeIndex: 0, signalId: 4 }])
+})
+
+test('gameQueuePgeGroupSignal allows low-numbered signals to off-room inventory targets', () => {
+    const game = createPgeGame()
+    const sender = { roomLocation: 29 }
+    const target = {
+        index: 48,
+        flags: pgeFlagActive,
+        roomLocation: 0xFF,
+        initPge: { flags: 0 },
+    }
+    game._livePgesByIndex[0] = sender
+    game._livePgesByIndex[48] = target
+
+    gamePge.gameQueuePgeGroupSignal(game, 0, 48, 4)
+
+    assert.deepEqual(game._pendingSignalsByTargetPgeIndex.get(48), [{ senderPgeIndex: 0, signalId: 4 }])
 })
 
 test('gameApplyNextPgeAnimationFrameFromGroups fast-forwards to the end of the matching animation', () => {
@@ -603,7 +630,7 @@ test('gameExecutePgeObjectStep updates score, life, mirrored movement, and state
     game._res.level.objectNodesMap[1] = {
         objects: [{}, {}],
     }
-    game._opcodeHandlers = [
+    game.opcodeHandlers = [
         null,
         (args, currentGame) => {
             currentGame.lastOpcodeArgs = args

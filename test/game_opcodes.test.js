@@ -3,7 +3,10 @@ require('ts-node/register/transpile-only')
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
+const gameAudio = require('../src/game/game_audio.ts')
 const { _pgeOpcodetable } = require('../src/game/game_opcodes.ts')
+const gameRuntime = require('../src/game/game_runtime.ts')
+const gameWorld = require('../src/game/game_world.ts')
 const {
     ctHeaderSize,
     ctGridStride,
@@ -25,6 +28,10 @@ function createAnimData(animNumber = 9, special = 0) {
 }
 
 const attachOpcodeGroupedGameState = (game) => attachGroupedGameState(game, {
+    services: {
+        res: '_res',
+        cut: '_cut',
+    },
     world: {
         currentLevel: '_currentLevel',
         currentRoom: '_currentRoom',
@@ -40,12 +47,16 @@ const attachOpcodeGroupedGameState = (game) => attachGroupedGameState(game, {
         validSaveState: '_validSaveState',
     },
     pge: {
+        gunVar: '_gunVar',
         opcodeTempVar1: '_opcodeTempVar1',
     },
     runtimeData: {
         livePgesByIndex: '_livePgesByIndex',
         livePgeStore: '_livePgeStore',
         pendingSignalsByTargetPgeIndex: '_pendingSignalsByTargetPgeIndex',
+    },
+    transient: {
+        shouldPlayPgeAnimationSound: '_shouldPlayPgeAnimationSound',
     },
 })
 
@@ -89,6 +100,7 @@ function createOpcodeGame(overrides = {}) {
             activeFrameByIndex: new Array(8).fill(null),
             liveByRoom: Array.from({ length: ctRoomSize }, () => []),
         },
+        _gunVar: 0,
         _opcodeTempVar1: 0,
         _pendingSignalsByTargetPgeIndex: new Map(),
         _res: {
@@ -109,15 +121,6 @@ function createOpcodeGame(overrides = {}) {
         _shouldPlayPgeAnimationSound: true,
         _textToDisplay: uint16Max,
         _validSaveState: false,
-        getRandomNumber() {
-            return 0
-        },
-        playSound(sfxId, softVol) {
-            calls.push(['playSound', sfxId, softVol])
-        },
-        saveGameState(slot) {
-            calls.push(['saveGameState', slot])
-        },
         renders: 0,
         calls,
     }
@@ -127,7 +130,9 @@ function createOpcodeGame(overrides = {}) {
     game._livePgeStore.liveByRoom[currentPge.roomLocation].push(currentPge)
 
     Object.assign(game, overrides)
-    return attachOpcodeGroupedGameState(game)
+    const grouped = attachOpcodeGroupedGameState(game)
+    grouped.opcodeHandlers = grouped._opcodeHandlers || _pgeOpcodetable
+    return grouped
 }
 
 function runOpcode(index, args, game) {
@@ -163,6 +168,17 @@ test('saveState persists into the ingame slot and plays the save sound when enab
     const previous = globalGameOptions.playGamesavedSound
     globalGameOptions.playGamesavedSound = true
     const game = createOpcodeGame()
+    const originals = {
+        gamePlaySound: gameAudio.gamePlaySound,
+        gameSaveGameState: gameRuntime.gameSaveGameState,
+    }
+
+    gameAudio.gamePlaySound = (_game, sfxId, softVol) => {
+        game.calls.push(['playSound', sfxId, softVol])
+    }
+    gameRuntime.gameSaveGameState = (_game, slot) => {
+        game.calls.push(['saveGameState', slot])
+    }
 
     try {
         const result = runOpcode(0x69, { pge: game._livePgesByIndex[0], a: 0, b: 0 }, game)
@@ -175,6 +191,8 @@ test('saveState persists into the ingame slot and plays the save sound when enab
             ['playSound', 68, 0],
         ])
     } finally {
+        Object.assign(gameAudio, { gamePlaySound: originals.gamePlaySound })
+        Object.assign(gameRuntime, { gameSaveGameState: originals.gameSaveGameState })
         globalGameOptions.playGamesavedSound = previous
     }
 })
@@ -247,11 +265,20 @@ test('playSoundGroup decodes the packed sound id and soft volume from counter va
     const game = createOpcodeGame()
     const pge = game._livePgesByIndex[0]
     pge.initPge.counterValues[3] = 0x0211
+    const originalGamePlaySound = gameAudio.gamePlaySound
 
-    const result = runOpcode(0x87, { pge, a: 3, b: 0 }, game)
+    gameAudio.gamePlaySound = (_game, sfxId, softVol) => {
+        game.calls.push(['playSound', sfxId, softVol])
+    }
 
-    assert.equal(result, uint16Max)
-    assert.deepEqual(game.calls, [['playSound', 0x11, 0x02]])
+    try {
+        const result = runOpcode(0x87, { pge, a: 3, b: 0 }, game)
+
+        assert.equal(result, uint16Max)
+        assert.deepEqual(game.calls, [['playSound', 0x11, 0x02]])
+    } finally {
+        gameAudio.gamePlaySound = originalGamePlaySound
+    }
 })
 
 test('adjustPos snaps the position to the tile grid and floor lane', () => {
@@ -267,27 +294,30 @@ test('adjustPos snaps the position to the tile grid and floor lane', () => {
     assert.equal(pge.posY, 142)
 })
 
-test('setTempVar1 and isTempVar1Set share the same temporary opcode register', () => {
+test('setGunVar and compareGunVar share the same gun opcode register', () => {
     const game = createOpcodeGame()
     const pge = game._livePgesByIndex[0]
 
     assert.equal(runOpcode(0x8A, { pge, a: 19, b: 0 }, game), uint16Max)
-    assert.equal(game._opcodeTempVar1, 19)
+    assert.equal(game._gunVar, 19)
     assert.equal(runOpcode(0x8B, { pge, a: 19, b: 0 }, game), uint16Max)
     assert.equal(runOpcode(0x8B, { pge, a: 20, b: 0 }, game), 0)
 })
 
 test('isInRandomRange returns true only when the random draw is divisible by the range', () => {
-    const game = createOpcodeGame({
-        getRandomNumber() {
-            return 12
-        },
-    })
+    const game = createOpcodeGame()
     const pge = game._livePgesByIndex[0]
+    const originalGameGetRandomNumber = gameWorld.gameGetRandomNumber
 
-    assert.equal(runOpcode(0x61, { pge, a: 6, b: 0 }, game), 1)
-    assert.equal(runOpcode(0x61, { pge, a: 5, b: 0 }, game), 0)
-    assert.equal(runOpcode(0x61, { pge, a: 0, b: 0 }, game), 0)
+    gameWorld.gameGetRandomNumber = () => 12
+
+    try {
+        assert.equal(runOpcode(0x61, { pge, a: 6, b: 0 }, game), 1)
+        assert.equal(runOpcode(0x61, { pge, a: 5, b: 0 }, game), 0)
+        assert.equal(runOpcode(0x61, { pge, a: 0, b: 0 }, game), 0)
+    } finally {
+        gameWorld.gameGetRandomNumber = originalGameGetRandomNumber
+    }
 })
 
 test('removePgeIfNotNear deactivates far-away PGEs and clears their collision slot', () => {

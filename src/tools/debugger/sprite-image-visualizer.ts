@@ -1,6 +1,9 @@
 import { readLeUint16 } from "../../core/intern"
 import type { Game } from "../../game/game"
 import { gamescreenH, gamescreenW } from "../../core/game_constants"
+import { gameDrawCharacter } from "../../game/game_draw"
+import { getGameServices } from "../../game/game_services"
+import { getGameMonsterVisualRegistry } from "../../game/game_state"
 import { Video } from "../../video/video"
 
 type RenderedSpriteImage = {
@@ -17,6 +20,7 @@ class SpriteImageVisualizer {
     }
 
     renderRawSpriteEntry(rawSpriteEntry: Uint8Array, palette: Uint8Array, flags: number = 0, paletteSlot: number = 0): RenderedSpriteImage {
+        const { res, vid } = getGameServices(this._game)
         if (!rawSpriteEntry || rawSpriteEntry.length < 4) {
             throw new Error("Sprite entry is missing its 4-byte header")
         }
@@ -27,20 +31,20 @@ class SpriteImageVisualizer {
         const paletteColorMaskOverride = paletteSlot << 4
 
         const offscreenLayer = new Uint8Array(gamescreenW * gamescreenH)
-        this._game._vid.withFrontLayer(offscreenLayer, () => {
+        vid.withFrontLayer(offscreenLayer, () => {
             let renderData = spritePayload
             if (!(encodedWidth & 0x80)) {
-                this._game._vid.pcDecodespm(spritePayload, this._game._res.scratchBuffer)
-                renderData = this._game._res.scratchBuffer
+                vid.pcDecodespm(spritePayload, res.scratchBuffer)
+                renderData = res.scratchBuffer
             }
-            this._game.drawCharacter(renderData, 0, 0, encodedHeight, encodedWidth, flags, paletteColorMaskOverride)
+            gameDrawCharacter(this._game, renderData, 0, 0, encodedHeight, encodedWidth, flags, paletteColorMaskOverride)
         })
 
         return this.buildImageFromIndexedLayer(offscreenLayer, palette)
     }
 
     downloadConradSprite(animNumber: number, conradVariantId: number = 1, flags: number = 0): void {
-        const conradVisual = this._game._res.sprites.loadedConradVisualsByVariantId.get(conradVariantId)
+        const conradVisual = getGameServices(this._game).res.sprites.loadedConradVisualsByVariantId.get(conradVariantId)
         if (!conradVisual) {
             throw new Error(`Conrad visual ${conradVariantId} has not been initialized`)
         }
@@ -53,7 +57,7 @@ class SpriteImageVisualizer {
     }
 
     downloadMonsterSprite(monsterScriptNodeIndex: number, animNumber: number, flags: number = 0): void {
-        const monsterVisual = this._game._loadedMonsterVisualsByScriptNodeIndex.get(monsterScriptNodeIndex)
+        const monsterVisual = getGameMonsterVisualRegistry(this._game).get(monsterScriptNodeIndex)
         if (!monsterVisual) {
             throw new Error(`Monster visual ${monsterScriptNodeIndex} has not been loaded`)
         }

@@ -43,7 +43,14 @@ function createCollisionGame() {
         index: uint16Max,
     }))
     const activeFrameByIndex = new Array(8).fill(null)
+    const livePgesByIndex = new Array(8).fill(null)
     const game = {
+        services: {
+            get res() { return game._res },
+        },
+        world: {
+            blinkingConradCounter: 0,
+        },
         collision: {
             activeCollisionLeftRoom: -1,
             activeCollisionRightRoom: -1,
@@ -65,6 +72,7 @@ function createCollisionGame() {
         _currentPgeFacingIsMirrored: false,
         _dynamicPgeCollisionSlotsByPosition: dynamicPgeCollisionSlotsByPosition,
         _dynamicPgeCollisionSlotObjectPool: dynamicPgeCollisionSlotObjectPool,
+        _livePgesByIndex: livePgesByIndex,
         _livePgeStore: {
             activeFrameByIndex,
         },
@@ -77,12 +85,10 @@ function createCollisionGame() {
                 objectNodesMap: {},
             },
         },
-        queueCalls: [],
-        queuePgeGroupSignal(sender, target, signal) {
-            this.queueCalls.push([sender, target, signal])
-        },
     }
     game.runtimeData = {
+        get livePgesByIndex() { return game._livePgesByIndex },
+        set livePgesByIndex(value) { game._livePgesByIndex = value },
         get livePgeStore() { return game._livePgeStore },
         set livePgeStore(value) { game._livePgeStore = value },
         get pendingSignalsByTargetPgeIndex() { return game._pendingSignalsByTargetPgeIndex },
@@ -228,12 +234,14 @@ test('col_detectHit walks collision buckets and queues signals on eligible targe
             { type: 10, opcode1: 0, opcodeArg1: 0, opcode2: 0, opcodeArg2: 0 },
         ],
     }
+    game._livePgesByIndex[0] = source
+    game._livePgesByIndex[2] = target
     game._dynamicPgeCollisionSlotsByPosition.set(1 * 64 + 16, [{ pge: target }])
 
     const result = colDetecthit(source, 3, 10, colDetecthitcallback4, colDetecthitcallback6, 0, -1, game)
 
     assert.equal(result, 1)
-    assert.deepEqual(game.queueCalls, [[0, 2, 3]])
+    assert.deepEqual(game._pendingSignalsByTargetPgeIndex.get(2), [{ senderPgeIndex: 0, signalId: 3 }])
 })
 
 test('col_detectHitCallback1 stops movement when room collision data is solid', () => {

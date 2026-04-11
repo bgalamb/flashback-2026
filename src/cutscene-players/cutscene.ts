@@ -1,5 +1,5 @@
 import { Resource } from '../resource/resource'
-import { SystemStub } from '../platform/systemstub_web'
+import type { SystemPort } from '../platform/system-port'
 import { Video } from '../video/video'
 import { _cineSceneIdToCutPairsDOS, _musicTable, _namesTableDOS, _offsetsTableDOS } from '../core/staticres'
 import { uint16Max, uint8Max, globalGameOptions } from '../core/game_constants'
@@ -10,13 +10,13 @@ class Cutscene {
     static _musicTable = _musicTable
 
     private _res: Resource
-    private _stub: SystemStub
+    private _stub: SystemPort
     private _vid: Video
     private _id: number = uint16Max
     private _interrupted: boolean = false
     private _deathCutsceneId: number = uint16Max
 
-    constructor(res: Resource, stub: SystemStub, vid: Video) {
+    constructor(res: Resource, stub: SystemPort, vid: Video) {
         this._res = res
         this._stub = stub
         this._vid = vid

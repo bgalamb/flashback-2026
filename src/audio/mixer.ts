@@ -1,7 +1,7 @@
 import { FileSystem } from "../resource/fs"
 import { addcS16, s8ToS16 } from "../core/intern"
 import { SfxPlayer } from "./sfx_player"
-import { SystemStub } from "../platform/systemstub_web"
+import type { SystemPort } from "../platform/system-port"
 
 class MixerChunk {
     data: Uint8Array
@@ -47,7 +47,7 @@ interface MixerChannel {
 
 class Mixer {
     _fs: FileSystem
-    _stub: SystemStub
+    _stub: SystemPort
     _channels: MixerChannel[] = new Array(numChannels).fill(null).map(() => ({
         active: false,
         volume: 0,
@@ -73,7 +73,7 @@ class Mixer {
         }
     }
 
-    constructor(fs: FileSystem, stub: SystemStub) {
+    constructor(fs: FileSystem, stub: SystemPort) {
         this._stub = stub
         this._musicType = MusicType.mtNone
         this._sfx = new SfxPlayer(this)

@@ -3,6 +3,8 @@ import { CollisionSlot, InitPGE, LivePGE, PgeScriptEntry, PgeScriptNode } from '
 import type { colCallback1, colCallback2 } from '../game/game'
 import { uint16Max } from './game_constants'
 import { gameFindCollisionSlotBucketByGridPosition, gameGetRoomCollisionGridData } from '../game/game_collision'
+import { gameQueuePgeGroupSignal } from '../game/game_pge'
+import { getGameServices } from '../game/game_services'
 import { assert } from "./assert"
 
 
@@ -48,6 +50,7 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 	let stepX: number, stepY: number, verticalOffset: number, distanceStep: number
 	let collisionScore = 0
 	let pgeRoom = pge.roomLocation << 24 >> 24
+    const { res } = getGameServices(game)
 
 	if (pgeRoom < 0 || pgeRoom >= ctDownRoom) {
 		return 0
@@ -79,12 +82,12 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+				pgeRoom = res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX += 16
 			}
 			if (gridPosX >= 16) {
-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom]
+				pgeRoom = res.level.ctData[ctRightRoom + pgeRoom]
 				if (pgeRoom < 0) break
 				gridPosX -= 16
 			}
@@ -111,9 +114,10 @@ const colDetecthit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCa
 
 const colDetecthitcallbackhelper = (pge:LivePGE, groupId: number, game: Game) => {
 	const initPge:InitPGE = pge.initPge
-    assert(!(initPge.scriptNodeIndex >= game._res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${game._res.level.numObjectNodes}`)
+    const { res } = getGameServices(game)
+    assert(!(initPge.scriptNodeIndex >= res.level.numObjectNodes), `Assertion failed: ${initPge.scriptNodeIndex} < ${res.level.numObjectNodes}`)
 	// assert(init_pge->script_node_index < _res.level.numObjectNodes);
-	const scriptNode: PgeScriptNode = game._res.level.objectNodesMap[initPge.scriptNodeIndex]
+	const scriptNode: PgeScriptNode = res.level.objectNodesMap[initPge.scriptNodeIndex]
 	const maxEntryIndex = Math.min(scriptNode.lastObjNumber, scriptNode.objects.length - 1)
 	if (pge.firstScriptEntryIndex < 0 || pge.firstScriptEntryIndex > maxEntryIndex) {
 		console.warn(
@@ -222,7 +226,7 @@ const colDetecthitcallback4 = (pge1: LivePGE, pge2: LivePGE, groupId: number, ta
 		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) !== (pge2.flags & 1)) {
 				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
-					game.queuePgeGroupSignal(pge2.index, pge1.index, groupId)
+					gameQueuePgeGroupSignal(game, pge2.index, pge1.index, groupId)
 					return 1
 				}
 			}
@@ -236,7 +240,7 @@ const colDetecthitcallback5 = (pge1: LivePGE, pge2: LivePGE, groupId: number, ta
 		if (pge1.initPge.objectType === targetObjectType) {
 			if ((pge1.flags & 1) === (pge2.flags & 1)) {
 				if (colDetecthitcallbackhelper(pge1, groupId, game) === 0) {
-					game.queuePgeGroupSignal(pge2.index, pge1.index, groupId)
+					gameQueuePgeGroupSignal(game, pge2.index, pge1.index, groupId)
 					return 1
 				}
 			}
@@ -272,7 +276,7 @@ const colDetectgunhitcallback2 = (pge1: LivePGE, pge2: LivePGE, arg4: number, ar
 				}
 			}
 			if (colDetecthitcallbackhelper(pge1, id, game) !== 0) {
-				game.queuePgeGroupSignal(pge2.index, pge1.index, id)
+				gameQueuePgeGroupSignal(game, pge2.index, pge1.index, id)
 				return 1
 			}
 		}
@@ -296,7 +300,7 @@ const colDetectgunhitcallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, ar
 				}
 			}
 			if (colDetecthitcallbackhelper(pge1, id, game) !== 0) {
-				game.queuePgeGroupSignal(pge2.index, pge1.index, id)
+				gameQueuePgeGroupSignal(game, pge2.index, pge1.index, id)
 				return 1
 			}
 		}
@@ -307,6 +311,7 @@ const colDetectgunhitcallback3 = (pge1: LivePGE, pge2: LivePGE, arg4: number, ar
 
 const colDetectgunhit = (pge: LivePGE, arg2: number, arg4: number, callback1: colCallback1, callback2: colCallback2, argA: number, argC: number, game: Game) => {
 	let pgeRoom = pge.roomLocation
+    const { res } = getGameServices(game)
 	if (pgeRoom < 0 || pgeRoom >= ctDownRoom) return 0
 	let detectionRange, stepX, stepY
 	if (argC === -1) {
@@ -340,14 +345,14 @@ const colDetectgunhit = (pge: LivePGE, arg2: number, arg4: number, callback1: co
 		}
 		while (distanceStep <= detectionRange) {
 			if (gridPosX < 0) {
-				pgeRoom = game._res.level.ctData[ctLeftRoom + pgeRoom]
+				pgeRoom = res.level.ctData[ctLeftRoom + pgeRoom]
 				if (pgeRoom < 0) {
                     return 0
                 }
 				gridPosX += 0x10;
 			}
 			if (gridPosX >= 0x10) {
-				pgeRoom = game._res.level.ctData[ctRightRoom + pgeRoom];
+				pgeRoom = res.level.ctData[ctRightRoom + pgeRoom];
 				if (pgeRoom < 0) {
                     return 0
                 }

@@ -1,7 +1,7 @@
 import type { Color } from '../core/intern'
 import { _gameLevels } from '../core/staticres'
 import type { Resource } from '../resource/resource'
-import type { SystemStub } from '../platform/systemstub_web'
+import type { SystemPort } from '../platform/system-port'
 import { File } from '../resource/file'
 import { decodeIndexedPng, paletteBankToColors } from '../core/indexed-png'
 import type { PaletteHeaderColors, VideoLayerState, VideoPaletteState } from './video-state'
@@ -158,20 +158,25 @@ async function readRoomPaletteOffsets(resource: Resource, palette: VideoPaletteS
 }
 
 async function loadRoomPngBytes(resource: Resource, filename: string) {
+    console.log(`[room-png] open begin '${filename}'`)
     const file = new File()
     const opened = await file.open(filename, "rb", resource.fileSystem)
     if (!opened) {
+        console.warn(`[room-png] open failed '${filename}'`)
         return null
     }
     const size = file.size()
+    console.log(`[room-png] opened '${filename}' size=${size}`)
     if (size <= 0) {
         file.close()
+        console.warn(`[room-png] empty '${filename}'`)
         return null
     }
     const raw = new Uint8Array(size)
     file.read(raw.buffer, size)
     const hadIoErr = file.ioErr()
     file.close()
+    console.log(`[room-png] read '${filename}' bytes=${raw.byteLength} ioErr=${hadIoErr}`)
     return hadIoErr ? null : raw
 }
 
@@ -190,7 +195,9 @@ async function tryLoadFrontLayerFromIndexedPng(resource: Resource, layers: Video
             continue
         }
         try {
+            console.log(`[room-png] decode begin '${filename}' bytes=${raw.byteLength}`)
             const png = await decodeIndexedPng(raw)
+            console.log(`[room-png] decode success '${filename}' ${png.width}x${png.height} pixels=${png.pixels.length}`)
             if (png.width !== layers.w || png.height !== layers.h) {
                 if (!isSupportedHiResRoomBackground(layers, png.width, png.height)) {
                     console.warn(`Invalid indexed PNG room size for '${filename}': got ${png.width}x${png.height}, expected ${layers.w}x${layers.h}`)
@@ -225,8 +232,8 @@ async function tryLoadFrontLayerFromIndexedPng(resource: Resource, layers: Video
             }
             console.log(`Front layer source: indexed-png '${filename}'`)
             return true
-        } catch (_error) {
-            console.warn(`Could not load room PNG file '${filename}'`)
+        } catch (error) {
+            console.warn(`Could not load room PNG file '${filename}'`, error)
         }
     }
     return false
@@ -237,7 +244,7 @@ async function tryLoadFrontLayerFromFile(resource: Resource, layers: VideoLayerS
     return tryLoadFrontLayerFromIndexedPng(resource, layers, palette, level, room)
 }
 
-function setPaletteColors(stub: SystemStub, paletteSlot: number, colors: Color[]) {
+function setPaletteColors(stub: SystemPort, paletteSlot: number, colors: Color[]) {
     for (let i = 0; i < 16; ++i) {
         stub.setPaletteEntry(paletteSlot * 16 + i, colors[i])
     }
@@ -290,7 +297,7 @@ function getActiveConradVisualFromPaletteHeader(resource: Resource, palette: Vid
 
 function applyLevelPalettes(
     resource: Resource,
-    stub: SystemStub,
+    stub: SystemPort,
     palette: VideoPaletteState,
     level: number,
     setPaletteSlotLE: (palSlot: number, palData: Uint8Array) => void,

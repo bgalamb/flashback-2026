@@ -32,6 +32,9 @@ function createMenuFixture(overrides = {}) {
         },
         sleepCalls: [],
         paletteCalls: [],
+        get input() {
+            return this._pi
+        },
         async sleep(ms) {
             this.sleepCalls.push(ms)
         },

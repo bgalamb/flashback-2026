@@ -1,7 +1,8 @@
-import type { ActiveRoomCollisionSlotWindow, CollisionSlot, RoomCollisionGridPatchRestoreSlot } from '../core/intern'
+import type { ActiveRoomCollisionSlotWindow, CollisionSlot, LoadedMonsterVisual, RoomCollisionGridPatchRestoreSlot } from '../core/intern'
+import type { PgeOpcodeHandler } from '../core/intern'
 import type { Game } from './game'
 
-export type GameWorldStateShape = {
+export type GameWorldState = {
     currentLevel: number
     currentRoom: number
     currentIcon: number
@@ -14,7 +15,7 @@ export type GameWorldStateShape = {
     deathCutsceneCounter: number
 }
 
-export type GameUiStateShape = {
+export type GameUiState = {
     skillLevel: number
     score: number
     currentRoomOverlayCounter: number
@@ -22,7 +23,7 @@ export type GameUiStateShape = {
     saveStateCompleted: boolean
 }
 
-export type GameSessionStateShape = {
+export type GameSessionState = {
     randSeed: number
     endLoop: boolean
     skipNextLevelCutscene: boolean
@@ -34,18 +35,19 @@ export type GameSessionStateShape = {
     validSaveState: boolean
 }
 
-export type GamePgeStateShape = {
+export type GamePgeExecutionState = {
     currentPgeRoom: number
     currentPgeFacingIsMirrored: boolean
     shouldProcessCurrentPgeObjectNode: boolean
     currentPgeInputMask: number
+    gunVar: number
     opcodeTempVar1: number
     opcodeTempVar2: number
     opcodeComparisonResult1: number
     opcodeComparisonResult2: number
 }
 
-export type GameCollisionStateShape = {
+export type GameCollisionState = {
     nextFreeDynamicPgeCollisionSlotPoolIndex: number
     dynamicPgeCollisionSlotsByPosition: Map<number, CollisionSlot[]>
     dynamicPgeCollisionSlotObjectPool: CollisionSlot[]
@@ -59,22 +61,54 @@ export type GameCollisionStateShape = {
     currentPgeCollisionGridY: number
 }
 
-export function getGameWorldState(game: Game): GameWorldStateShape {
+export type GameTransientState = {
+    lastInputMask: number
+    lastLeftRightInputMask: number
+    shouldPlayPgeAnimationSound: boolean
+}
+
+export type GameRewindState = {
+    buffer: unknown[]
+    ptr: number
+    len: number
+}
+
+export type GameMonsterVisualRegistry = Map<number, LoadedMonsterVisual>
+
+export type GameOpcodeHandlers = PgeOpcodeHandler[]
+
+export function getGameWorldState(game: Game): GameWorldState {
     return game.world
 }
 
-export function getGameUiState(game: Game): GameUiStateShape {
+export function getGameUiState(game: Game): GameUiState {
     return game.ui
 }
 
-export function getGameSessionState(game: Game): GameSessionStateShape {
+export function getGameSessionState(game: Game): GameSessionState {
     return game.session
 }
 
-export function getGamePgeState(game: Game): GamePgeStateShape {
+export function getGamePgeState(game: Game): GamePgeExecutionState {
     return game.pge
 }
 
-export function getGameCollisionState(game: Game): GameCollisionStateShape {
+export function getGameCollisionState(game: Game): GameCollisionState {
     return game.collision
+}
+
+export function getGameTransientState(game: Game): GameTransientState {
+    return game.transient
+}
+
+export function getGameRewindState(game: Game): GameRewindState {
+    return game.rewind
+}
+
+export function getGameMonsterVisualRegistry(game: Game): GameMonsterVisualRegistry {
+    return game.monsterVisualsByScriptNodeIndex
+}
+
+export function getGameOpcodeHandlers(game: Game): GameOpcodeHandlers {
+    return game.opcodeHandlers
 }

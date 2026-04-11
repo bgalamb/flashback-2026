@@ -1,6 +1,8 @@
-import { ScalerParameters, defaultScaleParameters, SystemStub } from '../platform/systemstub_web'
+import { ScalerParameters, defaultScaleParameters } from '../platform/system-port'
+import { SystemStub } from '../platform/systemstub_web'
 import { FileSystem } from '../resource/fs'
 import { Game } from '../game/game'
+import { getGameServices } from '../game/game_services'
 import { defaultConfig, globalGameOptions } from '../core/game_constants'
 
 const gCaption = "REminiscence"
@@ -97,7 +99,8 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
         }
     }
     stub._game = game
-    await stub.init(gCaption, game._vid.layers.w, game._vid.layers.h, fullscreen, scalerParameters)
+    const { vid } = getGameServices(game as Game)
+    await stub.init(gCaption, vid.layers.w, vid.layers.h, fullscreen, scalerParameters)
     await game.run()
 }
 

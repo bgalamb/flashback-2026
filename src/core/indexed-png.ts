@@ -162,39 +162,33 @@ async function inflateZlib(data: Uint8Array) {
     } catch (_error) {
         // Fall through to generic inflate for non-stored streams.
     }
+    try {
+        const zlib = require("zlib")
+        return new Uint8Array(zlib.inflateSync(Buffer.from(data)))
+    } catch (_error) {
+        // Browser builds won't have Node's zlib module.
+    }
     const globalWithStreams = globalThis as typeof globalThis & {
         DecompressionStream?: new(format: string) => {
-            writable: WritableStream<Uint8Array>
             readable: ReadableStream<Uint8Array>
+            writable: WritableStream<Uint8Array>
         }
+    }
+    async function inflateWithDecompressionStream(format: string, sourceData: Uint8Array) {
+        const stream = new Blob([sourceData]).stream().pipeThrough(new globalWithStreams.DecompressionStream(format))
+        const buffer = await new Response(stream).arrayBuffer()
+        return new Uint8Array(buffer)
     }
     if (typeof globalWithStreams.DecompressionStream === "function") {
-        const stream = new globalWithStreams.DecompressionStream("deflate")
-        const writer = stream.writable.getWriter()
-        await writer.write(data)
-        await writer.close()
-        const reader = stream.readable.getReader()
-        const chunks: Uint8Array[] = []
-        let totalLength = 0
-        while (true) {
-            const result = await reader.read()
-            if (result.done) {
-                break
-            }
-            const value = result.value
-            chunks.push(value)
-            totalLength += value.length
+        try {
+            return await inflateWithDecompressionStream("deflate", data)
+        } catch (_error) {
+            // Some browsers expect the raw deflate payload without the zlib wrapper.
         }
-        const output = new Uint8Array(totalLength)
-        let offset = 0
-        for (let i = 0; i < chunks.length; ++i) {
-            output.set(chunks[i], offset)
-            offset += chunks[i].length
-        }
-        return output
+        const rawDeflate = data.subarray(2, data.length - 4)
+        return await inflateWithDecompressionStream("deflate-raw", rawDeflate)
     }
-    const zlib = require("zlib")
-    return new Uint8Array(zlib.inflateSync(Buffer.from(data)))
+    throw new Error("No available zlib inflater for indexed PNG decode")
 }
 
 function inflateStoredZlib(data: Uint8Array) {

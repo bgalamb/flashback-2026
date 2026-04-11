@@ -8,14 +8,16 @@ const gameDraw = require('../src/game/game_draw.ts')
 const gameCollision = require('../src/game/game_collision.ts')
 const gameInventory = require('../src/game/game_inventory.ts')
 const gameWorld = require('../src/game/game_world.ts')
+const gameRuntimeModule = require('../src/game/game_runtime.ts')
 const {
     dfFastmode,
     dfSetlife,
     dirDown,
+    dirLeft,
 } = require('../src/platform/systemstub_web.ts')
 const { LocaleData } = require('../src/resource/resource.ts')
 const { Menu } = require('../src/game/menu.ts')
-const { kAutoSaveSlot } = require('../src/game/game.ts')
+const { kAutoSaveSlot, kIngameSaveSlot } = require('../src/game/game.ts')
 const { attachGroupedGameState } = require('./helpers/grouped_game_state.js')
 const {
     gamePlayCutscene,
@@ -56,6 +58,7 @@ const attachRuntimeGroupedGameState = (game) => attachGroupedGameState(game, {
         cut: '_cut',
         stub: '_stub',
         fs: '_fs',
+        menu: '_menu',
     },
     world: {
         currentLevel: '_currentLevel',
@@ -92,6 +95,7 @@ const attachRuntimeGroupedGameState = (game) => attachGroupedGameState(game, {
         currentPgeFacingIsMirrored: '_currentPgeFacingIsMirrored',
         shouldProcessCurrentPgeObjectNode: '_shouldProcessCurrentPgeObjectNode',
         currentPgeInputMask: '_currentPgeInputMask',
+        gunVar: '_gunVar',
         opcodeTempVar1: '_opcodeTempVar1',
         opcodeTempVar2: '_opcodeTempVar2',
         opcodeComparisonResult1: '_opcodeComparisonResult1',
@@ -122,6 +126,11 @@ const attachRuntimeGroupedGameState = (game) => attachGroupedGameState(game, {
         animBuffer2State: '_animBuffer2State',
         animBuffer3State: '_animBuffer3State',
         animBuffers: '_animBuffers',
+    },
+    rewind: {
+        buffer: '_rewindBuffer',
+        ptr: '_rewindPtr',
+        len: '_rewindLen',
     },
 })
 
@@ -165,13 +174,42 @@ function createBaseGame(overrides = {}) {
         _deathCutsceneCounter: 0,
         _endLoop: false,
         _frameTimestamp: 0,
-        _livePgeStore: { activeFrameList: [] },
-        _livePgesByIndex: [{ life: 10, roomLocation: 3, posX: 32, posY: 72 }],
+        _livePgeStore: {
+            initByIndex: [{ skill: 0 }],
+            liveByRoom: Array.from({ length: 64 }, () => []),
+            activeFrameByIndex: [null],
+            activeFrameList: [],
+        },
+        _livePgesByIndex: [{
+            scriptStateType: 0,
+            posX: 32,
+            posY: 72,
+            animSeq: 0,
+            roomLocation: 3,
+            life: 10,
+            counterValue: 0,
+            collisionSlot: 0xFFFF,
+            unkF: 0,
+            animNumber: 0,
+            flags: 4,
+            index: 0,
+            firstScriptEntryIndex: 0,
+            initPge: { skill: 0 },
+        }],
         _loadMap: false,
         _menu: {
             _selectedOption: 0,
             _skill: 1,
             _level: 2,
+            get selectedOption() {
+                return this._selectedOption
+            },
+            get skillLevel() {
+                return this._skill
+            },
+            get selectedLevel() {
+                return this._level
+            },
             async handleTitleScreen() {},
         },
         _mix: {
@@ -185,10 +223,14 @@ function createBaseGame(overrides = {}) {
                 mixCalls.push(['stopMusic'])
             },
         },
+        _gunVar: 0,
         _opcodeTempVar1: 99,
         _randSeed: 0,
         _score: 0,
         _res: {
+            level: {
+                ctData: new Uint8Array(0x2000),
+            },
             sprites: {
                 spr1: {},
             },
@@ -209,6 +251,34 @@ function createBaseGame(overrides = {}) {
         _rewindBuffer: [],
         _rewindLen: 0,
         _rewindPtr: 0,
+        _pendingSignalsByTargetPgeIndex: new Map(),
+        _inventoryItemIndicesByOwner: new Map(),
+        _nextFreeDynamicPgeCollisionSlotPoolIndex: 0,
+        _dynamicPgeCollisionSlotsByPosition: new Map(),
+        _dynamicPgeCollisionSlotObjectPool: [],
+        _roomCollisionGridPatchRestoreSlotPool: [{}],
+        _nextFreeRoomCollisionGridPatchRestoreSlot: null,
+        _activeRoomCollisionGridPatchRestoreSlots: null,
+        _activeRoomCollisionSlotWindow: {
+            left: new Array(0x30).fill(null),
+            current: new Array(0x30).fill(null),
+            right: new Array(0x30).fill(null),
+        },
+        _currentPgeCollisionGridX: 0,
+        _currentPgeCollisionGridY: 0,
+        _animBuffer0State: [],
+        _animBuffer1State: [],
+        _animBuffer2State: [],
+        _animBuffer3State: [],
+        _animBuffers: {
+            _states: [[], [], [], []],
+            _curPos: [0, 0, 0, 0],
+        },
+        transient: {
+            lastInputMask: 0,
+            lastLeftRightInputMask: 0,
+            shouldPlayPgeAnimationSound: false,
+        },
         _saveTimestamp: 0,
         _skipNextLevelCutscene: false,
         _startedFromLevelSelect: false,
@@ -220,6 +290,9 @@ function createBaseGame(overrides = {}) {
             sleepCalls: [],
             updateScreenCalls: [],
             timeStamps: [0, 0, 0, 0],
+            get input() {
+                return this._pi
+            },
             setOverscanColor() {},
             getPaletteEntry(_index, color) {
                 color.r = 0
@@ -478,15 +551,54 @@ test('gameHandleContinueAbort swaps the highlighted option and aborts on enter',
 
     const result = await gameHandleContinueAbort(game)
 
-    assert.equal(result, false)
+    assert.equal(result, 'abort')
     assert.equal(game._stub._pi.enter, false)
     assert.equal(game.drawCalls.some(([, , , color]) => color === 0xE5), true)
     assert.equal(game.paletteUpdates.length > 0, true)
 })
 
-test('gameDidDie restores from autosave when continue is chosen', async () => {
+test('gameHandleContinueAbort allows rewind to exit the death menu when a rewind snapshot exists', async () => {
+    const game = createBaseGame({
+        _rewindLen: 1,
+    })
+    let iteration = 0
+
+    game._stub.processEvents = async () => {
+        if (iteration === 0) {
+            game._stub._pi.rewind = true
+        }
+        iteration += 1
+    }
+
+    const result = await gameHandleContinueAbort(game)
+
+    assert.equal(result, 'rewind')
+    assert.equal(game._stub._pi.rewind, false)
+})
+
+test('gameHandleContinueAbort also allows left arrow to exit the death menu into rewind', async () => {
+    const game = createBaseGame({
+        _rewindLen: 1,
+    })
+    let iteration = 0
+
+    game._stub.processEvents = async () => {
+        if (iteration === 0) {
+            game._stub._pi.dirMask = dirLeft
+        }
+        iteration += 1
+    }
+
+    const result = await gameHandleContinueAbort(game)
+
+    assert.equal(result, 'rewind')
+    assert.equal(game._stub._pi.dirMask & dirLeft, 0)
+})
+
+test('gameDidDie does not rewind when continue is chosen', async () => {
     const game = createBaseGame({
         _autoSave: true,
+        _validSaveState: true,
         _deathCutsceneCounter: 1,
         _rewindLen: 1,
     })
@@ -507,26 +619,61 @@ test('gameDidDie restores from autosave when continue is chosen', async () => {
     const handled = await gameDidDie(game)
 
     assert.equal(handled, true)
-    assert.deepEqual(loadedSlots, [kAutoSaveSlot])
+    assert.deepEqual(loadedSlots, [kIngameSaveSlot])
     assert.equal(game._endLoop, false)
 })
 
-test('gameInpHandleSpecialKeys updates life, saves, loads, advances slots, and rewinds state', () => {
-    const rewindFile = {
-        offset: -1,
-        seek(value) {
-            this.offset = value
-        },
-        ioErr() {
-            return false
-        },
-    }
+test('gameDidDie clears death-screen input when rewinding from autosave', async () => {
     const game = createBaseGame({
-        _rewindBuffer: [rewindFile],
+        _autoSave: true,
+        _deathCutsceneCounter: 1,
+    })
+    gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    game._stub._pi.enter = false
+    game._stub._pi.space = true
+    game._stub._pi.shift = true
+    game._stub._pi.backspace = true
+    game._stub._pi.rewind = true
+    game.transient.lastInputMask = 4
+    game.transient.lastLeftRightInputMask = 4
+
+    game._stub.processEvents = async () => {
+        game._stub._pi.rewind = true
+    }
+
+    const handled = await gameDidDie(game)
+
+    assert.equal(handled, true)
+    assert.equal(game._stub._pi.enter, false)
+})
+
+test('space input is sampled normally after rewinding from the death screen', async () => {
+    const game = createBaseGame({
+        _autoSave: true,
+        _deathCutsceneCounter: 1,
         _rewindLen: 1,
+    })
+    game.loadGameState = (slot) => slot === kAutoSaveSlot
+
+    await gameDidDie(game)
+
+    game._stub._pi.space = true
+    await gamePge.gameUpdatePgeDirectionalInputState(game)
+
+    assert.equal(game._currentPgeInputMask, 0x20)
+})
+
+test('gameInpHandleSpecialKeys updates life, saves, loads, advances slots, and rewinds state', () => {
+    const originalSaveGameState = gameRuntimeModule.gameSaveGameState
+    const game = createBaseGame({
+        _score: 7,
     })
     const loadedSlots = []
     const savedSlots = []
+
+    gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    game._score = 99
+    game._livePgesByIndex[0].life = 3
 
     game._stub._pi.dbgMask = dfSetlife
     game._stub._pi.load = true
@@ -537,55 +684,104 @@ test('gameInpHandleSpecialKeys updates life, saves, loads, advances slots, and r
         loadedSlots.push(slot)
         return true
     }
-    game.saveGameState = (slot) => {
+    gameRuntimeModule.gameSaveGameState = (_game, slot) => {
         savedSlots.push(slot)
     }
-    game.loadState = (file) => {
-        assert.equal(file, rewindFile)
+    try {
+        gameInpHandleSpecialKeys(game)
+
+        assert.equal(game._livePgesByIndex[0].life, 10)
+        assert.equal(game._score, 7)
+        assert.deepEqual(loadedSlots, [5])
+        assert.deepEqual(savedSlots, [5])
+        assert.equal(game._stateSlot, 7)
+        assert.equal(game._rewindLen, 0)
+        assert.equal(game._stub._pi.load, false)
+        assert.equal(game._stub._pi.save, false)
+        assert.equal(game._stub._pi.rewind, false)
+        assert.equal(game._stub._pi.stateSlot, 0)
+    } finally {
+        gameRuntimeModule.gameSaveGameState = originalSaveGameState
     }
-
-    gameInpHandleSpecialKeys(game)
-
-    assert.equal(game._livePgesByIndex[0].life, 0x7FFF)
-    assert.deepEqual(loadedSlots, [5])
-    assert.deepEqual(savedSlots, [5])
-    assert.equal(game._stateSlot, 7)
-    assert.equal(rewindFile.offset, 0)
-    assert.equal(game._rewindLen, 0)
-    assert.equal(game._stub._pi.load, false)
-    assert.equal(game._stub._pi.save, false)
-    assert.equal(game._stub._pi.rewind, false)
-    assert.equal(game._stub._pi.stateSlot, 0)
 })
 
-test('gameLoadStateRewind wraps the circular buffer pointer and reports load success', () => {
-    const rewindFile = {
-        offset: -1,
-        seek(value) {
-            this.offset = value
-        },
-        ioErr() {
-            return false
-        },
-    }
+test('gameLoadGameState restores an in-memory save slot snapshot', () => {
     const game = createBaseGame({
-        _rewindBuffer: [rewindFile],
-        _rewindLen: 1,
-        _rewindPtr: 0,
+        _score: 12,
     })
-    let loadedFile = null
 
-    game.loadState = (file) => {
-        loadedFile = file
-    }
+    const slot = 3
+    gameRuntimeModule.gameSaveGameState(game, slot)
+    game._score = 99
+    game._livePgesByIndex[0].life = 1
 
-    const ok = gameLoadStateRewind(game)
+    const ok = gameRuntimeModule.gameLoadGameState(game, slot)
 
     assert.equal(ok, true)
-    assert.equal(game._rewindPtr > 0, true)
+    assert.equal(game._score, 12)
+    assert.equal(game._livePgesByIndex[0].life, 10)
+})
+
+test('autosave slot uses the rewind ring instead of the regular save-slot map', () => {
+    const game = createBaseGame({
+        _score: 12,
+    })
+
+    const okSave = gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    game._score = 99
+    game._livePgesByIndex[0].life = 1
+
+    const okLoad = gameRuntimeModule.gameLoadGameState(game, kAutoSaveSlot)
+
+    assert.equal(okSave, true)
+    assert.equal(okLoad, true)
     assert.equal(game._rewindLen, 0)
-    assert.equal(loadedFile, rewindFile)
-    assert.equal(rewindFile.offset, 0)
+    assert.equal(game._score, 12)
+    assert.equal(game._livePgesByIndex[0].life, 10)
+})
+
+test('autosave rewind restores extra live PGE runtime fields used by gameplay scripts', () => {
+    const game = createBaseGame()
+    game._livePgesByIndex[0].gunMode = 3
+
+    gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    game._livePgesByIndex[0].gunMode = 0
+
+    const ok = gameRuntimeModule.gameLoadGameState(game, kAutoSaveSlot)
+
+    assert.equal(ok, true)
+    assert.equal(game._livePgesByIndex[0].gunMode, 3)
+})
+
+test('autosave rewind clears pending signals instead of restoring stale message queues', () => {
+    const game = createBaseGame()
+    game._pendingSignalsByTargetPgeIndex.set(0, [{ senderPgeIndex: 48, signalId: 28 }])
+
+    gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    game._pendingSignalsByTargetPgeIndex.set(0, [{ senderPgeIndex: 99, signalId: 5 }])
+
+    const ok = gameRuntimeModule.gameLoadGameState(game, kAutoSaveSlot)
+
+    assert.equal(ok, true)
+    assert.equal(game._pendingSignalsByTargetPgeIndex.size, 0)
+})
+
+test('autosave rewind migrates legacy gun state from opcodeTempVar1 when gunVar is missing', () => {
+    const game = createBaseGame()
+    game._gunVar = 0
+    game._opcodeTempVar1 = 2
+
+    gameRuntimeModule.gameSaveGameState(game, kAutoSaveSlot)
+    const snapshot = game._rewindBuffer[game._rewindPtr]
+    delete snapshot.pge.gunVar
+
+    game._gunVar = 0
+    game._opcodeTempVar1 = 0
+
+    const ok = gameRuntimeModule.gameLoadGameState(game, kAutoSaveSlot)
+
+    assert.equal(ok, true)
+    assert.equal(game._gunVar, 2)
 })
 
 test('gameProcessActivePgesForFrame refreshes collision-grid coordinates before running entity logic', () => {
@@ -621,6 +817,7 @@ test('gameProcessActivePgesForFrame refreshes collision-grid coordinates before 
 
 test('gameMainLoop rebuilds frame state, loads the map, draws the frame, and handles inventory/back actions', async () => {
     const originals = {
+        gameSaveGameState: gameRuntimeModule.gameSaveGameState,
         gameUpdatePgeDirectionalInputState: gamePge.gameUpdatePgeDirectionalInputState,
         gameRebuildPgeCollisionStateForCurrentRoom: gamePge.gameRebuildPgeCollisionStateForCurrentRoom,
         gameRebuildActiveFramePgeList: gamePge.gameRebuildActiveFramePgeList,
@@ -654,7 +851,7 @@ test('gameMainLoop rebuilds frame state, loads the map, draws the frame, and han
     game._vid.updateScreen = async () => {
         calls.push('updateScreen')
     }
-    game.saveGameState = (slot) => {
+    gameRuntimeModule.gameSaveGameState = (_game, slot) => {
         calls.push(['saveGameState', slot])
     }
 
@@ -678,6 +875,9 @@ test('gameMainLoop rebuilds frame state, loads the map, draws the frame, and han
     try {
         await gameMainLoop(game)
     } finally {
+        Object.assign(gameRuntimeModule, {
+            gameSaveGameState: originals.gameSaveGameState,
+        })
         Object.assign(gamePge, {
             gameUpdatePgeDirectionalInputState: originals.gameUpdatePgeDirectionalInputState,
             gameRebuildPgeCollisionStateForCurrentRoom: originals.gameRebuildPgeCollisionStateForCurrentRoom,

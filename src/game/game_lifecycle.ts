@@ -1,5 +1,6 @@
 import { uint16Max } from '../core/game_constants'
 import type { Game } from './game'
+import { getGameServices } from './game_services'
 import { getGamePgeState, getGameSessionState, getGameUiState, getGameWorldState } from './game_state'
 import { gameClearStateRewind } from './game_world'
 
@@ -9,11 +10,12 @@ const maxStateSlot = 99
 export const roomOverlayDurationFrames = 90
 
 export function gameApplyTitleScreenSelection(game: Game) {
+    const { menu } = getGameServices(game)
     const ui = getGameUiState(game)
     const world = getGameWorldState(game)
     const session = getGameSessionState(game)
-    ui.skillLevel = game._menu._skill
-    world.currentLevel = game._menu._level
+    ui.skillLevel = typeof menu.skillLevel === 'number' ? menu.skillLevel : menu._skill
+    world.currentLevel = typeof menu.selectedLevel === 'number' ? menu.selectedLevel : menu._level
     session.skipNextLevelCutscene = true
     session.startedFromLevelSelect = true
 }
@@ -24,14 +26,15 @@ export function gameBeginPlaythrough(game: Game) {
 }
 
 export function gameBeginFrameLoop(game: Game) {
+    const { stub } = getGameServices(game)
     const session = getGameSessionState(game)
     session.endLoop = false
-    session.frameTimestamp = game._stub.getTimeStamp()
+    session.frameTimestamp = stub.getTimeStamp()
     session.saveTimestamp = session.frameTimestamp
 }
 
 export function gameCompleteFrameTiming(game: Game) {
-    getGameSessionState(game).frameTimestamp = game._stub.getTimeStamp()
+    getGameSessionState(game).frameTimestamp = getGameServices(game).stub.getTimeStamp()
 }
 
 export function gameEndLoop(game: Game) {
@@ -73,11 +76,12 @@ export function gameTickRoomOverlay(game: Game) {
 }
 
 export function gameResetLevelLifecycle(game: Game, startRoom: number) {
+    const { cut } = getGameServices(game)
     const world = getGameWorldState(game)
     const ui = getGameUiState(game)
     const pge = getGamePgeState(game)
     world.currentRoom = startRoom
-    game._cut.setDeathCutSceneId(uint16Max)
+    cut.setDeathCutSceneId(uint16Max)
     pge.opcodeTempVar2 = uint16Max
     world.deathCutsceneCounter = 0
     world.credits = 0
@@ -85,6 +89,7 @@ export function gameResetLevelLifecycle(game: Game, startRoom: number) {
     world.loadMap = true
     world.blinkingConradCounter = 0
     pge.shouldProcessCurrentPgeObjectNode = false
+    pge.gunVar = 0
     pge.opcodeTempVar1 = 0
     world.textToDisplay = uint16Max
     gameResetRoomOverlay(game)
@@ -97,7 +102,7 @@ export function gameQueueDeathCutscene(game: Game, counter: number, deathCutscen
     }
     world.deathCutsceneCounter = counter
     if (typeof deathCutsceneId === 'number') {
-        game._cut.setDeathCutSceneId(deathCutsceneId)
+        getGameServices(game).cut.setDeathCutSceneId(deathCutsceneId)
     }
     return true
 }
@@ -125,7 +130,7 @@ export function gameClearValidSaveState(game: Game) {
 }
 
 export function gameSetSaveTimestamp(game: Game) {
-    getGameSessionState(game).saveTimestamp = game._stub.getTimeStamp()
+    getGameSessionState(game).saveTimestamp = getGameServices(game).stub.getTimeStamp()
 }
 
 export function gameSetStateSlot(game: Game, slot: number) {

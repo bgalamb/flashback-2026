@@ -37,6 +37,14 @@ function attachInventoryGroupedGameState(game) {
     game.services = {
         get res() { return game._res },
         set res(value) { game._res = value },
+        get vid() { return game._vid },
+        set vid(value) { game._vid = value },
+        get mix() { return game._mix },
+        set mix(value) { game._mix = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+        get menu() { return game._menu },
+        set menu(value) { game._menu = value },
     }
     game.runtimeData = {
         get livePgesByIndex() { return game._livePgesByIndex },
@@ -61,20 +69,27 @@ function attachStoryGroupedGameState(game) {
     game.services = {
         get res() { return game._res },
         set res(value) { game._res = value },
+        get vid() { return game._vid },
+        set vid(value) { game._vid = value },
+        get mix() { return game._mix },
+        set mix(value) { game._mix = value },
+        get stub() { return game._stub },
+        set stub(value) { game._stub = value },
+        get menu() { return game._menu },
+        set menu(value) { game._menu = value },
     }
     return game
 }
 
 function createInventoryGame(overrides = {}) {
+    const textEncoder = new TextEncoder()
     const playerInput = createPlayerInput()
     const frontLayer = new Uint8Array(32)
     const tempLayer = new Uint8Array(32)
     frontLayer.fill(7)
     const drawIconCalls = []
-    const drawStringCalls = []
+    const drawStringLenCalls = []
     const videoDrawStringCalls = []
-    const playSoundCalls = []
-    let selectedPge = null
 
     const game = {
         _currentLevel: 1,
@@ -95,7 +110,7 @@ function createInventoryGame(overrides = {}) {
                 ],
             },
             getTextString(_level, textNum) {
-                return `ITEM_${textNum}`
+                return textEncoder.encode(`ITEM_${textNum}\0`)
             },
             getMenuString(id) {
                 return {
@@ -103,13 +118,25 @@ function createInventoryGame(overrides = {}) {
                     [LocaleData.Id.li13Easy + 1]: 'NORMAL',
                 }[id] || `text${id}`
             },
+            ui: {
+                icn: new Uint8Array(16),
+            },
+            audio: {
+                numSfx: 0,
+                sfxList: [],
+            },
         },
         _stub: {
             _pi: playerInput,
+            get input() {
+                return this._pi
+            },
             async sleep() {},
+            async processEvents() {},
         },
         _vid: {
             layers: {
+                w: 256,
                 frontLayer,
                 tempLayer,
                 layerSize: frontLayer.length,
@@ -132,30 +159,22 @@ function createInventoryGame(overrides = {}) {
             fullRefresh() {
                 this.fullRefreshCalls += 1
             },
+            pcDecodeicn(_icn, iconNum, buf) {
+                drawIconCalls.push(iconNum)
+                buf.fill(iconNum)
+            },
+            drawSpriteSub1ToFrontLayer() {},
+            markBlockAsDirty() {},
+            drawStringLen(...args) {
+                drawStringLenCalls.push(args)
+            },
             drawString(...args) {
                 videoDrawStringCalls.push(args)
             },
         },
-        drawIcon(iconNum, x, y, pal) {
-            drawIconCalls.push([iconNum, x, y, pal])
-        },
-        drawString(str, x, y, color, hcenter) {
-            drawStringCalls.push([str, x, y, color, hcenter])
-        },
-        playSound(sound, channel) {
-            playSoundCalls.push([sound, channel])
-        },
-        async inpUpdate() {},
-        setCurrentInventoryPge(pge) {
-            selectedPge = pge
-        },
         drawIconCalls,
-        drawStringCalls,
+        drawStringLenCalls,
         videoDrawStringCalls,
-        playSoundCalls,
-        get selectedPge() {
-            return selectedPge
-        },
     }
 
     Object.assign(game, overrides)
@@ -187,6 +206,9 @@ function createStoryGame(overrides = {}) {
             },
         },
         _res: {
+            ui: {
+                icn: new Uint8Array(16),
+            },
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0])
             },
@@ -198,11 +220,16 @@ function createStoryGame(overrides = {}) {
         renders: 42,
         _stub: {
             _pi: playerInput,
+            get input() {
+                return this._pi
+            },
             async sleep() {},
+            async processEvents() {},
         },
         _textToDisplay: 33,
         _vid: {
             layers: {
+                w: 256,
                 frontLayer,
                 tempLayer,
                 layerSize: frontLayer.length,
@@ -214,14 +241,16 @@ function createStoryGame(overrides = {}) {
                 this.layers.frontLayer.set(this.layers.tempLayer.subarray(0, this.layers.layerSize))
             },
             async updateScreen() {},
+            pcDecodeicn(_icn, iconNum, buf) {
+                drawIconCalls.push(iconNum)
+                buf.fill(iconNum)
+            },
+            drawSpriteSub1ToFrontLayer() {},
+            markBlockAsDirty() {},
             drawString(...args) {
                 videoDrawStringCalls.push(args)
             },
         },
-        drawIcon(iconNum, x, y, pal) {
-            drawIconCalls.push([iconNum, x, y, pal])
-        },
-        async inpUpdate() {},
         drawIconCalls,
         videoDrawStringCalls,
         voiceLoads,
@@ -237,7 +266,7 @@ test('gameHandleInventory draws the selected item overlay and picks the highligh
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inpUpdate = async () => {
+    game._stub.processEvents = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -246,20 +275,20 @@ test('gameHandleInventory draws the selected item overlay and picks the highligh
 
     await gameHandleInventory(game)
 
-    assert.deepEqual(game.playSoundCalls, [[66, 0], [66, 0]])
-    assert.equal(game.drawIconCalls.some(([icon]) => icon === 10), true)
-    assert.deepEqual(game.drawStringCalls, [['ITEM_101', 256, 189, 237, true]])
+    assert.equal(game.drawIconCalls.includes(10), true)
+    assert.equal(game.drawIconCalls.includes(76), true)
+    assert.deepEqual(game.drawStringLenCalls, [['ITEM_101', 8, 96, 189, 237]])
     assert.deepEqual(game.videoDrawStringCalls, [['5', 124, 197, 237]])
     assert.equal(game._vid.fullRefreshCalls, 1)
     assert.equal(game._stub._pi.backspace, false)
-    assert.equal(game.selectedPge, game._livePgesByIndex[1])
+    assert.deepEqual(game._inventoryItemIndicesByOwner.get(0), [1, 2])
 })
 
 test('gameHandleInventory toggles to the score view and draws score and level strings', async () => {
     const game = createInventoryGame()
     let iteration = 0
 
-    game.inpUpdate = async () => {
+    game._stub.processEvents = async () => {
         if (iteration === 0) {
             game._stub._pi.enter = true
         } else if (iteration === 1) {
@@ -277,6 +306,9 @@ test('gameHandleInventory toggles to the score view and draws score and level st
 test('gameDrawStoryTexts draws the speech icon and centered lines, then clears the active story text', async () => {
     const game = createStoryGame({
         _res: {
+            ui: {
+                icn: new Uint8Array(16),
+            },
             getGameString() {
                 return Uint8Array.from([72, 69, 76, 76, 79, 0x0A, 87, 79, 82, 76, 68, 0])
             },
@@ -288,7 +320,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
     })
     let iteration = 0
 
-    game.inpUpdate = async () => {
+    game._stub.processEvents = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         }
@@ -297,7 +329,7 @@ test('gameDrawStoryTexts draws the speech icon and centered lines, then clears t
 
     await gameDrawStoryTexts(game)
 
-    assert.deepEqual(game.drawIconCalls, [[12, 80, 8, 12]])
+    assert.deepEqual(game.drawIconCalls, [12])
     assert.deepEqual(game.videoDrawStringCalls, [
         ['HELLO', 68, 26, 232],
         ['WORLD', 68, 34, 232],
@@ -311,6 +343,9 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     const voiceBuffer = Uint8Array.from([1, 2, 3])
     const game = createStoryGame({
         _res: {
+            ui: {
+                icn: new Uint8Array(16),
+            },
             getGameString() {
                 return Uint8Array.from([
                     uint8Max, 0xED, 0,
@@ -326,7 +361,7 @@ test('gameDrawStoryTexts applies color control codes, plays voice, and restores 
     })
     let iteration = 0
 
-    game.inpUpdate = async () => {
+    game._stub.processEvents = async () => {
         if (iteration === 0) {
             game._stub._pi.backspace = true
         } else if (iteration === 1) {

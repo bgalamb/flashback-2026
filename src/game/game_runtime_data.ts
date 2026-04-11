@@ -1,14 +1,14 @@
 import type { AnimBufferState, AnimBuffers, LivePGE, LivePgeRegistry, PendingPgeSignal } from '../core/intern'
 import type { Game } from './game'
 
-type RuntimeRegistryState = {
+export type RuntimeRegistryState = {
     livePgesByIndex: LivePGE[]
     livePgeStore: LivePgeRegistry
     pendingSignalsByTargetPgeIndex: Map<number, PendingPgeSignal[]>
     inventoryItemIndicesByOwner: Map<number, number[]>
 }
 
-type RenderDataState = {
+export type RenderDataState = {
     animBuffer0State: AnimBufferState[]
     animBuffer1State: AnimBufferState[]
     animBuffer2State: AnimBufferState[]

@@ -1,6 +1,7 @@
 import {  Skill } from "../core/intern"
 import { LocaleData, Resource } from "../resource/resource"
-import { dirDown, dirUp, SystemStub } from "../platform/systemstub_web"
+import { dirDown, dirUp } from "../platform/system-port"
+import type { SystemPort } from "../platform/system-port"
 import {gamescreenH, gamescreenW, Video} from "../video/video"
 import { charW, charH, uint8Max } from '../core/game_constants'
 import { _gameLevels } from '../core/staticres'
@@ -24,7 +25,7 @@ class Menu {
     static menuOptionItemQuit = 6
 
     _res: Resource
-    _stub: SystemStub
+    _stub: SystemPort
     _vid: Video
 
     _currentScreen: number
@@ -41,7 +42,7 @@ class Menu {
     _charVar5: number
     _levelItems: Item[]
 
-    constructor(res: Resource, stub: SystemStub, vid: Video) {
+    constructor(res: Resource, stub: SystemPort, vid: Video) {
         this._res = res
         this._stub = stub
         this._vid = vid
@@ -51,6 +52,18 @@ class Menu {
             str: index,
             opt: index
         }))
+    }
+
+    get skillLevel() {
+        return this._skill
+    }
+
+    get selectedLevel() {
+        return this._level
+    }
+
+    get selectedOption() {
+        return this._selectedOption
     }
 
     initMenuItems() {
@@ -122,34 +135,34 @@ class Menu {
         const paneW = 21
         const paneH = 24
 
-        while (!this._stub._pi.quit) {
+        while (!this._stub.input.quit) {
             if (this._nextScreen === screenLevel) {
                 this._currentScreen = screenLevel
                 this._nextScreen = -1
             }
 
-            if (this._stub._pi.dirMask & dirUp) {
-                this._stub._pi.dirMask &= ~dirUp
+            if (this._stub.input.dirMask & dirUp) {
+                this._stub.input.dirMask &= ~dirUp
                 if (currentEntry !== 0) {
                     --currentEntry
                 } else {
                     currentEntry = this._levelItems.length - 1
                 }
             }
-            if (this._stub._pi.dirMask & dirDown) {
-                this._stub._pi.dirMask &= ~dirDown
+            if (this._stub.input.dirMask & dirDown) {
+                this._stub.input.dirMask &= ~dirDown
                 if (currentEntry !== this._levelItems.length - 1) {
                     ++currentEntry
                 } else {
                     currentEntry = 0
                 }
             }
-            if (this._stub._pi.escape) {
-                this._stub._pi.escape = false
+            if (this._stub.input.escape) {
+                this._stub.input.escape = false
                 return false
             }
-            if (this._stub._pi.enter) {
-                this._stub._pi.enter = false
+            if (this._stub.input.enter) {
+                this._stub.input.enter = false
                 this._level = this._levelItems[currentEntry].opt
                 return true
             }
@@ -193,7 +206,7 @@ class Menu {
         let quitLoop = false
         let currentEntry = 0
 
-        while (!quitLoop && !this._stub._pi.quit) {
+        while (!quitLoop && !this._stub.input.quit) {
     
             let selectedItem = -1
 
@@ -209,24 +222,24 @@ class Menu {
             }
 
             //Navigate up or down in the menu
-            if (this._stub._pi.dirMask & dirUp) {
-                this._stub._pi.dirMask &= ~dirUp
+            if (this._stub.input.dirMask & dirUp) {
+                this._stub.input.dirMask &= ~dirUp
                 if (currentEntry !== 0) {
                     --currentEntry
                 } else {
                     currentEntry = menuItemsCount - 1
                 }
             }
-            if (this._stub._pi.dirMask & dirDown) {
-                this._stub._pi.dirMask &= ~dirDown
+            if (this._stub.input.dirMask & dirDown) {
+                this._stub.input.dirMask &= ~dirDown
                 if (currentEntry !== menuItemsCount - 1) {
                     ++currentEntry
                 } else {
                     currentEntry = 0
                 }
             }
-            if (this._stub._pi.enter) {
-                this._stub._pi.enter = false
+            if (this._stub.input.enter) {
+                this._stub.input.enter = false
                 selectedItem = currentEntry
             }
             if (selectedItem !== -1) {
@@ -272,15 +285,15 @@ class Menu {
         do {
             await this._stub.sleep(eventsDelay)
             await this._stub.processEvents()
-            if (this._stub._pi.escape) {
-                this._stub._pi.escape = false
+            if (this._stub.input.escape) {
+                this._stub.input.escape = false
                 break
             }
-            if (this._stub._pi.enter) {
-                this._stub._pi.enter = false
+            if (this._stub.input.enter) {
+                this._stub.input.enter = false
                 break
             }
-        } while (!this._stub._pi.quit)
+        } while (!this._stub.input.quit)
     }
 
     drawString(str: string, y: number, x: number, color: number) {

@@ -55,6 +55,11 @@ test('lifecycle helpers update grouped state on real Game-shaped objects instead
         ui,
         session,
         pge,
+        services: {
+            get cut() {
+                return game._cut
+            },
+        },
         _currentRoom: 99,
         _loadMap: false,
         _credits: 88,

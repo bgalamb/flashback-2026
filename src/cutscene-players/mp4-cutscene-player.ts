@@ -1,17 +1,17 @@
 import { FileSystem } from '../resource/fs'
-import { SystemStub } from '../platform/systemstub_web'
+import type { SystemPort } from '../platform/system-port'
 
 class Mp4CutscenePlayer {
-    private _stub: SystemStub
+    private _stub: SystemPort
     private _fs: FileSystem
 
-    constructor(stub: SystemStub, fs: FileSystem) {
+    constructor(stub: SystemPort, fs: FileSystem) {
         this._stub = stub
         this._fs = fs
     }
 
     async play(videoPath: string): Promise<boolean> {
-        const canvas = this._stub && this._stub._canvas
+        const canvas = this._stub.getCanvasElement()
         if (!canvas) {
             throw new Error('Cannot play MPEG cutscene before the game canvas is initialized')
         }
@@ -91,10 +91,10 @@ class Mp4CutscenePlayer {
             const pollInput = async () => {
                 while (!settled) {
                     await this._stub.processEvents()
-                    if (this._stub._pi.backspace || this._stub._pi.escape) {
-                        console.log(`Mp4CutscenePlayer::play() interrupted by input backspace=${this._stub._pi.backspace} escape=${this._stub._pi.escape}`)
-                        this._stub._pi.backspace = false
-                        this._stub._pi.escape = false
+                    if (this._stub.input.backspace || this._stub.input.escape) {
+                        console.log(`Mp4CutscenePlayer::play() interrupted by input backspace=${this._stub.input.backspace} escape=${this._stub.input.escape}`)
+                        this._stub.input.backspace = false
+                        this._stub.input.escape = false
                         finish(false)
                         return
                     }

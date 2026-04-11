@@ -2,10 +2,12 @@ import type { InitPGE, LivePGE } from '../core/intern'
 import type { Game } from './game'
 import { ctDownRoom, ctLeftRoom, ctRightRoom, ctUpRoom, gamescreenW } from '../core/game_constants'
 import { initPgeFlagInCurrentRoomList, pgeFlagActive } from '../core/game_constants'
+import { kAutoSaveSlot } from './game'
 import { gameRequestMapReload } from './game_lifecycle'
 import { gameRebuildActiveRoomCollisionSlotLookup } from './game_collision'
+import { getGameServices } from './game_services'
 import { getRoomPges, getRuntimeRegistryState } from './game_runtime_data'
-import { getGameWorldState } from './game_state'
+import { getGameSessionState, getGameWorldState } from './game_state'
 
 type PgeTransitionLogger = (scope: string, message: string, pge?: LivePGE) => void
 
@@ -14,21 +16,22 @@ interface PgeRoomBoundaryCrossing {
 }
 
 function getPgeRoomBoundaryCrossing(game: Game, pge: LivePGE): PgeRoomBoundaryCrossing | null {
+    const { res } = getGameServices(game)
     if (pge.posX <= -10) {
         pge.posX += gamescreenW
-        return { roomLookup: game._res.level.ctData.subarray(ctLeftRoom) }
+        return { roomLookup: res.level.ctData.subarray(ctLeftRoom) }
     }
     if (pge.posX >= gamescreenW) {
         pge.posX -= gamescreenW
-        return { roomLookup: game._res.level.ctData.subarray(ctRightRoom) }
+        return { roomLookup: res.level.ctData.subarray(ctRightRoom) }
     }
     if (pge.posY < 0) {
         pge.posY += 216
-        return { roomLookup: game._res.level.ctData.subarray(ctUpRoom) }
+        return { roomLookup: res.level.ctData.subarray(ctUpRoom) }
     }
     if (pge.posY >= 216) {
         pge.posY -= 216
-        return { roomLookup: game._res.level.ctData.subarray(ctDownRoom) }
+        return { roomLookup: res.level.ctData.subarray(ctDownRoom) }
     }
     return null
 }
@@ -59,9 +62,10 @@ function activateNeighborRoomPges(game: Game, room: number, minY: number, label:
 }
 
 function activateRoomTransitionNeighbors(game: Game, currentRoom: number, log: PgeTransitionLogger) {
+    const { res } = getGameServices(game)
     activateCurrentRoomPges(game, currentRoom, log)
-    activateNeighborRoomPges(game, game._res.level.ctData[ctUpRoom + currentRoom], 48, 'upper-neighbor', log)
-    activateNeighborRoomPges(game, game._res.level.ctData[ctDownRoom + currentRoom], 176, 'lower-neighbor', log)
+    activateNeighborRoomPges(game, res.level.ctData[ctUpRoom + currentRoom], 48, 'upper-neighbor', log)
+    activateNeighborRoomPges(game, res.level.ctData[ctDownRoom + currentRoom], 176, 'lower-neighbor', log)
 }
 
 export function gameRelocatePgeToRoom(game: Game, pge: LivePGE, previousRoom: number, log: PgeTransitionLogger) {
@@ -90,6 +94,11 @@ export function gameRelocatePgeToRoom(game: Game, pge: LivePGE, previousRoom: nu
 
 export function gameHandlePgeRoomTransition(game: Game, pge: LivePGE, initPge: InitPGE, previousRoom: number, log: PgeTransitionLogger) {
     const world = getGameWorldState(game)
+    const isBoundaryCrossing = pge.posX <= -10 || pge.posX >= gamescreenW || pge.posY < 0 || pge.posY >= 216
+    if (pge.index === 0 && isBoundaryCrossing && getGameSessionState(game).autoSave) {
+        game.saveGameState(kAutoSaveSlot)
+        console.log(`[rewind-runtime] boundary autosave len=${game.rewind.len} ptr=${game.rewind.ptr} room=${pge.roomLocation} pos=(${pge.posX},${pge.posY})`)
+    }
     const crossing = getPgeRoomBoundaryCrossing(game, pge)
     if (!crossing) {
         gameRelocatePgeToRoom(game, pge, previousRoom, log)
