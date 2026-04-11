@@ -5,9 +5,24 @@ const dataDir = "DATA"
 const filesJsonPath = `${dataDir}/files.json`
 const levelsDir = `${dataDir}/levels`
 const roomPngPattern = /^(level\d+)-room\d+\.pixeldata\.png$/i
+const backLayerPngPattern = /^(level\d+)-room\d+-backlayer\.png$/i
+const frontLayerPngPattern = /^(level\d+)-room\d+-frontlayer\.png$/i
 const runtimeLevelDirPattern = /^level\d+(?:_\d+)?$/i
 const allowedPixelSlots = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB])
 const allowedNonEmptyPaletteBanks = new Set([0x0, 0x1, 0x2, 0x3, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD])
+
+function isSupportedRoomPngSize(width: number, height: number) {
+    if (width === gamescreenW && height === gamescreenH) {
+        return true
+    }
+    if (width <= gamescreenW || height <= gamescreenH) {
+        return false
+    }
+    if (width % gamescreenW !== 0 || height % gamescreenH !== 0) {
+        return false
+    }
+    return width / gamescreenW === height / gamescreenH
+}
 
 function walkFiles(rootDir: string, predicate: (filePath: string) => boolean) {
     const fs = require("fs")
@@ -39,6 +54,18 @@ function toRelativeDataPath(filePath: string) {
 }
 
 function getRuntimeRoomPngFiles() {
+    return getLevelPngFiles(roomPngPattern)
+}
+
+function getBackLayerPngFiles() {
+    return getLevelPngFiles(backLayerPngPattern)
+}
+
+function getFrontLayerPngFiles() {
+    return getLevelPngFiles(frontLayerPngPattern)
+}
+
+function getLevelPngFiles(pattern: RegExp) {
     const fs = require("fs")
     const path = require("path")
     const levelDirs = fs.readdirSync(levelsDir, { withFileTypes: true })
@@ -48,7 +75,7 @@ function getRuntimeRoomPngFiles() {
 
     const roomPngFiles: string[] = []
     for (const levelDir of levelDirs) {
-        roomPngFiles.push(...walkFiles(levelDir, (filePath: string) => roomPngPattern.test(path.basename(filePath))))
+        roomPngFiles.push(...walkFiles(levelDir, (filePath: string) => pattern.test(path.basename(filePath))))
     }
     return roomPngFiles
 }
@@ -77,8 +104,8 @@ async function validateMergedRoomPng(filePath: string) {
     const fs = require("fs")
     const png = await decodeIndexedPng(new Uint8Array(fs.readFileSync(filePath)))
 
-    if (png.width !== gamescreenW || png.height !== gamescreenH) {
-        throw new Error(`Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH}`)
+    if (!isSupportedRoomPngSize(png.width, png.height)) {
+        throw new Error(`Invalid room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH} or a matching integer hi-res upscale`)
     }
 
     for (let i = 0; i < png.pixels.length; ++i) {
@@ -97,12 +124,23 @@ async function validateMergedRoomPng(filePath: string) {
     }
 }
 
+async function validateLayerPngSize(filePath: string) {
+    const fs = require("fs")
+    const png = await decodeIndexedPng(new Uint8Array(fs.readFileSync(filePath)))
+
+    if (png.width !== gamescreenW || png.height !== gamescreenH) {
+        throw new Error(`Invalid layer PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH}`)
+    }
+}
+
 async function main() {
     const fs = require("fs")
     const path = require("path")
     const manifestEntries = getFilesManifestEntries()
     const manifestSet = new Set(manifestEntries)
     const runtimeRoomPngFiles = getRuntimeRoomPngFiles()
+    const backLayerPngFiles = getBackLayerPngFiles()
+    const frontLayerPngFiles = getFrontLayerPngFiles()
     const missingManifestEntries: string[] = []
 
     for (const filePath of runtimeRoomPngFiles) {
@@ -136,9 +174,18 @@ async function main() {
     for (const filePath of runtimeRoomPngFiles) {
         await validateMergedRoomPng(filePath)
     }
+    for (const filePath of backLayerPngFiles) {
+        await validateLayerPngSize(filePath)
+    }
+    for (const filePath of frontLayerPngFiles) {
+        await validateLayerPngSize(filePath)
+    }
 
     console.log(`Verified ${runtimeRoomPngFiles.length} merged room PNG assets`)
+    console.log(`Verified ${backLayerPngFiles.length} back-layer PNG assets`)
+    console.log(`Verified ${frontLayerPngFiles.length} front-layer PNG assets`)
     console.log("Verified DATA/files.json contains all runtime room PNGs")
+    console.log(`Verified all room PNG assets use ${gamescreenW}x${gamescreenH} or a matching integer hi-res upscale`)
     console.log("Verified merged room PNG pixel slots are limited to 0x0-0x3 and 0x8-0xB")
     console.log("Verified merged room PNG palettes only populate banks 0x0-0x3 and 0x8-0xD")
 }

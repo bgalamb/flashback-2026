@@ -7,6 +7,29 @@ const sourceBankCount = 4
 const colorsPerBank = 16
 const maxSourceColors = sourceBankCount * colorsPerBank
 
+function validateIndexedSourcePng(source: {
+    palette: Color[]
+    paletteAlpha: Uint8Array
+    pixels: Uint8Array
+}, inputPath: string) {
+    if (source.palette.length !== maxSourceColors) {
+        throw new Error(
+            `Invalid source PNG palette size for '${inputPath}': got ${source.palette.length} colors, expected exactly ${maxSourceColors} colors`
+        )
+    }
+    if (source.paletteAlpha.length !== maxSourceColors) {
+        throw new Error(
+            `Invalid source PNG alpha table for '${inputPath}': got ${source.paletteAlpha.length} entries, expected exactly ${maxSourceColors}`
+        )
+    }
+    for (let i = 0; i < source.pixels.length; ++i) {
+        const pixel = source.pixels[i]
+        if (pixel >= maxSourceColors) {
+            throw new Error(`Pixel ${i} uses palette index ${pixel}, expected an indexed PNG limited to 64 colors`)
+        }
+    }
+}
+
 function printUsage() {
     console.error(
         "Usage: npx ts-node --transpile-only ./src/tools/level-generator/remap_room_layer_from_indexed_png.ts <input.png> <back|front|pixeldata> <output.png>"
@@ -137,7 +160,16 @@ function writePixeldataPalette(sourcePalette: Color[], sourceAlpha: Uint8Array, 
 }
 
 async function remapRoomLayerFromIndexedPng(inputPath: string, layer: string, outputPath: string, options?: { logWrites?: boolean }) {
-    const input = await decodeIndexedPng(new Uint8Array(fs.readFileSync(inputPath)))
+    let input
+    try {
+        input = await decodeIndexedPng(new Uint8Array(fs.readFileSync(inputPath)))
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(
+            `Invalid source PNG '${inputPath}': expected an indexed PNG with exactly 64 colors (${message})`
+        )
+    }
+    validateIndexedSourcePng(input, inputPath)
     const compacted = compactSourcePalette(input.palette, input.paletteAlpha, input.pixels)
 
     const { palette, alpha } = buildOutputPalette()

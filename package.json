@@ -14,7 +14,7 @@
     "build:sound-effects-data": "ts-node --transpile-only ./src/copy-sound-effects-to-data.ts",
     "build:authored-level-assets": "ts-node --transpile-only ./src/level-generator/regenerate-authored-level-assets.ts",
     "dev": "npm run build:audio-worklet && npm run build:sound-effects-data && npm run build:authored-level-assets && npm run check:room-png-assets && npm run check:switch-door-platforms && ts-node fuse.ts",
-    "build": "rm -Rf dist && npm run build:audio-worklet && npm run build:sound-effects-data && npm run build:authored-level-assets && ts-node fuse-prod.ts && mkdir -p dist/js && cp src/audio/audio-processors.js dist/js/processors.js",
+    "build": "rm -Rf dist && npm run build:audio-worklet && npm run build:sound-effects-data && npm run build:authored-level-assets && npm run check:room-png-assets && npm run check:switch-door-platforms && ts-node fuse-prod.ts && mkdir -p dist/js && cp src/audio/audio-processors.js dist/js/processors.js",
     "check": "npm run check:ts && npm run build:sound-effects-data && npm run build:authored-level-assets && npm run check:room-png-assets && npm run check:switch-door-platforms",
     "check:ts": "tsc -p tsconfig.json --noEmit",
     "check:room-png-assets": "ts-node --transpile-only ./src/debugger/checks/check-room-png-assets.ts",

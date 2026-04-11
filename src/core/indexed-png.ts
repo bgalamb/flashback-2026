@@ -162,6 +162,14 @@ async function inflateZlib(data: Uint8Array) {
     } catch (_error) {
         // Fall through to generic inflate for non-stored streams.
     }
+    // In Node-based tooling we want deterministic decode support for PNGs
+    // authored outside this repo, such as override assets saved by editors.
+    try {
+        const zlib = require("zlib")
+        return new Uint8Array(zlib.inflateSync(Buffer.from(data)))
+    } catch (_error) {
+        // Fall through to stream-based inflate in browser-like runtimes.
+    }
     const globalWithStreams = globalThis as typeof globalThis & {
         DecompressionStream?: new(format: string) => {
             writable: WritableStream<Uint8Array>
@@ -193,8 +201,7 @@ async function inflateZlib(data: Uint8Array) {
         }
         return output
     }
-    const zlib = require("zlib")
-    return new Uint8Array(zlib.inflateSync(Buffer.from(data)))
+    throw new Error("No supported zlib inflate implementation is available")
 }
 
 function inflateStoredZlib(data: Uint8Array) {

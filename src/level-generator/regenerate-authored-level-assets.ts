@@ -1,5 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
+import { decodeIndexedPng } from "../core/indexed-png"
+import { gamescreenH, gamescreenW } from "../core/game_constants"
 import { CtArrayRebuilder } from "./ct-array-rebuilder"
 import { renderRoomLayersFromGrid } from "./render_room_layers_from_grid"
 import { mergeRoomLayerPng } from "./merge-room-layer-png"
@@ -7,6 +9,19 @@ import { remapRoomLayerFromIndexedPng } from "./remap_room_layer_from_indexed_pn
 
 const authoredCollisionRoot = path.join("src", "collisions")
 const runtimeLevelsRoot = path.join("DATA", "levels")
+
+function isSupportedGeneratedRoomPngSize(width: number, height: number) {
+    if (width === gamescreenW && height === gamescreenH) {
+        return true
+    }
+    if (width <= gamescreenW || height <= gamescreenH) {
+        return false
+    }
+    if (width % gamescreenW !== 0 || height % gamescreenH !== 0) {
+        return false
+    }
+    return width / gamescreenW === height / gamescreenH
+}
 
 function getAuthoredLevelDirs(rootDir: string) {
     if (!fs.existsSync(rootDir)) {
@@ -67,8 +82,25 @@ async function applyRoomPngOverrides(levelName: string, outputDir: string) {
         const overridePath = path.join(overrideDir, `${roomBase}.png`)
         const pixeldataPath = path.join(outputDir, `${roomBase}.pixeldata.png`)
         await remapRoomLayerFromIndexedPng(overridePath, "pixeldata", pixeldataPath, { logWrites: false })
+        console.log(`[authored-assets][override] ${levelName} room=${room} source=${path.relative(".", overridePath)} target=${path.relative(".", pixeldataPath)}`)
     }
     return rooms
+}
+
+async function validateGeneratedRoomPngSizes(outputDir: string, levelName: string) {
+    const roomPngFiles = fs.readdirSync(outputDir)
+        .filter((name) => new RegExp(`^${levelName}-room\\d+\\.pixeldata\\.png$`, "i").test(name))
+        .sort()
+
+    for (const fileName of roomPngFiles) {
+        const filePath = path.join(outputDir, fileName)
+        const png = await decodeIndexedPng(new Uint8Array(fs.readFileSync(filePath)))
+        if (!isSupportedGeneratedRoomPngSize(png.width, png.height)) {
+            throw new Error(`Invalid generated room PNG size for '${filePath}': got ${png.width}x${png.height}, expected ${gamescreenW}x${gamescreenH} or a matching integer hi-res upscale`)
+        }
+    }
+
+    return roomPngFiles.length
 }
 
 async function regenerateLevelAssets(levelName: string, collisionDir: string, outputDir: string) {
@@ -77,11 +109,13 @@ async function regenerateLevelAssets(levelName: string, collisionDir: string, ou
     const rendered = renderRoomLayersFromGrid(collisionDir, outputDir, "all")
     const mergedRooms = await mergeAllRuntimeRoomPngs(outputDir, levelName)
     const overrideRooms = await applyRoomPngOverrides(levelName, outputDir)
+    const validatedRoomCount = await validateGeneratedRoomPngSizes(outputDir, levelName)
     return {
         ctPath: path.join(outputDir, `${levelName}.ct.bin`),
         renderedRoomCount: rendered.rooms.length,
         mergedRoomCount: mergedRooms.length,
         overrideRoomCount: overrideRooms.length,
+        validatedRoomCount,
         outputDir,
     }
 }
@@ -98,7 +132,7 @@ async function main() {
         const outputDir = path.join(runtimeLevelsRoot, levelName)
         const result = await regenerateLevelAssets(levelName, collisionDir, outputDir)
         console.log(
-            `[authored-assets] ${levelName}: ct=${path.relative(".", result.ctPath)} rooms=${result.renderedRoomCount} merged=${result.mergedRoomCount} overrides=${result.overrideRoomCount} out=${path.relative(".", result.outputDir)}`
+            `[authored-assets] ${levelName}: ct=${path.relative(".", result.ctPath)} rooms=${result.renderedRoomCount} merged=${result.mergedRoomCount} overrides=${result.overrideRoomCount} validated=${result.validatedRoomCount} out=${path.relative(".", result.outputDir)}`
         )
     }
 }
