@@ -1,0 +1,16 @@
+[
+  {
+    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/app.03e3b4e9e.js",
+    "browserPath": "./app.03e3b4e9e.js",
+    "relativePath": "app.03e3b4e9e.js",
+    "type": "js",
+    "webIndexed": true
+  },
+  {
+    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/vendor.031db50e6.js",
+    "browserPath": "./vendor.031db50e6.js",
+    "relativePath": "vendor.031db50e6.js",
+    "type": "js",
+    "webIndexed": true
+  }
+]

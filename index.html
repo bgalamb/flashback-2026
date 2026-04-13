@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Flashback-Web</title>
+    <style type="text/css">
+		body {
+			display: flex;
+            font-family: sans-serif;
+			justify-content: center;
+			align-items: center;
+			flex-direction:column;
+		}
+
+        .fullscreen {
+            object-fit: contain;
+            position: fixed !important;
+            top: 0px !important;
+            right: 0px !important;
+            bottom: 0px !important;
+            left: 0px !important;
+            box-sizing: border-box !important;
+            min-width: 0px !important;
+            max-width: none !important;
+            min-height: 0px !important;
+            max-height: none !important;
+            width: 100% !important;
+            height: 100% !important;
+            transform: none !important;
+            margin: 0px !important;
+            background-color: black;
+        }
+
+        button {
+            font-size: 2rem;
+            margin: 2rem auto;
+            margin-left: 40%;
+        }
+
+        .main {
+            display: none;
+        }
+
+        .main > div {
+            justify-content: center;
+            padding: 3rem;
+            padding-top: 0;          
+        }
+
+        .visible {
+            display: block;            
+        }
+
+        .intro {
+            padding: 3rem;            
+        }
+
+        small ul {
+            list-style-type: none;
+            text-align: center;
+        }
+
+        .debug-panel {
+            margin: 1.5rem auto 0;
+            max-width: 42rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid #ccc;
+            border-radius: 0.75rem;
+            background: #f6f6f6;
+        }
+
+        .debug-panel h3 {
+            margin: 0 0 0.75rem;
+        }
+
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+            gap: 0.5rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .debug-grid label,
+        .debug-frame label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .debug-frame input {
+            width: 7rem;
+            padding: 0.25rem 0.4rem;
+        }
+    </style>
+    
+  </head>
+
+  <body>
+    <h2 style="text-align:center;">Flashback-Web: TypeScript port of Reminiscence</h2>
+    <div class="intro">
+        <p>
+            Flashback-Web is a TypeScript rewrite of the Flashback game, based on the source code of Reminiscence.<br />
+        </p>
+        <p>
+            This project currently only runs the free demo-version of Flashback DOS.<br /><br />
+            For more information and full source-code access, check the project's <a href="https://github.com/bgalamb/flashback-2026">GitHub page</a>.
+        </p>
+        <p>
+            If you want to play the full version of Flashback, it can be bought from <a href="https://www.gog.com/game/flashback">GOG</a>.
+        </p>
+        <p>
+            <button id="play">Play !</button>
+        </p>
+        <div class="debug-panel">
+            <h3>Debug Logging</h3>
+            <div class="debug-grid">
+                <label><input type="checkbox" data-debug-flag="collision" /> Collision</label>
+                <label><input type="checkbox" data-debug-flag="opcode" /> Opcode</label>
+                <label><input type="checkbox" data-debug-flag="pge" /> PGE</label>
+                <label><input type="checkbox" data-debug-flag="runtime" /> Runtime</label>
+                <label><input type="checkbox" data-debug-flag="session" /> Session</label>
+                <label><input type="checkbox" data-debug-flag="storyText" /> Story Text</label>
+                <label><input type="checkbox" data-debug-flag="world" /> World</label>
+            </div>
+            <div class="debug-frame">
+                <label>
+                    Trace after frame
+                    <input id="debug-start-frame" type="number" min="0" step="1" value="0" />
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <canvas id="root"></canvas>
+        <h4>Demo version of Flashback for DOS (press Tab to skip intro, see below for controls)</h4>
+        <div>
+            <div>
+                <h3>Controls:</h3>            
+                <ul>
+                    <li>Arrow Keys: move Conrad</li>
+                    <li>Enter: use the current inventory object</li>
+                    <li>Shift: talk / use / run / shoot</li>
+                    <li>Escape or o: display the options (ingame)</li>
+                    <li>Backspace or Tab: display the inventory / skip cutscene</li>
+                    <li>F / double-click: toggle fullscreen</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <small>
+        <ul>
+            <li>Source code: <a href="https://github.com/bgalamb/flashback-2026">GitHub</a></li>
+            <li>Flashback was developped by Delphine Software in 1992</li>
+            <li>Original Reminiscence source code written by <a href="http://cyxdown.free.fr/reminiscence/">Gregory Montoir</a></li>
+        </ul>
+    </small>
+    <script type="text/javascript" src="./app.03e3b4e9e.js"></script>
+<script type="text/javascript" src="./vendor.031db50e6.js"></script>
+  </body>
+</html>

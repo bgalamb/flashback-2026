@@ -1,0 +1,600 @@
+{
+  "source": "global.fib",
+  "numSfx": 66,
+  "soundEffects": [
+    {
+      "index": 0,
+      "offset": 59402,
+      "encodedLength": 3296,
+      "decodedLength": 6591,
+      "freq": 6000,
+      "peak": 30,
+      "file": "sound_effects/pcm_s8_files/output_0.pcm_u8"
+    },
+    {
+      "index": 1,
+      "offset": 62698,
+      "encodedLength": 1301,
+      "decodedLength": 2601,
+      "freq": 6000,
+      "peak": 36,
+      "file": "sound_effects/pcm_s8_files/output_1.pcm_u8"
+    },
+    {
+      "index": 2,
+      "offset": 63999,
+      "encodedLength": 797,
+      "decodedLength": 1593,
+      "freq": 6000,
+      "peak": 17,
+      "file": "sound_effects/pcm_s8_files/output_2.pcm_u8"
+    },
+    {
+      "index": 3,
+      "offset": 64796,
+      "encodedLength": 1008,
+      "decodedLength": 2015,
+      "freq": 6000,
+      "peak": 33,
+      "file": "sound_effects/pcm_s8_files/output_3.pcm_u8"
+    },
+    {
+      "index": 4,
+      "offset": 65804,
+      "encodedLength": 1820,
+      "decodedLength": 3639,
+      "freq": 6000,
+      "peak": 37,
+      "file": "sound_effects/pcm_s8_files/output_4.pcm_u8"
+    },
+    {
+      "index": 5,
+      "offset": 67624,
+      "encodedLength": 3481,
+      "decodedLength": 6961,
+      "freq": 6000,
+      "peak": 32,
+      "file": "sound_effects/pcm_s8_files/output_5.pcm_u8"
+    },
+    {
+      "index": 6,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 7,
+      "offset": 71105,
+      "encodedLength": 2700,
+      "decodedLength": 5399,
+      "freq": 6000,
+      "peak": 37,
+      "file": "sound_effects/pcm_s8_files/output_7.pcm_u8"
+    },
+    {
+      "index": 8,
+      "offset": 73805,
+      "encodedLength": 3804,
+      "decodedLength": 7607,
+      "freq": 6000,
+      "peak": 32,
+      "file": "sound_effects/pcm_s8_files/output_8.pcm_u8"
+    },
+    {
+      "index": 9,
+      "offset": 77609,
+      "encodedLength": 946,
+      "decodedLength": 1891,
+      "freq": 6000,
+      "peak": 20,
+      "file": "sound_effects/pcm_s8_files/output_9.pcm_u8"
+    },
+    {
+      "index": 10,
+      "offset": 78555,
+      "encodedLength": 151,
+      "decodedLength": 301,
+      "freq": 6000,
+      "peak": 1,
+      "file": "sound_effects/pcm_s8_files/output_10.pcm_u8"
+    },
+    {
+      "index": 11,
+      "offset": 78706,
+      "encodedLength": 1167,
+      "decodedLength": 2333,
+      "freq": 6000,
+      "peak": 26,
+      "file": "sound_effects/pcm_s8_files/output_11.pcm_u8"
+    },
+    {
+      "index": 12,
+      "offset": 79873,
+      "encodedLength": 2615,
+      "decodedLength": 5229,
+      "freq": 6000,
+      "peak": 23,
+      "file": "sound_effects/pcm_s8_files/output_12.pcm_u8"
+    },
+    {
+      "index": 13,
+      "offset": 82488,
+      "encodedLength": 3867,
+      "decodedLength": 7733,
+      "freq": 6000,
+      "peak": 31,
+      "file": "sound_effects/pcm_s8_files/output_13.pcm_u8"
+    },
+    {
+      "index": 14,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 15,
+      "offset": 86355,
+      "encodedLength": 1051,
+      "decodedLength": 2101,
+      "freq": 6000,
+      "peak": 32,
+      "file": "sound_effects/pcm_s8_files/output_15.pcm_u8"
+    },
+    {
+      "index": 16,
+      "offset": 87406,
+      "encodedLength": 2945,
+      "decodedLength": 5889,
+      "freq": 6000,
+      "peak": 30,
+      "file": "sound_effects/pcm_s8_files/output_16.pcm_u8"
+    },
+    {
+      "index": 17,
+      "offset": 90351,
+      "encodedLength": 1457,
+      "decodedLength": 2913,
+      "freq": 6000,
+      "peak": 27,
+      "file": "sound_effects/pcm_s8_files/output_17.pcm_u8"
+    },
+    {
+      "index": 18,
+      "offset": 91808,
+      "encodedLength": 4636,
+      "decodedLength": 9271,
+      "freq": 6000,
+      "peak": 29,
+      "file": "sound_effects/pcm_s8_files/output_18.pcm_u8"
+    },
+    {
+      "index": 19,
+      "offset": 96444,
+      "encodedLength": 3203,
+      "decodedLength": 6405,
+      "freq": 6000,
+      "peak": 20,
+      "file": "sound_effects/pcm_s8_files/output_19.pcm_u8"
+    },
+    {
+      "index": 20,
+      "offset": 99647,
+      "encodedLength": 1177,
+      "decodedLength": 2353,
+      "freq": 6000,
+      "peak": 22,
+      "file": "sound_effects/pcm_s8_files/output_20.pcm_u8"
+    },
+    {
+      "index": 21,
+      "offset": 100824,
+      "encodedLength": 1659,
+      "decodedLength": 3317,
+      "freq": 6000,
+      "peak": 38,
+      "file": "sound_effects/pcm_s8_files/output_21.pcm_u8"
+    },
+    {
+      "index": 22,
+      "offset": 102483,
+      "encodedLength": 2743,
+      "decodedLength": 5485,
+      "freq": 6000,
+      "peak": 36,
+      "file": "sound_effects/pcm_s8_files/output_22.pcm_u8"
+    },
+    {
+      "index": 23,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 24,
+      "offset": 105226,
+      "encodedLength": 2133,
+      "decodedLength": 4265,
+      "freq": 6000,
+      "peak": 20,
+      "file": "sound_effects/pcm_s8_files/output_24.pcm_u8"
+    },
+    {
+      "index": 25,
+      "offset": 107359,
+      "encodedLength": 2249,
+      "decodedLength": 4497,
+      "freq": 6000,
+      "peak": 38,
+      "file": "sound_effects/pcm_s8_files/output_25.pcm_u8"
+    },
+    {
+      "index": 26,
+      "offset": 109608,
+      "encodedLength": 838,
+      "decodedLength": 1675,
+      "freq": 6000,
+      "peak": 9,
+      "file": "sound_effects/pcm_s8_files/output_26.pcm_u8"
+    },
+    {
+      "index": 27,
+      "offset": 110446,
+      "encodedLength": 996,
+      "decodedLength": 1991,
+      "freq": 6000,
+      "peak": 15,
+      "file": "sound_effects/pcm_s8_files/output_27.pcm_u8"
+    },
+    {
+      "index": 28,
+      "offset": 111442,
+      "encodedLength": 2733,
+      "decodedLength": 5465,
+      "freq": 6000,
+      "peak": 22,
+      "file": "sound_effects/pcm_s8_files/output_28.pcm_u8"
+    },
+    {
+      "index": 29,
+      "offset": 114175,
+      "encodedLength": 537,
+      "decodedLength": 1073,
+      "freq": 6000,
+      "peak": 24,
+      "file": "sound_effects/pcm_s8_files/output_29.pcm_u8"
+    },
+    {
+      "index": 30,
+      "offset": 114712,
+      "encodedLength": 2650,
+      "decodedLength": 5299,
+      "freq": 6000,
+      "peak": 26,
+      "file": "sound_effects/pcm_s8_files/output_30.pcm_u8"
+    },
+    {
+      "index": 31,
+      "offset": 117362,
+      "encodedLength": 4584,
+      "decodedLength": 9167,
+      "freq": 6000,
+      "peak": 24,
+      "file": "sound_effects/pcm_s8_files/output_31.pcm_u8"
+    },
+    {
+      "index": 32,
+      "offset": 121946,
+      "encodedLength": 1922,
+      "decodedLength": 3843,
+      "freq": 6000,
+      "peak": 18,
+      "file": "sound_effects/pcm_s8_files/output_32.pcm_u8"
+    },
+    {
+      "index": 33,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 34,
+      "offset": 123868,
+      "encodedLength": 1015,
+      "decodedLength": 2029,
+      "freq": 6000,
+      "peak": 22,
+      "file": "sound_effects/pcm_s8_files/output_34.pcm_u8"
+    },
+    {
+      "index": 35,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 36,
+      "offset": 124883,
+      "encodedLength": 2484,
+      "decodedLength": 4967,
+      "freq": 6000,
+      "peak": 22,
+      "file": "sound_effects/pcm_s8_files/output_36.pcm_u8"
+    },
+    {
+      "index": 37,
+      "offset": 127367,
+      "encodedLength": 4535,
+      "decodedLength": 9069,
+      "freq": 6000,
+      "peak": 22,
+      "file": "sound_effects/pcm_s8_files/output_37.pcm_u8"
+    },
+    {
+      "index": 38,
+      "offset": 131902,
+      "encodedLength": 1774,
+      "decodedLength": 3547,
+      "freq": 6000,
+      "peak": 17,
+      "file": "sound_effects/pcm_s8_files/output_38.pcm_u8"
+    },
+    {
+      "index": 39,
+      "offset": 133676,
+      "encodedLength": 1043,
+      "decodedLength": 2085,
+      "freq": 6000,
+      "peak": 8,
+      "file": "sound_effects/pcm_s8_files/output_39.pcm_u8"
+    },
+    {
+      "index": 40,
+      "offset": 134719,
+      "encodedLength": 942,
+      "decodedLength": 1883,
+      "freq": 6000,
+      "peak": 9,
+      "file": "sound_effects/pcm_s8_files/output_40.pcm_u8"
+    },
+    {
+      "index": 41,
+      "offset": 135661,
+      "encodedLength": 365,
+      "decodedLength": 729,
+      "freq": 6000,
+      "peak": 5,
+      "file": "sound_effects/pcm_s8_files/output_41.pcm_u8"
+    },
+    {
+      "index": 42,
+      "offset": 136026,
+      "encodedLength": 291,
+      "decodedLength": 581,
+      "freq": 6000,
+      "peak": 12,
+      "file": "sound_effects/pcm_s8_files/output_42.pcm_u8"
+    },
+    {
+      "index": 43,
+      "offset": 136317,
+      "encodedLength": 300,
+      "decodedLength": 599,
+      "freq": 6000,
+      "peak": 5,
+      "file": "sound_effects/pcm_s8_files/output_43.pcm_u8"
+    },
+    {
+      "index": 44,
+      "offset": 136617,
+      "encodedLength": 155,
+      "decodedLength": 309,
+      "freq": 6000,
+      "peak": 3,
+      "file": "sound_effects/pcm_s8_files/output_44.pcm_u8"
+    },
+    {
+      "index": 45,
+      "offset": 136772,
+      "encodedLength": 169,
+      "decodedLength": 337,
+      "freq": 6000,
+      "peak": 3,
+      "file": "sound_effects/pcm_s8_files/output_45.pcm_u8"
+    },
+    {
+      "index": 46,
+      "offset": 136941,
+      "encodedLength": 977,
+      "decodedLength": 1953,
+      "freq": 6000,
+      "peak": 18,
+      "file": "sound_effects/pcm_s8_files/output_46.pcm_u8"
+    },
+    {
+      "index": 47,
+      "offset": 137918,
+      "encodedLength": 1036,
+      "decodedLength": 2071,
+      "freq": 6000,
+      "peak": 18,
+      "file": "sound_effects/pcm_s8_files/output_47.pcm_u8"
+    },
+    {
+      "index": 48,
+      "offset": 138954,
+      "encodedLength": 2272,
+      "decodedLength": 4543,
+      "freq": 6000,
+      "peak": 16,
+      "file": "sound_effects/pcm_s8_files/output_48.pcm_u8"
+    },
+    {
+      "index": 49,
+      "offset": 141226,
+      "encodedLength": 2009,
+      "decodedLength": 4017,
+      "freq": 6000,
+      "peak": 5,
+      "file": "sound_effects/pcm_s8_files/output_49.pcm_u8"
+    },
+    {
+      "index": 50,
+      "offset": 143235,
+      "encodedLength": 1518,
+      "decodedLength": 3035,
+      "freq": 6000,
+      "peak": 26,
+      "file": "sound_effects/pcm_s8_files/output_50.pcm_u8"
+    },
+    {
+      "index": 51,
+      "offset": 144753,
+      "encodedLength": 1814,
+      "decodedLength": 3627,
+      "freq": 6000,
+      "peak": 23,
+      "file": "sound_effects/pcm_s8_files/output_51.pcm_u8"
+    },
+    {
+      "index": 52,
+      "offset": 146567,
+      "encodedLength": 1301,
+      "decodedLength": 2601,
+      "freq": 6000,
+      "peak": 36,
+      "file": "sound_effects/pcm_s8_files/output_52.pcm_u8"
+    },
+    {
+      "index": 53,
+      "offset": 147868,
+      "encodedLength": 537,
+      "decodedLength": 1073,
+      "freq": 6000,
+      "peak": 24,
+      "file": "sound_effects/pcm_s8_files/output_53.pcm_u8"
+    },
+    {
+      "index": 54,
+      "offset": 148405,
+      "encodedLength": 351,
+      "decodedLength": 701,
+      "freq": 6000,
+      "peak": 16,
+      "file": "sound_effects/pcm_s8_files/output_54.pcm_u8"
+    },
+    {
+      "index": 55,
+      "offset": 148756,
+      "encodedLength": 4175,
+      "decodedLength": 8349,
+      "freq": 6000,
+      "peak": 38,
+      "file": "sound_effects/pcm_s8_files/output_55.pcm_u8"
+    },
+    {
+      "index": 56,
+      "offset": 152931,
+      "encodedLength": 1682,
+      "decodedLength": 3363,
+      "freq": 6000,
+      "peak": 31,
+      "file": "sound_effects/pcm_s8_files/output_56.pcm_u8"
+    },
+    {
+      "index": 57,
+      "offset": 154613,
+      "encodedLength": 447,
+      "decodedLength": 893,
+      "freq": 6000,
+      "peak": 29,
+      "file": "sound_effects/pcm_s8_files/output_57.pcm_u8"
+    },
+    {
+      "index": 58,
+      "offset": 155060,
+      "encodedLength": 762,
+      "decodedLength": 1523,
+      "freq": 6000,
+      "peak": 18,
+      "file": "sound_effects/pcm_s8_files/output_58.pcm_u8"
+    },
+    {
+      "index": 59,
+      "offset": 155822,
+      "encodedLength": 606,
+      "decodedLength": 1211,
+      "freq": 6000,
+      "peak": 12,
+      "file": "sound_effects/pcm_s8_files/output_59.pcm_u8"
+    },
+    {
+      "index": 60,
+      "offset": 156428,
+      "encodedLength": 114,
+      "decodedLength": 227,
+      "freq": 6000,
+      "peak": 31,
+      "file": "sound_effects/pcm_s8_files/output_60.pcm_u8"
+    },
+    {
+      "index": 61,
+      "offset": 156542,
+      "encodedLength": 980,
+      "decodedLength": 1959,
+      "freq": 6000,
+      "peak": 25,
+      "file": "sound_effects/pcm_s8_files/output_61.pcm_u8"
+    },
+    {
+      "index": 62,
+      "offset": 157522,
+      "encodedLength": 334,
+      "decodedLength": 667,
+      "freq": 6000,
+      "peak": 8,
+      "file": "sound_effects/pcm_s8_files/output_62.pcm_u8"
+    },
+    {
+      "index": 63,
+      "offset": 157856,
+      "encodedLength": 1412,
+      "decodedLength": 2823,
+      "freq": 6000,
+      "peak": 15,
+      "file": "sound_effects/pcm_s8_files/output_63.pcm_u8"
+    },
+    {
+      "index": 64,
+      "offset": 0,
+      "encodedLength": 0,
+      "decodedLength": 0,
+      "freq": 6000,
+      "peak": 0,
+      "file": null
+    },
+    {
+      "index": 65,
+      "offset": 159268,
+      "encodedLength": 1606,
+      "decodedLength": 3211,
+      "freq": 6000,
+      "peak": 34,
+      "file": "sound_effects/pcm_s8_files/output_65.pcm_u8"
+    }
+  ]
+}
