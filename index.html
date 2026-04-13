@@ -92,6 +92,22 @@
             width: 7rem;
             padding: 0.25rem 0.4rem;
         }
+
+        .startup-error {
+            display: none;
+            margin: 1rem auto 0;
+            max-width: 42rem;
+            padding: 0.9rem 1rem;
+            border: 1px solid #b42318;
+            border-radius: 0.75rem;
+            background: #fef3f2;
+            color: #7a271a;
+            white-space: pre-wrap;
+        }
+
+        .startup-error.visible {
+            display: block;
+        }
     </style>
     
   </head>
@@ -112,6 +128,7 @@
         <p>
             <button id="play">Play !</button>
         </p>
+        <div id="startup-error" class="startup-error" role="alert"></div>
         <div class="debug-panel">
             <h3>Debug Logging</h3>
             <div class="debug-grid">
@@ -155,7 +172,7 @@
             <li>Original Reminiscence source code written by <a href="http://cyxdown.free.fr/reminiscence/">Gregory Montoir</a></li>
         </ul>
     </small>
-    <script type="text/javascript" src="./app.01a45b73e.js"></script>
-<script type="text/javascript" src="./vendor.049dc8d39.js"></script>
+    <script type="text/javascript" src="./app.6ce3be07.js"></script>
+<script type="text/javascript" src="./vendor.172b4bdb.js"></script>
   </body>
 </html>
