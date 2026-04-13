@@ -44,8 +44,8 @@ const objFlagIncLife = 0x04
 const objFlagSetDead = 0x08
 
 const configDefaults = {
-  // 'https://warpdesign.github.io/flashback-web/demo-data'
-  datapath: "http://localhost:4445/DATA",
+  // Use a relative asset path so the production build works from GitHub Pages subpaths.
+  datapath: "DATA",
   savepath: "",
   levelnum: 7,
   fullscreen: false,
