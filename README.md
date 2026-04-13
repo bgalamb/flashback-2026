@@ -12,12 +12,33 @@ npm run build
 npm run check
 ```
 
+`npm run build` now produces a self-contained `dist/` directory for static hosting, including `DATA/`, the audio worklet bundle, and a `.nojekyll` marker for GitHub Pages.
+
 ## Project Areas
 
 - `src/` contains the TypeScript runtime, gameplay logic, and helper tooling.
 - `DATA/` contains level data, generated runtime assets, and legacy source assets used by exporters/rebuilders.
 - `dist/` contains build output.
 - `out/` contains generated inspection/export output.
+
+## GitHub Pages
+
+The repository is set up for a stable public site plus PR previews:
+
+- pushes to `main` deploy the game to `https://bgalamb.github.io/flashback-2026/`
+- pull requests from branches in this repository deploy previews to `https://bgalamb.github.io/flashback-2026/pr-<number>/`
+
+To enable this in GitHub:
+
+1. Go to `Settings` -> `Pages`.
+2. Set `Source` to `Deploy from a branch`.
+3. Choose the `gh-pages` branch and `/ (root)`.
+4. In `Settings` -> `Actions` -> `General`, make sure workflows have read/write permission for `GITHUB_TOKEN`.
+
+Notes:
+
+- PR previews are only published for branches in this repository. Fork PRs are skipped for safety.
+- The production deploy preserves `pr-*` folders on the `gh-pages` branch so previews continue to work after `main` updates.
 
 ## Documentation Index
 
