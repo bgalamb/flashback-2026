@@ -1,15 +1,15 @@
 [
   {
-    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/app.03e3b4e9e.js",
-    "browserPath": "./app.03e3b4e9e.js",
-    "relativePath": "app.03e3b4e9e.js",
+    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/app.01a45b73e.js",
+    "browserPath": "./app.01a45b73e.js",
+    "relativePath": "app.01a45b73e.js",
     "type": "js",
     "webIndexed": true
   },
   {
-    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/vendor.031db50e6.js",
-    "browserPath": "./vendor.031db50e6.js",
-    "relativePath": "vendor.031db50e6.js",
+    "absPath": "/home/runner/work/flashback-2026/flashback-2026/dist/vendor.049dc8d39.js",
+    "browserPath": "./vendor.049dc8d39.js",
+    "relativePath": "vendor.049dc8d39.js",
     "type": "js",
     "webIndexed": true
   }
