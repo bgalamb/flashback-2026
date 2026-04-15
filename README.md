@@ -1,7 +1,16 @@
 # flashback-web
 
 This repository contains the web/TypeScript version of *Flashback*, along with the game data, build scripts, and debugging/export helpers used to inspect and regenerate runtime assets.
+*It's a full rewrite of the engine and the underlying game data.*
 
+It hasn't been easier to add new levels! :) They will come soon.
+
+The game is available at https://bgalamb.github.io/flashback-2026/.
+The game is a work in progress and is not yet complete.
+It's is based on the works previously done 
+- https://deepwiki.com/chermenin/REminiscence/3.2-game-engine-core
+- https://github.com/warpdesign/flashback-web and https://warpdesign.github.io/flashback-web/
+- https://cyxx.github.io/dpoly_js/
 ## Quick Start
 
 Install dependencies if needed, then use the common scripts from the repository root:

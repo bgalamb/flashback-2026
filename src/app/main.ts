@@ -106,13 +106,42 @@ const createMain = (dependencies: MainDependencies = defaultMainDependencies) =>
 
 const main = createMain()
 
+const toErrorMessage = (error: unknown) => {
+    if (error instanceof Error) {
+        return error.stack || error.message
+    }
+    return String(error)
+}
+
+const showStartupError = (
+    doc: Pick<Document, 'getElementById'> = document,
+    message: string
+) => {
+    const errorElement = doc.getElementById('startup-error') as HTMLElement | null
+    if (!errorElement) {
+        return
+    }
+    errorElement.textContent = `Startup error:\n${message}`
+    errorElement.classList.add('visible')
+}
+
+const clearStartupError = (doc: Pick<Document, 'getElementById'> = document) => {
+    const errorElement = doc.getElementById('startup-error') as HTMLElement | null
+    if (!errorElement) {
+        return
+    }
+    errorElement.textContent = ''
+    errorElement.classList.remove('visible')
+}
+
 const bindPlayButton = (doc: Pick<Document, 'getElementById' | 'querySelector'> = document, startGame = main) => {
     const playButton = doc.getElementById('play')
     if (!playButton) {
         return
     }
 
-    playButton.addEventListener('click', () => {
+    playButton.addEventListener('click', async () => {
+        clearStartupError(doc)
         const intro = doc.querySelector('.intro') as HTMLElement | null
         const mainContainer = doc.querySelector('.main') as HTMLElement | null
         if (intro) {
@@ -121,7 +150,19 @@ const bindPlayButton = (doc: Pick<Document, 'getElementById' | 'querySelector'> 
         if (mainContainer) {
             mainContainer.classList.add('visible')
         }
-        startGame()
+        try {
+            await startGame()
+        } catch (error) {
+            const message = toErrorMessage(error)
+            console.error('Game startup failed', error)
+            showStartupError(doc, message)
+            if (intro) {
+                intro.style.display = ''
+            }
+            if (mainContainer) {
+                mainContainer.classList.remove('visible')
+            }
+        }
     })
 }
 
@@ -129,4 +170,4 @@ if (typeof document !== 'undefined') {
     bindPlayButton()
 }
 
-export { bindPlayButton, createMain, getDebugConfigFromDocument, initOptions, main, parseScaler }
+export { bindPlayButton, clearStartupError, createMain, getDebugConfigFromDocument, initOptions, main, parseScaler, showStartupError }
