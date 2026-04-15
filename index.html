@@ -113,7 +113,7 @@
   </head>
 
   <body>
-    <h2 style="text-align:center;">Flashback-Web: TypeScript port of Reminiscence</h2>
+    <h2 style="text-align:center;">Flashback-2026: TypeScript rewrite of c++ Reminiscence and typescript port</h2>
     <div class="intro">
         <p>
             Flashback-Web is a TypeScript rewrite of the Flashback game, based on the source code of Reminiscence.<br />
@@ -123,31 +123,9 @@
             For more information and full source-code access, check the project's <a href="https://github.com/bgalamb/flashback-2026">GitHub page</a>.
         </p>
         <p>
-            If you want to play the full version of Flashback, it can be bought from <a href="https://www.gog.com/game/flashback">GOG</a>.
-        </p>
-        <p>
             <button id="play">Play !</button>
         </p>
-        <div id="startup-error" class="startup-error" role="alert"></div>
-        <div class="debug-panel">
-            <h3>Debug Logging</h3>
-            <div class="debug-grid">
-                <label><input type="checkbox" data-debug-flag="collision" /> Collision</label>
-                <label><input type="checkbox" data-debug-flag="opcode" /> Opcode</label>
-                <label><input type="checkbox" data-debug-flag="pge" /> PGE</label>
-                <label><input type="checkbox" data-debug-flag="runtime" /> Runtime</label>
-                <label><input type="checkbox" data-debug-flag="session" /> Session</label>
-                <label><input type="checkbox" data-debug-flag="storyText" /> Story Text</label>
-                <label><input type="checkbox" data-debug-flag="world" /> World</label>
-            </div>
-            <div class="debug-frame">
-                <label>
-                    Trace after frame
-                    <input id="debug-start-frame" type="number" min="0" step="1" value="0" />
-                </label>
-            </div>
-        </div>
-    </div>
+
     <div class="main">
         <canvas id="root"></canvas>
         <h4>Demo version of Flashback for DOS (press Tab to skip intro, see below for controls)</h4>
@@ -160,7 +138,6 @@
                     <li>Shift: talk / use / run / shoot</li>
                     <li>Escape or o: display the options (ingame)</li>
                     <li>Backspace or Tab: display the inventory / skip cutscene</li>
-                    <li>F / double-click: toggle fullscreen</li>
                 </ul>
             </div>
         </div>
@@ -168,11 +145,11 @@
     <small>
         <ul>
             <li>Source code: <a href="https://github.com/bgalamb/flashback-2026">GitHub</a></li>
-            <li>Flashback was developped by Delphine Software in 1992</li>
+            <li>Flashback was originally developped by Delphine Software in 1992</li>
             <li>Original Reminiscence source code written by <a href="http://cyxdown.free.fr/reminiscence/">Gregory Montoir</a></li>
         </ul>
     </small>
-    <script type="text/javascript" src="./app.6ce3be07.js"></script>
-<script type="text/javascript" src="./vendor.172b4bdb.js"></script>
+    <script type="text/javascript" src="./app.06eadadcc.js"></script>
+<script type="text/javascript" src="./vendor.22d8b146.js"></script>
   </body>
 </html>
